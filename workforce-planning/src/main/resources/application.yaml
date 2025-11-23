@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: workforce-planning
+
+datasource:
+  url: jdbc:postgresql://localhost:5432/workforce_db
+  username: postgres
+  password: postgres
+  driver-class-name: org.postgresql.Driver
+
+jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+
+zeebe:
+  client:
+    broker:
+      contactPoint: 127.0.0.1:26500  # Local Zeebe broker
+    security:
+      plaintext: true
