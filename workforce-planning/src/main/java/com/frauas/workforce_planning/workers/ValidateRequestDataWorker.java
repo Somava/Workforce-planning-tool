@@ -1,8 +1,8 @@
-package com.frauas.workforce_planning;
+package com.frauas.workforce_planning.workers;
 
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
-import io.camunda.spring.client.annotation.JobWorker;
+import io.camunda.zeebe.spring.client.annotation.JobWorker;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
