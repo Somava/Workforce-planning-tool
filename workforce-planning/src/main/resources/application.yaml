@@ -2,20 +2,33 @@ spring:
   application:
     name: workforce-planning
 
-datasource:
-  url: jdbc:postgresql://localhost:5432/workforce_db
-  username: postgres
-  password: postgres
-  driver-class-name: org.postgresql.Driver
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
 
-jpa:
-  hibernate:
-    ddl-auto: update
-  show-sql: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
 
-zeebe:
+camunda:
   client:
-    broker:
-      contactPoint: 127.0.0.1:26500  # Local Zeebe broker
-    security:
-      plaintext: true
+    mode: saas
+    auth:
+      client-id: ${CAMUNDA_CLIENT_ID}
+      client-secret: ${CAMUNDA_CLIENT_SECRET}
+      region: ${CAMUNDA_REGION}
+      cluster-id: ${CAMUNDA_CLUSTER_ID}
+    zeebe:
+      gateway-url: https://${CAMUNDA_CLUSTER_ID}.${CAMUNDA_REGION}.zeebe.camunda.io
+      base-url: https://${CAMUNDA_REGION}.zeebe.camunda.io/${CAMUNDA_CLUSTER_ID}
+    operate:
+      base-url: https://${CAMUNDA_REGION}.operate.camunda.io/${CAMUNDA_CLUSTER_ID}
+    tasklist:
+      base-url: https://${CAMUNDA_REGION}.tasklist.camunda.io/${CAMUNDA_CLUSTER_ID}
+    optimize:
+      base-url: https://${CAMUNDA_REGION}.optimize.camunda.io/${CAMUNDA_CLUSTER_ID}
