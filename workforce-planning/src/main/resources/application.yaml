@@ -32,3 +32,16 @@ camunda:
       base-url: https://${CAMUNDA_REGION}.tasklist.camunda.io/${CAMUNDA_CLUSTER_ID}
     optimize:
       base-url: https://${CAMUNDA_REGION}.optimize.camunda.io/${CAMUNDA_CLUSTER_ID}
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: anushkasen9876543567@gmail.com
+    password: jriw rswf amuk okne   
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
