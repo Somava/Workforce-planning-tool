@@ -5,24 +5,24 @@ import lombok.Data;
 
 @Entity
 @Table(
-    name = "employee_skills",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "skill_id"})
+    name = "staffing_request_skills",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"staffing_request_id", "skill_id"})
 )
 @Data
-public class EmployeeSkill {
+public class StaffingRequestSkill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
+    @JoinColumn(name = "staffing_request_id")
+    private StaffingRequest staffingRequest;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "skill_id")
     private Skill skill;
 
-    @Column(name = "experience_level", length = 100)
-    private String experienceLevel;
+    @Column(name = "required_level", length = 100)
+    private String requiredLevel;
 }

@@ -5,11 +5,11 @@ import lombok.Data;
 
 @Entity
 @Table(
-    name = "employee_skills",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "skill_id"})
+    name = "employee_languages",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "language_id"})
 )
 @Data
-public class EmployeeSkill {
+public class EmployeeLanguage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,9 +20,9 @@ public class EmployeeSkill {
     private Employee employee;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "skill_id")
-    private Skill skill;
+    @JoinColumn(name = "language_id")
+    private Language language;
 
-    @Column(name = "experience_level", length = 100)
-    private String experienceLevel;
+    @Column(name = "proficiency_level", length = 50)
+    private String proficiencyLevel;
 }
