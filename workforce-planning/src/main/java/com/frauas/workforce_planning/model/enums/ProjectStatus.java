@@ -1,8 +1,8 @@
 package com.frauas.workforce_planning.model.enums;
 
 public enum ProjectStatus {
-    OPEN,
-    STAFFING,
+    PLANNED,
     ACTIVE,
-    COMPLETED
+    COMPLETED,
+    ARCHIVED
 }

@@ -14,14 +14,12 @@ public class Skill {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String name;      // e.g. "Java", "Python", "German B2"
-
-    private String category;  // "Technical", "Language", ...
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
+    @Column(nullable = false, unique = true, length = 150)
+    private String name;
 
     @OneToMany(mappedBy = "skill")
     private Set<EmployeeSkill> employeeSkills;
+
+    @OneToMany(mappedBy = "skill")
+    private Set<StaffingRequestSkill> staffingRequestSkills;
 }

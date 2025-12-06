@@ -1,8 +1,8 @@
 package com.frauas.workforce_planning.model.enums;
 
 public enum AssignmentStatus {
-    PLANNED,
-    CONFIRMED,
+    WAITING_APPROVAL,
+    REJECTED,
     ACTIVE,
     COMPLETED
 }

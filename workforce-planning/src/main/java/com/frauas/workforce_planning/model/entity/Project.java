@@ -4,6 +4,7 @@ import com.frauas.workforce_planning.model.enums.ProjectStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.OffsetDateTime;
 import java.time.LocalDate;
 import java.util.Set;
 
@@ -16,30 +17,43 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 200)
     private String name;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "task_description", columnDefinition = "TEXT")
     private String taskDescription;
 
+    @Column(name = "start_date")
     private LocalDate startDate;
+
+    @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Enumerated(EnumType.STRING)
-    private ProjectStatus status;
-
+    @Column(length = 200)
     private String location;
 
     @Column(columnDefinition = "TEXT")
     private String links;
 
-    @ManyToOne
-    @JoinColumn(name = "project_manager_id")
-    private Employee projectManager;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ProjectStatus status = ProjectStatus.PLANNED;
 
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<StaffingRequirement> staffingRequirements;
+    @Column(nullable = false)
+    private Boolean published = false;
+
+    @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @OneToMany(mappedBy = "project")
+    private Set<StaffingRequest> staffingRequests;
+
+    @OneToMany(mappedBy = "project")
+    private Set<Assignment> assignments;
 }
