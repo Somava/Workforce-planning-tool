@@ -20,6 +20,9 @@ public class StaffingRequest {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "project_id")
     private Project project;
