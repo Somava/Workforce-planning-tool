@@ -2,7 +2,7 @@ package com.frauas.workforce_planning.model.enums;
 
 public enum ApplicationStatus {
     APPLIED,
-    ACCEPTED,
+    APPROVED,
     REJECTED,
     WITHDRAWN
 }

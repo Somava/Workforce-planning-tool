@@ -197,7 +197,7 @@ CREATE TABLE staffing_requests (
     id                          BIGSERIAL PRIMARY KEY,
 
     title                       VARCHAR(200) NOT NULL,
-
+    description                 TEXT,      
     project_id                  BIGINT NOT NULL,
     job_role_id                 BIGINT,          -- FK to job_roles
 
@@ -253,7 +253,7 @@ CREATE TABLE assignments (
     staffing_request_id     BIGINT NOT NULL,
     project_id              BIGINT,
 
-    status                  VARCHAR(50) NOT NULL,  -- 'WAITING_APPROVAL', 'REJECTED', 'ACTIVE', 'COMPLETED'
+    status                  VARCHAR(50) NOT NULL,  -- 'WAITING_APPROVAL', 'APPROVED' 'REJECTED', 'ACTIVE', 'COMPLETED'
 
     period_start            DATE,
     period_end              DATE,
