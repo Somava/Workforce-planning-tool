@@ -19,27 +19,26 @@ spring:
 
   sql:
     init:
-      mode: always  
+      mode: never  
       
 camunda:
   client:
     mode: saas
     auth:
-      client-id: ${CAMUNDA_CLIENT_ID}
-      client-secret: ${CAMUNDA_CLIENT_SECRET}
-      region: ${CAMUNDA_REGION}
-      cluster-id: ${CAMUNDA_CLUSTER_ID}
+      client-id: "cZFm5ceEo7opsxhcReoVjkJvAE3bDKB7"
+      client-secret: "8kDwj.nAsqE_4r5cZP~xgU7IAyoLhRsybCSoy4b5dOa~c0ytCUM8K9S_hY8f4mgH"
+      region: "lhr-1"
+      cluster-id: "b400f927-27b1-4492-9ca0-3b0c0970bcd8"
     zeebe:
-      gateway-url: https://${CAMUNDA_CLUSTER_ID}.${CAMUNDA_REGION}.zeebe.camunda.io
-      base-url: https://${CAMUNDA_REGION}.zeebe.camunda.io/${CAMUNDA_CLUSTER_ID}
+      gateway-url: "https://b400f927-27b1-4492-9ca0-3b0c0970bcd8.lhr-1.zeebe.camunda.io"
+      base-url: "https://lhr-1.zeebe.camunda.io/b400f927-27b1-4492-9ca0-3b0c0970bcd8"
     operate:
-      base-url: https://${CAMUNDA_REGION}.operate.camunda.io/${CAMUNDA_CLUSTER_ID}
+      base-url: "https://lhr-1.operate.camunda.io/b400f927-27b1-4492-9ca0-3b0c0970bcd8"
     tasklist:
-      base-url: https://${CAMUNDA_REGION}.tasklist.camunda.io/${CAMUNDA_CLUSTER_ID}
+      base-url: "https://lhr-1.tasklist.camunda.io/b400f927-27b1-4492-9ca0-3b0c0970bcd8"
     optimize:
-      base-url: https://${CAMUNDA_REGION}.optimize.camunda.io/${CAMUNDA_CLUSTER_ID}
+      base-url: "https://lhr-1.optimize.camunda.io/b400f927-27b1-4492-9ca0-3b0c0970bcd8"
 
-spring:
   mail:
     host: smtp.gmail.com
     port: 587
