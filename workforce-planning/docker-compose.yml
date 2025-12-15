@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine # Stable and lightweight image
+    container_name: workforce_postgres
+    ports:
+      # Exposes port 5432 on your machine (required by your application.yml)
+      - "5432:5432" 
+    environment:
+      # Match these values EXACTLY to your application.yml
+      POSTGRES_DB: workforce-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # For persistent data storage
+
+volumes:
+  postgres_data:

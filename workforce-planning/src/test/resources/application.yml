@@ -1,0 +1,24 @@
+# This file is used ONLY when running tests (like WorkforcePlanningApplicationTests)
+
+# 1. FIX THE JAVA MAILSENDER DEPENDENCY ERROR
+spring:
+  mail:
+    host: test-smtp-server  # Dummy host for testing
+    port: 25                # Dummy port
+    username: test-user
+    password: password
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+# 2. DISABLE CAMUNDA CLIENT IN TEST MODE
+zeebe:
+  client:
+    enabled: false 
+management:
+  health:
+    zeebe-client:
+      enabled: false

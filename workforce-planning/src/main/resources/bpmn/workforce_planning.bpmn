@@ -621,7 +621,7 @@
       <bpmndi:BPMNShape id="Gateway_ResubmitDecision_di" bpmnElement="Gateway_ResubmitDecision" isMarkerVisible="true">
         <omgdc:Bounds x="1380" y="90" width="40" height="40" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1407" y="82.5" width="66" height="27" />
+          <omgdc:Bounds x="1367" y="76" width="66" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_EmployeeConfirmed_di" bpmnElement="Gateway_EmployeeConfirmed" isMarkerVisible="true">
@@ -651,13 +651,13 @@
       <bpmndi:BPMNShape id="EndEvent_Cancelled_di" bpmnElement="EndEvent_Cancelled">
         <omgdc:Bounds x="1622" y="92" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1650" y="164.5" width="49" height="27" />
+          <omgdc:Bounds x="1665" y="96" width="49" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_Resubmitted_di" bpmnElement="EndEvent_Resubmitted">
         <omgdc:Bounds x="1600" y="160" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1669" y="106" width="62" height="27" />
+          <omgdc:Bounds x="1639" y="164" width="62" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1bxm6lz_di" bpmnElement="Activity_NotifyRequesterRejected">
@@ -801,7 +801,7 @@
         <omgdi:waypoint x="1420" y="110" />
         <omgdi:waypoint x="1622" y="110" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1485" y="93" width="76" height="14" />
+          <omgdc:Bounds x="1494" y="88" width="79" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_Resubmit_di" bpmnElement="Flow_Resubmit">
@@ -809,7 +809,7 @@
         <omgdi:waypoint x="1400" y="178" />
         <omgdi:waypoint x="1600" y="178" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1413" y="142" width="76" height="27" />
+          <omgdc:Bounds x="1439" y="146" width="82" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1y5f4g3_di" bpmnElement="Flow_1y5f4g3">
