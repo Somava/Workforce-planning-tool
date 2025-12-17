@@ -437,6 +437,9 @@
       <bpmn:incoming>Flow_Cancel</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:endEvent id="EndEvent_Resubmitted" name="Request Resubmitted">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-resubmission-notification" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_Resubmit</bpmn:incoming>
       <bpmn:messageEventDefinition messageRef="Message_0tst5m9" />
     </bpmn:endEvent>
@@ -470,18 +473,18 @@
     <bpmn:sequenceFlow id="Flow_EmployeeToJoin" sourceRef="Activity_EmployeeSelfApply" targetRef="Gateway_JoinPlannerEmployee" />
     <bpmn:sequenceFlow id="Flow_JoinToDecision" sourceRef="Gateway_JoinPlannerEmployee" targetRef="Gateway_SuitableResource" />
     <bpmn:sequenceFlow id="Flow_InternalSuccess" name="Yes (Internal)" sourceRef="Gateway_SuitableResource" targetRef="Activity_ApproveEmployeeAssignment">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">matchFound = true or selfApplied = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=matchFound = true or selfApplied = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0k6a1f2" name="No (External)" sourceRef="Gateway_SuitableResource" targetRef="Activity_TriggerExternalSourcing">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">matchFound = false and selfApplied = false</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=matchFound = false and selfApplied = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_TriggerToWait" sourceRef="Activity_TriggerExternalSourcing" targetRef="Message_ExternalResponseReceived" />
     <bpmn:sequenceFlow id="Flow_ResponseToGateway" sourceRef="Message_ExternalResponseReceived" targetRef="Gateway_ExternalResourceOutcome" />
     <bpmn:sequenceFlow id="Flow_ExternalSuccess" name="Found" sourceRef="Gateway_ExternalResourceOutcome" targetRef="Activity_AssignEmployeePlanner">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">externalResourceFound = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=externalResourceFound = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_ExternalFailure" name="Not Found" sourceRef="Gateway_ExternalResourceOutcome" targetRef="Activity_ReevaluateRequest">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">externalResourceFound = false</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=externalResourceFound = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_PlannerToManagerReview" sourceRef="Activity_ReevaluateRequest" targetRef="Activity_ReviewExternalFailure" />
     <bpmn:sequenceFlow id="Flow_ManagerReviewToDecision" sourceRef="Activity_ReviewExternalFailure" targetRef="Gateway_ResubmitDecision" />
