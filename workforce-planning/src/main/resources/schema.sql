@@ -2,7 +2,7 @@
 --------------------------------------------------
 -- JOB ROLES (Developer, Tester, Designer, etc.)
 --------------------------------------------------
-CREATE TABLE job_roles (
+CREATE TABLE IF NOT EXISTS job_roles (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE
 );
@@ -10,7 +10,7 @@ CREATE TABLE job_roles (
 --------------------------------------------------
 -- EMPLOYEES
 --------------------------------------------------
-CREATE TABLE employees (
+CREATE TABLE IF NOT EXISTS employees (
     id                      BIGSERIAL PRIMARY KEY,
     employee_id             VARCHAR(100) UNIQUE,         -- company HR ID
 
@@ -45,7 +45,7 @@ CREATE TABLE employees (
 --------------------------------------------------
 -- SKILLS
 --------------------------------------------------
-CREATE TABLE skills (
+CREATE TABLE IF NOT EXISTS skills (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(150) NOT NULL UNIQUE
 );
@@ -53,7 +53,7 @@ CREATE TABLE skills (
 --------------------------------------------------
 -- EMPLOYEE_SKILLS (many-to-many with experience level per skill)
 --------------------------------------------------
-CREATE TABLE employee_skills (
+CREATE TABLE IF NOT EXISTS employee_skills (
     id                  BIGSERIAL PRIMARY KEY,
     employee_id         BIGINT NOT NULL,
     skill_id            BIGINT NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE employee_skills (
 --------------------------------------------------
 -- CERTIFICATIONS
 --------------------------------------------------
-CREATE TABLE certifications (
+CREATE TABLE IF NOT EXISTS certifications (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(255) NOT NULL UNIQUE
 );
@@ -81,7 +81,7 @@ CREATE TABLE certifications (
 --------------------------------------------------
 -- EMPLOYEE_CERTIFICATIONS
 --------------------------------------------------
-CREATE TABLE employee_certifications (
+CREATE TABLE IF NOT EXISTS employee_certifications (
     id                  BIGSERIAL PRIMARY KEY,
     employee_id         BIGINT NOT NULL,
     certification_id    BIGINT NOT NULL,
@@ -103,7 +103,7 @@ CREATE TABLE employee_certifications (
 --------------------------------------------------
 -- LANGUAGES
 --------------------------------------------------
-CREATE TABLE languages (
+CREATE TABLE IF NOT EXISTS languages (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE  -- could be "DE", "EN" or "German"
 );
@@ -111,7 +111,7 @@ CREATE TABLE languages (
 --------------------------------------------------
 -- EMPLOYEE_LANGUAGES
 --------------------------------------------------
-CREATE TABLE employee_languages (
+CREATE TABLE IF NOT EXISTS employee_languages (
     id                  BIGSERIAL PRIMARY KEY,
     employee_id         BIGINT NOT NULL,
     language_id         BIGINT NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE employee_languages (
 --------------------------------------------------
 -- ROLES (system personas: PROJECT_MANAGER, EMPLOYEE, etc.)
 --------------------------------------------------
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE
 );
@@ -139,7 +139,7 @@ CREATE TABLE roles (
 --------------------------------------------------
 -- USERS (login accounts, linked optionally to employees)
 --------------------------------------------------
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id              BIGSERIAL PRIMARY KEY,
     email           VARCHAR(255) NOT NULL UNIQUE,
     password_hash   VARCHAR(255) NOT NULL,
@@ -153,7 +153,7 @@ CREATE TABLE users (
 --------------------------------------------------
 -- USER_ROLES (many-to-many between users and roles)
 --------------------------------------------------
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     user_id     BIGINT NOT NULL,
     role_id     BIGINT NOT NULL,
 
@@ -171,7 +171,7 @@ CREATE TABLE user_roles (
 --------------------------------------------------
 -- PROJECTS
 --------------------------------------------------
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id                  BIGSERIAL PRIMARY KEY,
     name                VARCHAR(200) NOT NULL,
     description         TEXT,               -- short/medium description
@@ -193,7 +193,7 @@ CREATE TABLE projects (
 --------------------------------------------------
 -- STAFFING REQUESTS
 --------------------------------------------------
-CREATE TABLE staffing_requests (
+CREATE TABLE IF NOT EXISTS staffing_requests (
     id                          BIGSERIAL PRIMARY KEY,
 
     title                       VARCHAR(200) NOT NULL,
@@ -226,7 +226,7 @@ CREATE TABLE staffing_requests (
 --------------------------------------------------
 -- STAFFING REQUEST SKILLS (REQ -> SKILL + LEVEL)
 --------------------------------------------------
-CREATE TABLE staffing_request_skills (
+CREATE TABLE IF NOT EXISTS staffing_request_skills (
     id                      BIGSERIAL PRIMARY KEY,
     staffing_request_id     BIGINT NOT NULL,
     skill_id                BIGINT NOT NULL,
@@ -246,7 +246,7 @@ CREATE TABLE staffing_request_skills (
 --------------------------------------------------
 -- ASSIGNMENTS (EMPLOYEE <-> REQUEST/PROJECT)
 --------------------------------------------------
-CREATE TABLE assignments (
+CREATE TABLE IF NOT EXISTS assignments (
     id                      BIGSERIAL PRIMARY KEY,
 
     employee_id             BIGINT NOT NULL,    -- the one who is assigned
@@ -293,7 +293,7 @@ CREATE TABLE assignments (
 --------------------------------------------------
 -- EMPLOYEE APPLICATIONS (EMPLOYEE -> STAFFING REQUEST)
 --------------------------------------------------
-CREATE TABLE employee_applications (
+CREATE TABLE IF NOT EXISTS employee_applications (
     id                      BIGSERIAL PRIMARY KEY,
 
     employee_id             BIGINT NOT NULL,       -- who applied
