@@ -202,43 +202,43 @@
         ]
       }</zeebe:userTaskForm>
       <zeebe:userTaskForm id="UserTaskForm_2f6s0cd">{
-  "id": "approveEmployeeAssignment",
-  "title": "Approve Employee Assignment",
-  "schemaVersion": 3,
-  "type": "form",
-  "components": [
-    {
-      "label": "Assignment Decision",
-      "type": "radio",
-      "id": "assignmentDecision",
-      "options": [
-        { "label": "Approve Assignment", "value": "approved" },
-        { "label": "Reject Assignment", "value": "rejected" }
-      ],
-      "validate": { "required": true }
-    },
-    {
-      "label": "Comments",
-      "type": "textarea",
-      "id": "assignmentComments",
-      "description": "Optional comments or justification for the decision."
-    },
-    {
-      "label": "Employee Selected",
-      "type": "text",
-      "id": "selectedEmployee",
-      "readonly": true,
-      "description": "Auto-filled with the employee selected by the planner."
-    },
-    {
-      "label": "Position / Role",
-      "type": "text",
-      "id": "assignmentRole",
-      "readonly": true,
-      "description": "Role for which the employee is being assigned."
-    }
-  ]
-}</zeebe:userTaskForm>
+        "id": "approveEmployeeAssignment",
+        "title": "Approve Employee Assignment",
+        "schemaVersion": 3,
+        "type": "form",
+        "components": [
+          {
+            "label": "Assignment Decision",
+            "type": "radio",
+            "id": "assignmentDecision",
+            "options": [
+              { "label": "Approve Assignment", "value": "approved" },
+              { "label": "Reject Assignment", "value": "rejected" }
+            ],
+            "validate": { "required": true }
+          },
+          {
+            "label": "Comments",
+            "type": "textarea",
+            "id": "assignmentComments",
+            "description": "Optional comments or justification for the decision."
+          },
+          {
+            "label": "Employee Selected",
+            "type": "text",
+            "id": "selectedEmployee",
+            "readonly": true,
+            "description": "Auto-filled with the employee selected by the planner."
+          },
+          {
+            "label": "Position / Role",
+            "type": "text",
+            "id": "assignmentRole",
+            "readonly": true,
+            "description": "Role for which the employee is being assigned."
+          }
+        ]
+      }</zeebe:userTaskForm>
     </bpmn:extensionElements>
     <bpmn:laneSet id="LaneSet_1">
       <bpmn:lane id="Lane_Employee" name="4. Employee">
@@ -250,6 +250,7 @@
         <bpmn:flowNodeRef>EndEvent_AssignmentComplete</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_FinalNotification</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_EmployeeConfirmed</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_SaveFinalAssignment</bpmn:flowNodeRef>
       </bpmn:lane>
       <bpmn:lane id="Lane_Planner" name="3. Resource Planner">
         <bpmn:flowNodeRef>Activity_ReevaluateRequest</bpmn:flowNodeRef>
@@ -271,7 +272,9 @@
         <bpmn:flowNodeRef>Activity_ValidateRequestData</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_Resubmitted</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_NotifyRequesterRejected</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>StartEvent_RequestCreated</bpmn:flowNodeRef>
+        <bpmn:startEvent id="StartEvent_RequestCreated" name="Request Created">
+          <bpmn:outgoing>Flow_0f52d7l</bpmn:outgoing>
+        </bpmn:startEvent>
         <bpmn:flowNodeRef>Gateway_ResubmitDecision</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_Cancelled</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_DataValid</bpmn:flowNodeRef>
@@ -279,9 +282,6 @@
         <bpmn:flowNodeRef>Activity_ReviewExternalFailure</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
-    <bpmn:startEvent id="StartEvent_RequestCreated" name="Request Created">
-      <bpmn:outgoing>Flow_0f52d7l</bpmn:outgoing>
-    </bpmn:startEvent>
     <bpmn:userTask id="Activity_CreateStaffingRequest" name="Create Staffing Request">
       <bpmn:extensionElements>
         <zeebe:assignmentDefinition candidateGroups="Managers" />
@@ -319,7 +319,7 @@
       <bpmn:incoming>Flow_ValidData</bpmn:incoming>
       <bpmn:outgoing>Flow_1u3i2k9</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="Activity_EmployeeSelfApply" name="Employee Search &#38; Apply">
+    <bpmn:userTask id="Activity_EmployeeSelfApply" name="Employee Search &amp; Apply">
       <bpmn:extensionElements>
         <zeebe:assignmentDefinition candidateGroups="Employees" />
         <zeebe:formDefinition formKey="camunda-forms:bpmn:UserTaskForm_1ibuto2" />
@@ -352,7 +352,7 @@
       <bpmn:incoming>Flow_ExternalFailure</bpmn:incoming>
       <bpmn:outgoing>Flow_PlannerToManagerReview</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:userTask id="Activity_ReviewConflict" name="Review Conflict &#38; Re-evaluate (Planner)">
+    <bpmn:userTask id="Activity_ReviewConflict" name="Review Conflict &amp; Re-evaluate (Planner)">
       <bpmn:extensionElements>
         <zeebe:assignmentDefinition candidateGroups="Planners" />
         <zeebe:formDefinition formKey="camunda-forms:bpmn:UserTaskForm_2gjqip9" />
@@ -361,7 +361,7 @@
       <bpmn:incoming>Flow_1pirhk8</bpmn:incoming>
       <bpmn:outgoing>Flow_ConflictLoopBack</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="Activity_MatchEmployees" name="Match Employees (Skills &#38; Workload)">
+    <bpmn:serviceTask id="Activity_MatchEmployees" name="Match Employees (Skills &amp; Workload)">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="resourceMatcher" />
       </bpmn:extensionElements>
@@ -380,8 +380,15 @@
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="notify-all-parties" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_AssignmentConfirmed</bpmn:incoming>
+      <bpmn:incoming>Flow_ToFinalNotification</bpmn:incoming>
       <bpmn:outgoing>Flow_ToAssignmentComplete</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Activity_SaveFinalAssignment" name="Save Final Assignment">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="save-final-assignment" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_AssignmentConfirmed</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToFinalNotification</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_Approved" name="Approved?">
       <bpmn:incoming>Flow_1u3i2k9</bpmn:incoming>
@@ -454,10 +461,10 @@
     <bpmn:sequenceFlow id="Flow_ToValidate" sourceRef="Activity_CreateStaffingRequest" targetRef="Activity_ValidateRequestData" />
     <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Activity_ValidateRequestData" targetRef="Gateway_DataValid" />
     <bpmn:sequenceFlow id="Flow_ValidData" name="Valid" sourceRef="Gateway_DataValid" targetRef="Activity_DepartmentHeadApproval">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isValid = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=dataValid = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_Loopback" name="Invalid" sourceRef="Gateway_DataValid" targetRef="Activity_CreateStaffingRequest">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isValid = false</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=dataValid = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1u3i2k9" sourceRef="Activity_DepartmentHeadApproval" targetRef="Gateway_Approved" />
     <bpmn:sequenceFlow id="Flow_1v1v9d0_Success" name="Yes" sourceRef="Gateway_Approved" targetRef="Gateway_SplitPlannerEmployee">
@@ -496,13 +503,14 @@
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1y5f4g3" sourceRef="Activity_AssignEmployeePlanner" targetRef="Activity_EmployeeConfirm" />
     <bpmn:sequenceFlow id="Flow_ToConflictGateway" sourceRef="Activity_EmployeeConfirm" targetRef="Gateway_EmployeeConfirmed" />
-    <bpmn:sequenceFlow id="Flow_AssignmentConfirmed" name="Confirmed" sourceRef="Gateway_EmployeeConfirmed" targetRef="Activity_FinalNotification">
+    <bpmn:sequenceFlow id="Flow_AssignmentConfirmed" name="Confirmed" sourceRef="Gateway_EmployeeConfirmed" targetRef="Activity_SaveFinalAssignment">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=employeeDecision = "confirmed"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_ConflictRaised" name="Conflict" sourceRef="Gateway_EmployeeConfirmed" targetRef="Activity_ReviewConflict">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=employeeDecision = "conflict"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_ConflictLoopBack" sourceRef="Activity_ReviewConflict" targetRef="Activity_MatchEmployees" />
+    <bpmn:sequenceFlow id="Flow_ToFinalNotification" sourceRef="Activity_SaveFinalAssignment" targetRef="Activity_FinalNotification" />
     <bpmn:sequenceFlow id="Flow_ToAssignmentComplete" sourceRef="Activity_FinalNotification" targetRef="EndEvent_AssignmentComplete" />
     <bpmn:userTask id="Activity_ApproveEmployeeAssignment" name="Approve Employee Assignment">
       <bpmn:extensionElements>
@@ -586,6 +594,9 @@
       <bpmndi:BPMNShape id="Activity_TriggerExternalSourcing_di" bpmnElement="Activity_TriggerExternalSourcing">
         <omgdc:Bounds x="1140" y="430" width="170" height="60" />
         <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_SaveFinalAssignment_di" bpmnElement="Activity_SaveFinalAssignment">
+        <omgdc:Bounds x="1710" y="510" width="120" height="60" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_16g8588_di" bpmnElement="Activity_FinalNotification">
         <omgdc:Bounds x="1780" y="580" width="100" height="60" />
@@ -825,9 +836,7 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_AssignmentConfirmed_di" bpmnElement="Flow_AssignmentConfirmed">
         <omgdi:waypoint x="1695" y="530" />
-        <omgdi:waypoint x="1735" y="530" />
-        <omgdi:waypoint x="1735" y="610" />
-        <omgdi:waypoint x="1780" y="610" />
+        <omgdi:waypoint x="1710" y="530" />
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1713" y="546" width="51" height="14" />
         </bpmndi:BPMNLabel>
@@ -847,6 +856,10 @@
         <omgdi:waypoint x="1890" y="330" />
         <omgdi:waypoint x="855" y="330" />
         <omgdi:waypoint x="855" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToFinalNotification_di" bpmnElement="Flow_ToFinalNotification">
+        <omgdi:waypoint x="1830" y="540" />
+        <omgdi:waypoint x="1830" y="580" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToAssignmentComplete_di" bpmnElement="Flow_ToAssignmentComplete">
         <omgdi:waypoint x="1880" y="610" />
