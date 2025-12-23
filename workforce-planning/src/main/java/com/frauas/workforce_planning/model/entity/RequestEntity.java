@@ -1,6 +1,7 @@
 package com.frauas.workforce_planning.model.entity;
 
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 import com.frauas.workforce_planning.model.enums.RequestStatus;
@@ -20,16 +21,88 @@ public class RequestEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id; 
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    // 1. Unique Business ID
+    @Column(name = "request_id", unique = true)
+    private Long requestId;
+
+    public String getPositionName() {
+        return positionName;
+    }
+    public void setPositionName(String positionName) {
+        this.positionName = positionName;
+    }
+    public Long getProjectId() {
+        return projectId;
+    }
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
+    }
+    public Integer getAvailabilityHours() {
+        return headCount;
+    }
+    public void setAvailabilityHours(Integer headCount) {
+        this.headCount = headCount;
+    }
+    public RequestStatus getStatus() {
+        return status;
+    }
+    public void setStatus(RequestStatus status) {
+        this.status = status;
+    }
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    // 2. Title (Position Name)
     @Column(name = "title", nullable = false, length = 200)
     private String positionName;
 
-    @Column(name = "project_id", nullable = false)
-    private Long projectId; // Mandatory field from your SQL script
+    // 3. Description
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
+    // 4. Required Skills
+    @Column(name = "required_skills", columnDefinition = "TEXT")
+    private String requiredSkills;
+
+    // 5. Project ID
+    @Column(name = "project_id", nullable = false)
+    private Long projectId;
+
+    // 6. Job Role ID (Auto-assigned logic)
+    @Column(name = "job_role_id")
+    private Integer jobRoleId;
+
+    // 7. Start Date
+    @Column(name = "project_start_date")
+    private LocalDate startDate;
+
+    // 8. End Date
+    @Column(name = "project_end_date")
+    private LocalDate endDate;
+
+    // 9. Availability
     @Column(name = "availability_hours_per_week")
     private Integer headCount;
+
+    // 10. Project Context
+    @Column(name = "project_context", columnDefinition = "TEXT")
+    private String projectContext;
+
+    // 11. Performance Location
+    @Column(name = "performance_location")
+    private String performanceLoc;
+
+    // 12. Created By (Employee ID)
+    @Column(name = "created_by_employee_id")
+    private Integer createdById;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -38,27 +111,49 @@ public class RequestEntity {
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private OffsetDateTime createdAt;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
 
-    public String getPositionName() { return positionName; }
-    public void setPositionName(String positionName) { this.positionName = positionName; }
+    @Column(name = "validation_error")
+    private String validationError;
 
-    public Long getProjectId() { return projectId; }
-    public void setProjectId(Long projectId) { this.projectId = projectId; }
-
-    public Integer getHeadCount() { return headCount; }
-    public void setHeadCount(Integer headCount) { this.headCount = headCount; }
-
-    public RequestStatus getStatus() { return status; }
-    public void setStatus(RequestStatus status) { this.status = status; }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
+    // Add these manually if you aren't using Lombok
+    public String getValidationError() {
+        return validationError;
     }
 
-    public void setCreatedAt(OffsetDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setValidationError(String validationError) {
+        this.validationError = validationError;
     }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public Long getRequestId() { return requestId; }
+    public void setRequestId(Long requestId) { this.requestId = requestId; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getRequiredSkills() { return requiredSkills; }
+    public void setRequiredSkills(String requiredSkills) { this.requiredSkills = requiredSkills; }
+
+    public Integer getJobRoleId() { return jobRoleId; }
+    public void setJobRoleId(Integer jobRoleId) { this.jobRoleId = jobRoleId; }
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+
+    public String getProjectContext() { return projectContext; }
+    public void setProjectContext(String projectContext) { this.projectContext = projectContext; }
+
+    public String getPerformanceLoc() { return performanceLoc; }
+    public void setPerformanceLoc(String performanceLoc) { this.performanceLoc = performanceLoc; }
+
+    public Integer getCreatedById() { return createdById; }
+    public void setCreatedById(Integer createdById) { this.createdById = createdById; }
 
 }
