@@ -35,16 +35,21 @@ public class MatchingEmployeeWorker {
     );
 
     // This worker is bound to the BPMN service task with type "match-employees"
-    @JobWorker(type = "match-employees")
+    @JobWorker(type = "resourceMatcher")
     public void matchEmployees(final JobClient client, final ActivatedJob job) {
 
         Map<String, Object> variables = job.getVariablesAsMap();
 
         // ⚠ Use same variable names as in your BPMN & ValidateRequestDataWorker
         String requiredSkill = (String) variables.get("requiredSkills"); // or "requiredSkill" if BPMN uses that
-        String workloadString = (String) variables.get("workload");      // requested hours
+        Object workloadObj = variables.get("workload");
+        int requiredWorkload = 0;
 
-        int requiredWorkload = Integer.parseInt(workloadString);
+        if (workloadObj instanceof Number n){
+             requiredWorkload = n.intValue();
+        }else if (workloadObj instanceof String s && !s.isBlank()){
+             requiredWorkload = Integer.parseInt(s);
+        } 
 
         // -------- Matching logic (simple version) ----------
         Employee selected = null;
@@ -64,7 +69,8 @@ public class MatchingEmployeeWorker {
 
         Map<String, Object> resultVars = new HashMap<>();
         resultVars.put("matchedEmployeeId", matchedEmployeeId);
-        resultVars.put("matchFound", selected != null);
+       resultVars.put("suitableResourceFound", selected != null);
+
 
         System.out.println("Matched employee: " + matchedEmployeeId);
 
