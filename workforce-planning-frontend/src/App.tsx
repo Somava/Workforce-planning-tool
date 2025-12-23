@@ -2,7 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import StaffingRequest from './components/StaffingRequest';
 import DeptHeadApproval from './components/DeptHeadApproval';
-import EmployeeDashboard from './components/EmployeeDashboard'; // 1. Import the new dashboard
+import EmployeeDashboard from './components/EmployeeDashboard'; 
+import ResourcePlannerMatch from './components/ResourcePlannerMatch';
+import AssignmentConfirmation from './components/AssignmentConfirmation';
+import Login from './components/Login';
 
 // --- Simple Mock Page Components ---
 const DashboardPage = () => (
@@ -26,13 +29,6 @@ const ManagerPage = () => (
   </div>
 );
 
-const PlannerPage = () => (
-  <div style={styles.page}>
-    <h1>🗓️ Resource Planning</h1>
-    <p>Match employees to project requests based on skills.</p>
-  </div>
-);
-
 // --- Navigation Component ---
 const Navigation = () => {
   return (
@@ -40,11 +36,13 @@ const Navigation = () => {
       <div style={styles.navLinks}>
         <Link to="/dashboard" style={styles.link}>Home</Link>
         <Link to="/manager" style={styles.link}>Manager</Link>
+        {/* Updated Planner Link */}
         <Link to="/planner" style={styles.link}>Planner</Link>
         <Link to="/approval" style={styles.link}>Approval Inbox</Link>
-        
-        {/* 2. Added link for the Employee Dashboard */}
         <Link to="/employee" style={styles.link}>My Career</Link>
+        
+        {/* Added Final Confirmation Link */}
+        <Link to="/confirm-assignment" style={styles.link}>Final Sign-off</Link>
         
         <Link to="/reports" style={styles.link}>Reports</Link>
         <Link to="/create-request" style={styles.specialLink}>➕ New Request</Link>
@@ -64,28 +62,35 @@ const App = () => {
         <Navigation />
         
         <div style={styles.content}>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/manager" element={<ManagerPage />} />
-            <Route path="/planner" element={<PlannerPage />} />
-            <Route path="/approval" element={<DeptHeadApproval />} />
-            
-            {/* 3. Added Route for Employee Search & Apply */}
-            <Route path="/employee" element={<EmployeeDashboard />} />
-            
-            <Route path="/create-request" element={<StaffingRequest />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="*" element={<h1>404 - Page Not Found</h1>} />
-          </Routes>
+        <Routes>
+          {/* 1. Set the landing page to the Login component */}
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          
+          {/* 2. Main Dashboard and Role-Specific Routes */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/manager" element={<ManagerPage />} />
+          <Route path="/approval" element={<DeptHeadApproval />} />
+          <Route path="/employee" element={<EmployeeDashboard />} />
+          
+          {/* 3. Planner and Confirmation Routes */}
+          <Route path="/planner" element={<ResourcePlannerMatch />} />
+          <Route path="/confirm-assignment" element={<AssignmentConfirmation />} />
+          
+          {/* 4. Request and Analytics Routes */}
+          <Route path="/create-request" element={<StaffingRequest />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          
+          {/* 5. Catch-all 404 */}
+          <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+        </Routes>
         </div>
       </div>
     </Router>
   );
 };
 
-// --- Styles (Same as before) ---
+// --- Styles ---
 const styles = {
   nav: {
     display: 'flex',
@@ -97,15 +102,16 @@ const styles = {
     color: 'white',
     boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
   },
-  navLinks: { display: 'flex', gap: '25px', alignItems: 'center' },
-  link: { color: '#cbd5e1', textDecoration: 'none', fontSize: '15px', fontWeight: '500' },
+  navLinks: { display: 'flex', gap: '20px', alignItems: 'center' },
+  link: { color: '#cbd5e1', textDecoration: 'none', fontSize: '14px', fontWeight: '500' },
   specialLink: { 
     background: '#4f46e5', 
     padding: '8px 16px', 
     borderRadius: '8px', 
     color: 'white', 
     textDecoration: 'none',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    fontSize: '14px'
   },
   userBadge: { fontSize: '14px', color: '#94a3b8' },
   content: { padding: '40px', maxWidth: '1200px', margin: '0 auto' },
