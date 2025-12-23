@@ -108,12 +108,12 @@ INSERT INTO projects (
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO staffing_requests (
-    id, title, project_id, job_role_id, availability_hours_per_week,
+    request_id, title, project_id, job_role_id, availability_hours_per_week,
     period_start, period_end, status, remarks, created_by_employee_id, created_at
 ) VALUES
 (1, 'Senior Java Backend Developer', 1, 1, 40, '2024-01-10', '2024-05-30', 'PUBLISHED', 'Must know Spring Boot', 1, now()),
 (2, 'QA Tester', 2, 2, 20, '2024-02-10', '2024-08-15', 'DRAFT', NULL, 1, now())
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (request_id) DO NOTHING;
 
 INSERT INTO staffing_request_skills (id, staffing_request_id, skill_id, required_level) VALUES
 (1, 1, 1, 'Senior'),      -- Java
