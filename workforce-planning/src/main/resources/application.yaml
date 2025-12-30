@@ -55,3 +55,10 @@ camunda:
       base-url: "https://syd-1.tasklist.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
     optimize:
       base-url: "https://syd-1.optimize.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
+
+# for mock testing 
+
+integration: 
+  team3b:
+    base-url: http://localhost:8080
+    request-path: /api/group1/workforce-request

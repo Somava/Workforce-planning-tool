@@ -8,7 +8,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/group1")
-public class ExternalRequestController {
+public class MockTeam3bController {
 
   @PostMapping("/workforce-request")
   public Map<String, Object> receiveExternalWorkforceRequest(@RequestBody ExternalWorkforceRequestDTO dto) {
