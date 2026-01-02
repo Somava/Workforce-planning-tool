@@ -117,6 +117,9 @@ public class RequestEntity {
     @Column(name = "validation_error")
     private String validationError;
 
+    @Column(name = "process_instance_key")
+    private Long processInstanceKey;
+
     // Add these manually if you aren't using Lombok
     public String getValidationError() {
         return validationError;
@@ -156,4 +159,12 @@ public class RequestEntity {
     public Integer getCreatedById() { return createdById; }
     public void setCreatedById(Integer createdById) { this.createdById = createdById; }
 
+    public Long getProcessInstanceKey() {
+        return processInstanceKey;
+    }
+
+    public void setProcessInstanceKey(Long processInstanceKey) {
+    this.processInstanceKey = processInstanceKey;
+    }
+    
 }

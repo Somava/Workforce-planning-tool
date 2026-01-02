@@ -19,7 +19,6 @@ public class StaffingRequestService {
 
     @Autowired
     private RequestRepository repository;
-
     @Autowired
     private ZeebeClient zeebeClient; // This is the "Brain" connector
 
@@ -51,12 +50,10 @@ public class StaffingRequestService {
              entity.setValidationError("Start date must be before the end date. ");
         } else if (entity.getStartDate().isBefore(LocalDate.now())){
              entity.setValidationError("Start date cannot be in the past. ");
-        } else if (entity.getStartDate().isBefore(LocalDate.now())){
-             entity.setValidationError("Start date cannot be in the past. ");
         }
 
         if (entity.getValidationError() == null || entity.getValidationError().isEmpty()) {
-            entity.setStatus(RequestStatus.PUBLISHED);
+            entity.setStatus(RequestStatus.SUBMITTED);
         } else {
             entity.setStatus(RequestStatus.DRAFT);
         }
@@ -65,18 +62,36 @@ public class StaffingRequestService {
         RequestEntity saved = repository.save(entity);
 
         Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", saved.getId());
+        variables.put("requestId", saved.getRequestId()); // Use getRequestId() as we discussed
+        variables.put("projectId", saved.getProjectId());
         variables.put("managerId", "manager123");
-        variables.put("isValid", true);
+        variables.put("status", saved.getStatus().toString());
+        variables.put("isValid", true); // Initial trigger for the gateway
         
         // 4. START CAMUNDA 
-        if (saved.getStatus() == RequestStatus.PUBLISHED) {
-        zeebeClient.newCreateInstanceCommand()
-            .bpmnProcessId("Process_ResourceAllocation") 
-            .latestVersion()
-            .variables(saved) 
-            .send()
-            .join();
+        // Changed condition to include SUBMITTED so the process actually starts
+        if (saved.getStatus() == RequestStatus.PENDING_APPROVAL || saved.getStatus() == RequestStatus.SUBMITTED) {
+            try {
+                var response = zeebeClient.newCreateInstanceCommand()
+                    .bpmnProcessId("Process_ResourceAllocation") 
+                    .latestVersion()
+                    .variables(variables)
+                    .send()
+                    .join(); 
+
+                // Update the DB with the real ID from Camunda
+                saved.setProcessInstanceKey(response.getProcessInstanceKey());
+                
+                // Use 'repository' instead of 'staffingRequestRepository' to avoid type mismatch
+                repository.save(saved); 
+                
+                System.out.println(">>> Instance Started: " + response.getProcessInstanceKey());
+            } catch (Exception e) {
+                System.err.println(">>> Camunda Start Failed: " + e.getMessage());
+                e.printStackTrace(); // This is the 'e.printStackTrace()' from your screenshot
+            }
+        } else {
+            System.out.println(">>> Camunda NOT started because status was: " + saved.getStatus());
         }
 
         return saved;

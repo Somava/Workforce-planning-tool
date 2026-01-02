@@ -3,7 +3,9 @@ package com.frauas.workforce_planning.model.enums;
 public enum RequestStatus {
     DRAFT,
     PUBLISHED,
-    WAITING,
+    PENDING_APPROVAL,
+    SUBMITTED,
+    REJECTED,
     APPROVED,
     ASSIGNED,
     CANCELLED
