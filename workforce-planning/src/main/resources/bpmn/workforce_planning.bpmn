@@ -239,7 +239,7 @@
     </bpmn:laneSet>
     <bpmn:serviceTask id="Activity_ValidateRequestData" name="Validate Request Data">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="validate-request" />
+        <zeebe:taskDefinition type="validate-request-data" retries="3" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1246sdl</bpmn:incoming>
       <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
@@ -259,8 +259,8 @@
     </bpmn:userTask>
     <bpmn:userTask id="Activity_DepartmentHeadApproval" name="Department Head Approval">
       <bpmn:extensionElements>
-        <zeebe:assignmentDefinition candidateGroups="DeptHeads" />
         <zeebe:formDefinition formKey="camunda-forms:bpmn:UserTaskForm_2biup6v" />
+        <zeebe:assignmentDefinition candidateGroups="DEPT_HEAD" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_ValidData</bpmn:incoming>
       <bpmn:incoming>Flow_03xr8u0</bpmn:incoming>
@@ -410,10 +410,10 @@
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1u3i2k9" sourceRef="Activity_DepartmentHeadApproval" targetRef="Gateway_Approved" />
     <bpmn:sequenceFlow id="Flow_1v1v9d0_Success" name="Yes" sourceRef="Gateway_Approved" targetRef="Gateway_SplitPlannerEmployee">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approvalDecision = "approved"</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=deptHeadApproved = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_05e6i2u" name="No" sourceRef="Gateway_Approved" targetRef="Activity_NotifyRequesterRejected">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approvalDecision = "rejected"</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=deptHeadApproved = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_03a0z6p" sourceRef="Activity_NotifyRequesterRejected" targetRef="EndEvent_RequestRejected" />
     <bpmn:sequenceFlow id="Flow_SplitToPlanner" sourceRef="Gateway_SplitPlannerEmployee" targetRef="Activity_MatchEmployees" />
@@ -675,7 +675,7 @@
         <omgdi:waypoint x="800" y="260" />
         <omgdi:waypoint x="800" y="190" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="758" y="237" width="18" height="14" />
+          <omgdc:Bounds x="760" y="237" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_03a0z6p_di" bpmnElement="Flow_03a0z6p">

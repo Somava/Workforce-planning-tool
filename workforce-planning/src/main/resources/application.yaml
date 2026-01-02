@@ -15,7 +15,7 @@ spring:
   jpa:
     defer-datasource-initialization: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -40,21 +40,17 @@ spring:
 camunda:
   client:
     mode: saas
+    cluster-id: ece89c82-5dfa-4736-8beb-97335792858d
+    region: sin-1
     auth:
-      client-id: wpwfjRLrtn0SarMZGEbRk.tAdhV0LspH
-      client-secret: vACH1b6~nZJr.dmQZnXt.5N.~XebTz3dDXZQxkdYJocaf3-ztIcsjoV9dkjIXN1U
-    cloud:
-      cluster-id: 953400d0-bc19-457c-b81c-782d80791c9f
-      region: syd-1   
+      client-id: aIaQ~q6v9zUQ7frCVWAX~Rz.hQoA.bAA
+      client-secret: POFwESBE0noMniqolImdrh8GzTOa6T7fsawO.hst_BDHJP7wSE0LHBbxywNXz~Oe
     zeebe:
-      gateway-url: "https://953400d0-bc19-457c-b81c-782d80791c9f.syd-1.zeebe.camunda.io:443"
-      base-url: "https://syd-1.zeebe.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
-    operate:
-      base-url: "https://syd-1.operate.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
-    tasklist:
-      base-url: "https://syd-1.tasklist.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
-    optimize:
-      base-url: "https://syd-1.optimize.camunda.io/953400d0-bc19-457c-b81c-782d80791c9f"
+      request-timeout: 60s
+      worker:
+        default-streaming-enabled: falsey
+
+
 
 # for mock testing 
 
