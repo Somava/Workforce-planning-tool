@@ -50,6 +50,10 @@ camunda:
       worker:
         default-streaming-enabled: falsey
 
+app:
+  jwt:
+    secret: 12345678901234567890123456789012
+    expiration-ms: 3600000
 
 
 # for mock testing 

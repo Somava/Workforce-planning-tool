@@ -29,7 +29,7 @@ public class Employee {
     @Column(length = 150)
     private String department;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
     private Employee supervisor;
 
@@ -52,7 +52,7 @@ public class Employee {
     @Column(name = "availability_end")
     private LocalDate availabilityEnd;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
     private JobRole jobRole;
 
@@ -62,6 +62,10 @@ public class Employee {
     @Column(columnDefinition = "TEXT")
     private String interests;
 
+    public Long getId() { return id; }
+    public String getEmployeeId() { return employeeId; }
+    public String getFirstName() { return firstName; }
+    public String getLastName() { return lastName; }
     // relations
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)

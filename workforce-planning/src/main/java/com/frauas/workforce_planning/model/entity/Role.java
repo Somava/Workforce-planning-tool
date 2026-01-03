@@ -17,6 +17,7 @@ public class Role {
     // e.g. PROJECT_MANAGER, DEPARTMENT_HEAD, RESOURCE_PLANNER, EMPLOYEE
     @Column(nullable = false, unique = true, length = 100)
     private String name;
+    public String getName() { return name; }
 
     @ManyToMany(mappedBy = "roles")
     private Set<User> users;
