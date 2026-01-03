@@ -2,21 +2,25 @@ package com.frauas.workforce_planning.model.entity;
 
 import com.frauas.workforce_planning.model.enums.ContractType;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "employees")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // company HR ID
     @Column(name = "employee_id", unique = true, length = 100)
     private String employeeId;
 
@@ -62,30 +66,39 @@ public class Employee {
     @Column(columnDefinition = "TEXT")
     private String interests;
 
-    public Long getId() { return id; }
-    public String getEmployeeId() { return employeeId; }
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
-    // relations
+    // relations (optional but recommended to init)
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<EmployeeSkill> skills = new HashSet<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EmployeeSkill> skills;
+    private Set<EmployeeCertification> certifications = new HashSet<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EmployeeCertification> certifications;
-
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EmployeeLanguage> languages;
+    private Set<EmployeeLanguage> languages = new HashSet<>();
 
     @OneToMany(mappedBy = "employee")
-    private Set<Assignment> assignments;
+    private Set<Assignment> assignments = new HashSet<>();
 
     @OneToMany(mappedBy = "createdBy")
-    private Set<Assignment> createdAssignments;
+    private Set<Assignment> createdAssignments = new HashSet<>();
 
     @OneToMany(mappedBy = "createdBy")
-    private Set<StaffingRequest> createdStaffingRequests;
+    private Set<StaffingRequest> createdStaffingRequests = new HashSet<>();
 
     @OneToMany(mappedBy = "employee")
-    private Set<EmployeeApplication> applications;
+    private Set<EmployeeApplication> applications = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        if (getClass() != o.getClass()) return false;
+        Employee other = (Employee) o;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
