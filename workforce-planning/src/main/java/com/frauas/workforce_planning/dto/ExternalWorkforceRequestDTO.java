@@ -1,12 +1,9 @@
 package com.frauas.workforce_planning.dto;
 
 public record ExternalWorkforceRequestDTO(
-    String internalRequestId,   // mandatory
-    String title,               // mandatory
-    String description,         // mandatory
-    String requiredSkills,      // optional
-    String startDate,           // optional (YYYY-MM-DD)
-    String endDate,             // optional (YYYY-MM-DD)
-    String projectContext,      // optional
-    String performanceLoc       // optional (Onshore/Offshore/Nearshore)
+    String internalRequestId,      // REQUIRED (correlation key)
+    String projectName,            // REQUIRED (from form or DB lookup)
+    String requiredSkills,         // REQUIRED (CSV string is fine)
+    String startDate,              // REQUIRED (YYYY-MM-DD)
+    Integer workloadHoursPerWeek   // REQUIRED (hrs/week)
 ) {}
