@@ -13,5 +13,6 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     Optional<Department> findByName(String name);
 
     // 🔹 Find the department managed by a specific User ID
-    Optional<Department> findByDepartmentHeadUser_Id(Long userId);
+    // This matches your 'departmentHead' field in Department.java
+    Optional<Department> findByDepartmentHeadId(Long userId);
 }

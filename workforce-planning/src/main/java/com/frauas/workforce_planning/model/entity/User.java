@@ -47,10 +47,11 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
+        // Helper method to check if user is external
     // Helper method to check if user is external
     public boolean isExternal() {
-        return externalEmployee != null;
-    }
+        return externalEmployeeId != null; // Correct: checks the field you actually defined
+    }   
 
     @Override
     public boolean equals(Object o) {

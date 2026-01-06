@@ -17,7 +17,7 @@ public interface ExternalEmployeeRepository extends JpaRepository<ExternalEmploy
     List<ExternalEmployee> findByProvider(String provider);
 
     // This traverses ExternalEmployee -> StaffingRequest -> requestId
-    List<ExternalEmployee> findByStaffingRequest_RequestId(Long requestId);
+    List<ExternalEmployee> findByStaffingRequestId(Long staffingRequestId);
 
     @Query(value = "SELECT * FROM external_employees WHERE skills @> CAST(:skillsJson AS jsonb)", nativeQuery = true)
     List<ExternalEmployee> findBySkills(@Param("skillsJson") String skillsJson);

@@ -41,7 +41,11 @@ public class AuthService {
             throw new RoleNotAllowedException(req.portalRole());
         }
 
-        String employeeHrId = user.getEmployee().getEmployeeId();
+        // Safely handle null employee for external users
+        String employeeHrId = (user.getEmployee() != null) ? user.getEmployee().getEmployeeId() : "EXTERNAL";
+        Long empId = (user.getEmployee() != null) ? user.getEmployee().getId() : null;
+        String firstName = (user.getEmployee() != null) ? user.getEmployee().getFirstName() : "External";
+        String lastName = (user.getEmployee() != null) ? user.getEmployee().getLastName() : "User";
 
         String token = jwtService.generateToken(
                 user.getEmail(),
@@ -53,10 +57,10 @@ public class AuthService {
         return new LoginResponse(
                 token,
                 user.getId(),
-                user.getEmployee().getId(),
+                empId,
                 employeeHrId,
-                user.getEmployee().getFirstName(),
-                user.getEmployee().getLastName(),
+                firstName,
+                lastName,
                 req.portalRole(),
                 roleNames
         );
