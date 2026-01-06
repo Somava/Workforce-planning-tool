@@ -25,9 +25,15 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    // ✅ MODIFIED: employee_id is now nullable to allow for external users
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false, unique = true)
+    @JoinColumn(name = "employee_id", unique = true)
     private Employee employee;
+
+    // ✅ NEW: Added mapping for external employees based on new schema
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "external_employee_id", unique = true)
+    private ExternalEmployee externalEmployee;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -37,11 +43,15 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
+    // Helper method to check if user is external
+    public boolean isExternal() {
+        return externalEmployee != null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null) return false;
-        if (getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         User other = (User) o;
         return id != null && id.equals(other.id);
     }

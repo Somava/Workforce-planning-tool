@@ -1,117 +1,151 @@
 package com.frauas.workforce_planning.services;
 
-import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.frauas.workforce_planning.dto.WorkforceRequestDTO; // Import Zeebe Client
-import com.frauas.workforce_planning.model.entity.RequestEntity;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
+import com.frauas.workforce_planning.model.entity.Department;
+import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.model.entity.Project;
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
-import com.frauas.workforce_planning.repository.RequestRepository;
+import com.frauas.workforce_planning.repository.DepartmentRepository;
+import com.frauas.workforce_planning.repository.EmployeeRepository;
+import com.frauas.workforce_planning.repository.ProjectRepository;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 
 import io.camunda.zeebe.client.ZeebeClient;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class StaffingRequestService {
 
     @Autowired
-    private RequestRepository repository;
+    private StaffingRequestRepository repository;
+
     @Autowired
-    private ZeebeClient zeebeClient; // This is the "Brain" connector
+    private ProjectRepository projectRepository;
 
-    public RequestEntity createAndStartRequest(WorkforceRequestDTO dto) {
-        // 1. Map DTO to Entity
-        RequestEntity entity = new RequestEntity();
-        entity.setPositionName(dto.title());
-        entity.setProjectId(dto.projectId());
-        entity.setAvailabilityHours(dto.availabilityHours()); // Maps to availability hours
-        entity.setStartDate(dto.startDate());
-        entity.setEndDate(dto.endDate());
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private EmployeeRepository employeeRepository; // Needed to fetch the Manager entity
+
+    @Autowired
+    private ZeebeClient zeebeClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    /**
+     * Creates a new Staffing Request and links it to the proper Employee entity.
+     */
+    @Transactional
+    public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
+        StaffingRequest entity = new StaffingRequest();
+
+        // 1. Manager-filled fields from DTO
+        entity.setTitle(dto.title());
         entity.setDescription(dto.description());
-        entity.setRequiredSkills(dto.requiredSkills());
+        entity.setExperienceYears(dto.experienceYears());
+        entity.setAvailabilityHoursPerWeek(dto.availabilityHours());
+        entity.setProjectStartDate(dto.startDate());
+        entity.setProjectEndDate(dto.endDate());
+        entity.setWagePerHour(dto.wagePerHour());
         entity.setProjectContext(dto.projectContext());
-        entity.setPerformanceLoc(dto.performanceLocation());
+        entity.setProjectLocation(dto.projectLocation());
+        entity.setWorkLocation(dto.workLocation());
 
-        // 2. Auto-Generate System Fields
-        Long generatedId = (long) (LocalDate.now().getYear() * 10000 + (Math.random() * 10000));
-        entity.setRequestId(generatedId);
-        entity.setCreatedById(3); // Example Manager ID
+        // 2. Convert List<String> skills to JSONB String
+        entity.setRequiredSkills(convertSkillsToJson(dto.requiredSkills()));
 
-        if (entity.getPositionName() == null || entity.getPositionName().isEmpty()) {
-            entity.setValidationError("Title is missing");
-        } else if (entity.getStartDate() == null) {
-            entity.setValidationError("Start date is required");
-        } else if (entity.getAvailabilityHours() == null || entity.getAvailabilityHours() <= 0){
-             entity.setValidationError("Availability hours must be greater than 0. ");
-        } else if (entity.getStartDate().isAfter(entity.getEndDate())){
-             entity.setValidationError("Start date must be before the end date. ");
-        } else if (entity.getStartDate().isBefore(LocalDate.now())){
-             entity.setValidationError("Start date cannot be in the past. ");
-        }
+        // 3. Automated Related Entity Lookups
+        Project project = projectRepository.findById(dto.projectId())
+                .orElseThrow(() -> new RuntimeException("Project not found with ID: " + dto.projectId()));
+        entity.setProject(project);
 
-        if (entity.getValidationError() == null || entity.getValidationError().isEmpty()) {
-            entity.setStatus(RequestStatus.SUBMITTED);
-        } else {
-            entity.setStatus(RequestStatus.DRAFT);
-        }
+        Department dept = departmentRepository.findById(dto.departmentId())
+                .orElseThrow(() -> new RuntimeException("Department not found with ID: " + dto.departmentId()));
+        entity.setDepartment(dept);
 
-        // 3. Save to PostgreSQL
-        RequestEntity saved = repository.save(entity);
+        // OPTION 1: Fetch the actual Employee object for the 'createdBy' relationship
+        Employee manager = employeeRepository.findById(currentManagerId)
+                .orElseThrow(() -> new RuntimeException("Employee (Manager) not found with ID: " + currentManagerId));
+        entity.setCreatedBy(manager); 
 
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", saved.getRequestId()); // Use getRequestId() as we discussed
-        variables.put("projectId", saved.getProjectId());
-        variables.put("managerId", "manager123");
-        variables.put("status", saved.getStatus().toString());
-        variables.put("isValid", true); // Initial trigger for the gateway
+        // 4. Set System Fields
+        entity.setStatus(RequestStatus.SUBMITTED);
+        entity.setCreatedAt(OffsetDateTime.now());
         
-        // 4. START CAMUNDA 
-        // Changed condition to include SUBMITTED so the process actually starts
-        if (saved.getStatus() == RequestStatus.PENDING_APPROVAL || saved.getStatus() == RequestStatus.SUBMITTED) {
-            try {
-                var response = zeebeClient.newCreateInstanceCommand()
-                    .bpmnProcessId("Process_ResourceAllocation") 
+        // Note: assignedUser remains null at this stage per your requirement.
+
+        // 5. Persist to Database
+        StaffingRequest saved = repository.save(entity);
+
+        // 6. Trigger Camunda
+        return triggerCamundaProcess(saved);
+    }
+
+    @Transactional
+    public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
+        StaffingRequest existing = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Staffing Request not found"));
+
+        existing.setTitle(dto.title());
+        existing.setDescription(dto.description());
+        existing.setExperienceYears(dto.experienceYears());
+        existing.setAvailabilityHoursPerWeek(dto.availabilityHours());
+        existing.setProjectStartDate(dto.startDate());
+        existing.setProjectEndDate(dto.endDate());
+        existing.setWagePerHour(dto.wagePerHour());
+        existing.setRequiredSkills(convertSkillsToJson(dto.requiredSkills()));
+
+        return repository.save(existing);
+    }
+
+    public List<StaffingRequest> getAllRequests() {
+        return repository.findAll();
+    }
+
+    private String convertSkillsToJson(List<String> skills) {
+        try {
+            return objectMapper.writeValueAsString(skills);
+        } catch (JsonProcessingException e) {
+            log.error("JSON Conversion failed", e);
+            return "[]";
+        }
+    }
+
+    private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("requestId", saved.getRequestId());
+        variables.put("projectId", saved.getProject().getId());
+        variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
+        variables.put("status", saved.getStatus().toString());
+
+        try {
+            var event = zeebeClient.newCreateInstanceCommand()
+                    .bpmnProcessId("Process_ResourceAllocation")
                     .latestVersion()
                     .variables(variables)
                     .send()
-                    .join(); 
+                    .join();
 
-                // Update the DB with the real ID from Camunda
-                saved.setProcessInstanceKey(response.getProcessInstanceKey());
-                
-                // Use 'repository' instead of 'staffingRequestRepository' to avoid type mismatch
-                repository.save(saved); 
-                
-                System.out.println(">>> Instance Started: " + response.getProcessInstanceKey());
-            } catch (Exception e) {
-                System.err.println(">>> Camunda Start Failed: " + e.getMessage());
-                e.printStackTrace(); // This is the 'e.printStackTrace()' from your screenshot
-            }
-        } else {
-            System.out.println(">>> Camunda NOT started because status was: " + saved.getStatus());
+            saved.setProcessInstanceKey(event.getProcessInstanceKey());
+            return repository.save(saved);
+        } catch (Exception e) {
+            log.error("Camunda failed to start", e);
+            return saved;
         }
-
-        return saved;
     }
-
-    public RequestEntity updateExistingRequest(Long id, WorkforceRequestDTO dto) {
-    RequestEntity existing = repository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Request not found"));
-
-    // Update with new data from Manager
-    existing.setPositionName(dto.title());
-    existing.setAvailabilityHours(dto.availabilityHours());
-    existing.setRequiredSkills(dto.requiredSkills());
-    existing.setStartDate(dto.startDate());
-    existing.setEndDate(dto.endDate());
-    existing.setDescription(dto.description());
-    
-    // Clear the error message since it's being "fixed"
-    existing.setValidationError(null);
-
-    return repository.save(existing);
-}
 }

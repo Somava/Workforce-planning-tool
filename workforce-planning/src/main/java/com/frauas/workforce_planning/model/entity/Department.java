@@ -3,12 +3,10 @@ package com.frauas.workforce_planning.model.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Set;
-
 @Entity
-@Table(name = "skills")
+@Table(name = "departments")
 @Data
-public class Skill {
+public class Department {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,9 +15,7 @@ public class Skill {
     @Column(nullable = false, unique = true, length = 150)
     private String name;
 
-    @OneToMany(mappedBy = "skill")
-    private Set<EmployeeSkill> employeeSkills;
-
-    @OneToMany(mappedBy = "skill")
-    private Set<StaffingRequestSkill> staffingRequestSkills;
+    @ManyToOne
+    @JoinColumn(name = "department_head_user_id")
+    private User departmentHeadUser;
 }
