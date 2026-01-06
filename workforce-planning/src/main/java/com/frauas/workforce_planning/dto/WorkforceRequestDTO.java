@@ -1,19 +1,21 @@
 package com.frauas.workforce_planning.dto;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.math.BigDecimal;
 
-/**
- * This Record defines the "Contract" between Frontend and Backend.
- * Any field added here will automatically become a Camunda variable.
- */
 public record WorkforceRequestDTO(
     String title,
     String description,
-    String requiredSkills,
+    Integer experienceYears,       
     Long projectId,
+    Integer availabilityHours,
     LocalDate startDate,
     LocalDate endDate,
-    Integer availabilityHours,
+    Long departmentId,             
+    BigDecimal wagePerHour,        
+    List<String> requiredSkills,
     String projectContext,
-    String performanceLocation
+    String projectLocation,        
+    String workLocation
 ) {}

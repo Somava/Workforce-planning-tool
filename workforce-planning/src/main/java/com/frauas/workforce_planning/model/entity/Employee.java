@@ -30,8 +30,10 @@ public class Employee {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(length = 150)
-    private String department;
+    // ✅ FIXED: department is now an entity
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
@@ -66,10 +68,7 @@ public class Employee {
     @Column(columnDefinition = "TEXT")
     private String interests;
 
-    // relations (optional but recommended to init)
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<EmployeeSkill> skills = new HashSet<>();
-
+    // ✅ CORRECT relations for new schema
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<EmployeeCertification> certifications = new HashSet<>();
 
@@ -91,8 +90,7 @@ public class Employee {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null) return false;
-        if (getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         Employee other = (Employee) o;
         return id != null && id.equals(other.id);
     }

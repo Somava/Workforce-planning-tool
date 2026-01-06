@@ -8,10 +8,9 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(
-    name = "assignments",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "staffing_request_id"})
-)
+@Table(name = "assignments")
+// ✅ Note: The unique constraint is removed from @Table because the new schema 
+// uses a conditional index (WHERE staffing_request_id IS NOT NULL)
 @Data
 public class Assignment {
 
@@ -19,13 +18,14 @@ public class Assignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // who is assigned
+    // The employee who is assigned
     @ManyToOne(optional = false)
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
+    // ✅ FIXED: Mapping to the new PK 'request_id' in the staffing_requests table
     @ManyToOne
-    @JoinColumn(name = "staffing_request_id")
+    @JoinColumn(name = "staffing_request_id", referencedColumnName = "request_id")
     private StaffingRequest staffingRequest;
 
     @ManyToOne
@@ -34,7 +34,7 @@ public class Assignment {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private AssignmentStatus status; // WAITING_APPROVAL, REJECTED, ACTIVE, COMPLETED
+    private AssignmentStatus status; // WAITING_APPROVAL, APPROVED, REJECTED, ACTIVE, COMPLETED
 
     @Column(name = "period_start")
     private LocalDate periodStart;
@@ -42,15 +42,17 @@ public class Assignment {
     @Column(name = "period_end")
     private LocalDate periodEnd;
 
+    // ✅ SMALLINT in Postgres maps to Short or Integer
     @Column(name = "performance_rating")
     private Short performanceRating;
 
     @Column(columnDefinition = "TEXT")
     private String feedback;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
+    // The planner or PM who created the assignment
     @ManyToOne
     @JoinColumn(name = "created_by_employee_id")
     private Employee createdBy;
