@@ -16,14 +16,14 @@ public class Assignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // who is assigned
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "employee_id", nullable = false)
+    // The employee who is assigned
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    // nullable because DB uses ON DELETE SET NULL
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "staffing_request_id")
+    // ✅ FIXED: Mapping to the new PK 'request_id' in the staffing_requests table
+    @ManyToOne
+    @JoinColumn(name = "staffing_request_id", referencedColumnName = "request_id")
     private StaffingRequest staffingRequest;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,14 +40,15 @@ public class Assignment {
     @Column(name = "period_end")
     private LocalDate periodEnd;
 
+    // ✅ SMALLINT in Postgres maps to Short or Integer
     @Column(name = "performance_rating")
     private Short performanceRating;
 
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
 
     // nullable because DB uses ON DELETE SET NULL
     @ManyToOne(fetch = FetchType.LAZY)

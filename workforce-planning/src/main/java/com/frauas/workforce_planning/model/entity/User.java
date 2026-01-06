@@ -29,7 +29,7 @@ public class User {
      * Internal employee account (existing behaviour)
      */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false, unique = true)
+    @JoinColumn(name = "employee_id", unique = true)
     private Employee employee;
 
     /**
@@ -46,6 +46,11 @@ public class User {
         inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+
+    // Helper method to check if user is external
+    public boolean isExternal() {
+        return externalEmployee != null;
+    }
 
     @Override
     public boolean equals(Object o) {

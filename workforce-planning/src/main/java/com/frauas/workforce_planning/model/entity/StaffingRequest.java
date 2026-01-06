@@ -17,37 +17,48 @@ import java.util.Set;
 @Data
 public class StaffingRequest {
 
-    /**
-     * NEW PRIMARY KEY
-     * Maps to staffing_requests.request_id
-     */
+    // =========================
+    // PRIMARY KEY
+    // =========================
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
     private Long requestId;
 
-    /**
-     * Normal column named "id" (NOT primary key)
-     */
-    @Column(name = "id")
-    private Long id;
-
+    // =========================
+    // BASIC INFO
+    // =========================
     @Column(nullable = false, length = 200)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    /**
-     * Keep relation – project table unchanged
-     */
+    @Column(name = "project_name", length = 200)
+    private String projectName;
+
+    // =========================
+    // RELATIONSHIPS
+    // =========================
     @ManyToOne(optional = false)
     @JoinColumn(name = "project_id")
     private Project project;
 
-    @Column(name = "project_name", length = 200)
-    private String projectName;
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
+    @ManyToOne
+    @JoinColumn(name = "created_by_employee_id")
+    private Employee createdBy;
+
+    @ManyToOne
+    @JoinColumn(name = "assigned_user_id")
+    private User assignedUser;
+
+    // =========================
+    // TIME & AVAILABILITY
+    // =========================
     @Column(name = "availability_hours_per_week")
     private Integer availabilityHoursPerWeek;
 
@@ -57,36 +68,30 @@ public class StaffingRequest {
     @Column(name = "project_end_date")
     private LocalDate projectEndDate;
 
+    // =========================
+    // STATUS & WORKFLOW
+    // =========================
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private RequestStatus status = RequestStatus.DRAFT;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by_employee_id")
-    private Employee createdBy;
+    @Column(name = "process_instance_key")
+    private Long processInstanceKey;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime createdAt;
-
-    /**
-     * FK to departments table
-     * (kept as ID for now to reduce refactoring)
-     */
-    @Column(name = "department_id")
-    private Long departmentId;
-
-    @Column(name = "wage_per_hour")
-    private BigDecimal wagePerHour;
-
-    /**
-     * JSONB column
-     */
-    @Type(JsonType.class)
+    // =========================
+    // SKILLS & EXPERIENCE
+    // =========================
     @Column(name = "required_skills", columnDefinition = "jsonb")
-    private List<String> requiredSkills;
+    private String requiredSkills; // JSON stored as String
 
-    @Column(name = "project_context", columnDefinition = "TEXT")
-    private String projectContext;
+    @Column(name = "experience_years")
+    private Integer experienceYears;
+
+    // =========================
+    // PAYMENT & LOCATION
+    // =========================
+    @Column(name = "wage_per_hour", precision = 10, scale = 2)
+    private BigDecimal wagePerHour;
 
     @Column(name = "project_location", length = 200)
     private String projectLocation;
@@ -94,22 +99,21 @@ public class StaffingRequest {
     @Column(name = "work_location", length = 200)
     private String workLocation;
 
-    @Column(name = "process_instance_key")
-    private Long processInstanceKey;
+    @Column(name = "project_context", columnDefinition = "TEXT")
+    private String projectContext;
 
-    /**
-     * FK to users table
-     */
-    @Column(name = "assigned_user_id")
-    private Long assignedUserId;
+    // =========================
+    // AUDIT
+    // =========================
+    @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt;
 
-    /**
-     * These relations still reference staffing_requests(request_id)
-     * and will continue to work after the PK rename.
-     */
+    // =========================
+    // CHILD RELATIONS
+    // =========================
     @OneToMany(mappedBy = "staffingRequest")
     private Set<EmployeeApplication> applications;
 
     @OneToMany(mappedBy = "staffingRequest")
     private Set<Assignment> assignments;
-}
+} 

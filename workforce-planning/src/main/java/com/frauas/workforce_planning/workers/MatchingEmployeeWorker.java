@@ -1,84 +1,76 @@
 package com.frauas.workforce_planning.workers;
 
+import com.frauas.workforce_planning.repository.EmployeeMatchingRepository;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.annotation.JobWorker;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-@Component
+//@Component
 public class MatchingEmployeeWorker {
 
-    // Simple in-memory employee model (no DB yet)
-    static class Employee {
-        String id;
-        String skill;
-        int availableWorkload; // e.g. hours per week
+  private final EmployeeMatchingRepository matchingRepository;
 
-        Employee(String id, String skill, int availableWorkload) {
-            this.id = id;
-            this.skill = skill;
-            this.availableWorkload = availableWorkload;
-        }
+  public MatchingEmployeeWorker(EmployeeMatchingRepository matchingRepository) {
+    this.matchingRepository = matchingRepository;
+  }
+
+  @JobWorker(type = "resourceMatcher")
+  public void matchEmployees(final JobClient client, final ActivatedJob job) {
+
+    Map<String, Object> variables = job.getVariablesAsMap();
+
+    // Expect requiredSkills from BPMN (CSV string)
+    String requiredSkillsRaw = (String) variables.getOrDefault("requiredSkills", "");
+
+    // Optional: keep reading workload if your BPMN uses it (not used in DB query yet)
+    // Object workloadObj = variables.get("workload");
+
+    List<String> skills = Arrays.stream(requiredSkillsRaw.split(","))
+        .map(String::trim)
+        .filter(s -> !s.isBlank())
+        .map(String::toLowerCase)
+        .collect(Collectors.toList());
+
+    // min 2 matches if 2+ skills provided, else 1
+    int minMatches = skills.size() >= 2 ? 2 : 1;
+
+    Map<String, Object> resultVars = new HashMap<>();
+
+    if (skills.isEmpty()) {
+      // No skills provided => treat as not found
+      resultVars.put("suitableResourceFound", false);
+      resultVars.put("matchedEmployeeId", null);
+      resultVars.put("matchedSkillCount", 0);
+      resultVars.put("matchScore", 0);
+
+      client.newCompleteCommand(job.getKey()).variables(resultVars).send().join();
+      return;
     }
 
-    // Dummy employees – for now this replaces the database
-    private final List<Employee> employees = List.of(
-            new Employee("EMP001", "Java", 40),
-            new Employee("EMP002", "Python", 20),
-            new Employee("EMP003", "Java", 10),
-            new Employee("EMP004", "Data Science", 30),
-            new Employee("EMP005", "Java", 25)
-    );
+    // Query DB for best matches (already sorted best-first)
+    List<EmployeeMatchingRepository.MatchResult> matches =
+        matchingRepository.findBestMatches(skills, minMatches);
 
-    // This worker is bound to the BPMN service task with type "match-employees"
-    @JobWorker(type = "resourceMatcher")
-    public void matchEmployees(final JobClient client, final ActivatedJob job) {
+    if (matches.isEmpty()) {
+      // Not found -> BPMN should route to TriggerExternalProvider
+      resultVars.put("suitableResourceFound", false);
+      resultVars.put("matchedEmployeeId", null);
+      resultVars.put("matchedSkillCount", 0);
+      resultVars.put("matchScore", 0);
+    } else {
+      // Pick best match (first one)
+      EmployeeMatchingRepository.MatchResult best = matches.get(0);
 
-        Map<String, Object> variables = job.getVariablesAsMap();
-
-        // ⚠ Use same variable names as in your BPMN & ValidateRequestDataWorker
-        String requiredSkill = (String) variables.get("requiredSkills"); // or "requiredSkill" if BPMN uses that
-        Object workloadObj = variables.get("workload");
-        int requiredWorkload = 0;
-
-        if (workloadObj instanceof Number n){
-             requiredWorkload = n.intValue();
-        }else if (workloadObj instanceof String s && !s.isBlank()){
-             requiredWorkload = Integer.parseInt(s);
-        } 
-
-        // -------- Matching logic (simple version) ----------
-        Employee selected = null;
-
-        for (Employee e : employees) {
-            boolean skillMatches = e.skill.equalsIgnoreCase(requiredSkill);
-            boolean capacityEnough = e.availableWorkload >= requiredWorkload;
-
-            if (skillMatches && capacityEnough) {
-                // simple rule: pick the first employee that fits
-                selected = e;
-                break;
-            }
-        }
-
-        String matchedEmployeeId = (selected != null) ? selected.id : null;
-
-        Map<String, Object> resultVars = new HashMap<>();
-        resultVars.put("matchedEmployeeId", matchedEmployeeId);
-       resultVars.put("suitableResourceFound", selected != null);
-
-
-        System.out.println("Matched employee: " + matchedEmployeeId);
-
-        client
-            .newCompleteCommand(job.getKey())
-            .variables(resultVars)
-            .send()
-            .join();
+      resultVars.put("suitableResourceFound", true);
+      resultVars.put("matchedEmployeeId", best.getEmployeeId());
+      resultVars.put("matchedSkillCount", best.getMatchedSkillCount());
+      resultVars.put("matchScore", best.getScore());
     }
+
+    client.newCompleteCommand(job.getKey()).variables(resultVars).send().join();
+  }
 }
-

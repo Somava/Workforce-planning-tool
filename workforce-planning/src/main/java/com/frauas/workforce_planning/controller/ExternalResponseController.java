@@ -26,17 +26,17 @@ public class ExternalResponseController {
     if (dto.internalRequestId() == null || dto.internalRequestId().isBlank()) {
       return ResponseEntity.badRequest().body(Map.of("error", "internalRequestId is mandatory"));
     }
-    if (dto.externalResourceFound() == null) {
+    if (dto.candidate() == null) {
       return ResponseEntity.badRequest().body(Map.of("error", "externalResourceFound is mandatory"));
     }
 
     // 2) Map response -> Camunda variables
     Map<String, Object> vars = new HashMap<>();
     vars.put("requestId", dto.internalRequestId()); // keep consistent
-    vars.put("externalResourceFound", dto.externalResourceFound());
+    vars.put("externalResourceFound", dto.candidate());
 
-    if (Boolean.TRUE.equals(dto.externalResourceFound())) {
-      vars.put("externalEmployeeId", dto.externalEmployeeId());
+    if (Boolean.TRUE.equals(dto.candidate())) {
+      vars.put("externalEmployeeId", dto.candidate());
     }
 
     // 3) Publish message to release "Await External Response"

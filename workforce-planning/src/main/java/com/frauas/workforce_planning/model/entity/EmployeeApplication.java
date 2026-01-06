@@ -11,6 +11,8 @@ import java.time.OffsetDateTime;
 @Entity
 @Table(
     name = "employee_applications",
+    // ✅ The unique constraint names remain the same, 
+    // but they now point to the renamed PK column in the requests table
     uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "staffing_request_id"})
 )
 @Getter
@@ -36,7 +38,7 @@ public class EmployeeApplication {
     private ApplicationStatus status = ApplicationStatus.APPLIED;
 
     @Column(name = "applied_at", nullable = false)
-    private OffsetDateTime appliedAt;
+    private OffsetDateTime appliedAt = OffsetDateTime.now();
 
     @Column(name = "decision_at")
     private OffsetDateTime decisionAt;
