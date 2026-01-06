@@ -1,12 +1,15 @@
 package com.frauas.workforce_planning.model.entity;
 
 import com.frauas.workforce_planning.model.enums.RequestStatus;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Entity

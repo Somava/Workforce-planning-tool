@@ -9,8 +9,6 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "assignments")
-// ✅ Note: The unique constraint is removed from @Table because the new schema 
-// uses a conditional index (WHERE staffing_request_id IS NOT NULL)
 @Data
 public class Assignment {
 
@@ -28,13 +26,13 @@ public class Assignment {
     @JoinColumn(name = "staffing_request_id", referencedColumnName = "request_id")
     private StaffingRequest staffingRequest;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
-    
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private AssignmentStatus status; // WAITING_APPROVAL, APPROVED, REJECTED, ACTIVE, COMPLETED
+    @Column(name = "status", nullable = false, length = 50)
+    private AssignmentStatus status;
 
     @Column(name = "period_start")
     private LocalDate periodStart;
@@ -46,14 +44,21 @@ public class Assignment {
     @Column(name = "performance_rating")
     private Short performanceRating;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    // The planner or PM who created the assignment
-    @ManyToOne
+    // nullable because DB uses ON DELETE SET NULL
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_employee_id")
     private Employee createdBy;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+    }
 }

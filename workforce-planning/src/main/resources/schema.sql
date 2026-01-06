@@ -1,93 +1,210 @@
+--------------------------------------------------
+-- CLEAN RESET (for dev/demo only)
+--------------------------------------------------
+DROP TABLE IF EXISTS employee_applications CASCADE;
+DROP TABLE IF EXISTS assignments CASCADE;
+DROP TABLE IF EXISTS staffing_requests CASCADE;
+
+DROP TABLE IF EXISTS user_roles CASCADE;
+DROP TABLE IF EXISTS employee_languages CASCADE;
+DROP TABLE IF EXISTS employee_certifications CASCADE;
+
+DROP TABLE IF EXISTS users CASCADE;
+
+DROP TABLE IF EXISTS external_employees CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+
+DROP TABLE IF EXISTS departments CASCADE;
+
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS languages CASCADE;
+DROP TABLE IF EXISTS certifications CASCADE;
+DROP TABLE IF EXISTS job_roles CASCADE;
+
 
 --------------------------------------------------
--- JOB ROLES (Developer, Tester, Designer, etc.)
+-- 1) LOOKUP TABLES
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS job_roles (
+
+-- JOB ROLES (Developer, Tester, etc.)
+CREATE TABLE job_roles (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- ROLES (system personas: PROJECT_MANAGER, EMPLOYEE, etc.)
+CREATE TABLE roles (
+    id      BIGSERIAL PRIMARY KEY,
+    name    VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- CERTIFICATIONS
+CREATE TABLE certifications (
+    id      BIGSERIAL PRIMARY KEY,
+    name    VARCHAR(255) NOT NULL UNIQUE
+);
+
+-- LANGUAGES
+CREATE TABLE languages (
+    id      BIGSERIAL PRIMARY KEY,
+    name    VARCHAR(100) NOT NULL UNIQUE
+);
+
+
 --------------------------------------------------
--- EMPLOYEES
+-- 2) CORE TABLES
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS employees (
-    id                      BIGSERIAL PRIMARY KEY,
-    employee_id             VARCHAR(100) UNIQUE,         -- company HR ID
 
-    first_name              VARCHAR(100) NOT NULL,
-    last_name               VARCHAR(100) NOT NULL,
+-- PROJECTS
+CREATE TABLE projects (
+    id                  BIGSERIAL PRIMARY KEY,
+    name                VARCHAR(200) NOT NULL,
+    description         TEXT,
+    task_description    TEXT,
 
-    department              VARCHAR(150),                -- can normalize later
-    supervisor_id           BIGINT,                      -- FK to employees.id
+    start_date          DATE,
+    end_date            DATE,
 
-    primary_location        VARCHAR(150),
+    location            VARCHAR(200),
+    links               TEXT,
 
-    contract_type           VARCHAR(50),                 -- maps to ContractType enum in Java
-    working_time_model      VARCHAR(100),                -- e.g. "40h/week"
+    status              VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
+    published           BOOLEAN NOT NULL DEFAULT FALSE,
 
-    emergency_contact       VARCHAR(255),
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-    availability_start      DATE,
-    availability_end        DATE,
+-- DEPARTMENTS (FK to users added later to avoid circular deps)
+CREATE TABLE departments (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    department_head_user_id BIGINT NULL
+);
 
-    job_role_id             BIGINT,                      -- FK to job_roles.id
+-- EMPLOYEES (refactored)
+CREATE TABLE employees (
+    id                       BIGSERIAL PRIMARY KEY,
+    employee_id              VARCHAR(100) UNIQUE,         -- company HR ID
 
-    project_preferences     TEXT,
-    interests               TEXT,
+    first_name               VARCHAR(100) NOT NULL,
+    last_name                VARCHAR(100) NOT NULL,
+
+    supervisor_id            BIGINT NULL,                 -- FK to employees.id
+    primary_location         VARCHAR(150),
+
+    contract_type            VARCHAR(50),                 -- maps to ContractType enum
+    emergency_contact        VARCHAR(255),
+
+    availability_start       DATE,
+    availability_end         DATE,
+
+    job_role_id              BIGINT NULL,                 -- FK to job_roles
+    department_id            BIGINT NULL,                 -- FK to departments
+    default_role_id          BIGINT NULL,                 -- FK to roles
+
+    skills                   JSONB,                       -- new
+    total_hours_per_week     INTEGER,
+    remaining_hours_per_week INTEGER,
+
+    project_preferences      TEXT,
+    interests                TEXT,
 
     CONSTRAINT fk_employee_supervisor
         FOREIGN KEY (supervisor_id) REFERENCES employees(id),
 
     CONSTRAINT fk_employee_job_role
-        FOREIGN KEY (job_role_id) REFERENCES job_roles(id)
+        FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
+
+    CONSTRAINT fk_employee_department
+        FOREIGN KEY (department_id) REFERENCES departments(id),
+
+    CONSTRAINT fk_employee_default_role
+        FOREIGN KEY (default_role_id) REFERENCES roles(id)
 );
 
 --------------------------------------------------
--- SKILLS
+-- 3) EXTERNAL EMPLOYEES (no FK to staffing_requests yet)
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS skills (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(150) NOT NULL UNIQUE
+
+CREATE TABLE external_employees (
+    id BIGSERIAL PRIMARY KEY,
+    external_employee_id VARCHAR(150) NOT NULL,
+    provider VARCHAR(150) NOT NULL,
+
+    first_name VARCHAR(100) NOT NULL,
+    last_name  VARCHAR(100) NOT NULL,
+
+    skills JSONB,
+
+    staffing_request_id BIGINT NULL,   -- FK added later (after staffing_requests exists)
+    project_id BIGINT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT uq_external_employee UNIQUE (provider, external_employee_id),
+
+    CONSTRAINT fk_ext_emp_project
+        FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE SET NULL
 );
 
 --------------------------------------------------
--- EMPLOYEE_SKILLS (many-to-many with experience level per skill)
+-- 4) USERS (login accounts)
+--    IMPORTANT: do NOT reference external_employees inside CREATE TABLE,
+--    because we add that FK after external_employees exists.
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS employee_skills (
-    id                  BIGSERIAL PRIMARY KEY,
-    employee_id         BIGINT NOT NULL,
-    skill_id            BIGINT NOT NULL,
-    experience_level    VARCHAR(100),  -- e.g. "Junior", "Intermediate", "Senior"
 
-    CONSTRAINT fk_emp_skill_employee
-        FOREIGN KEY (employee_id) REFERENCES employees(id)
-        ON DELETE CASCADE,
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
 
-    CONSTRAINT fk_emp_skill_skill
-        FOREIGN KEY (skill_id) REFERENCES skills(id)
-        ON DELETE CASCADE,
+    employee_id BIGINT UNIQUE,
+    external_employee_id BIGINT UNIQUE,
 
-    CONSTRAINT uq_emp_skill UNIQUE (employee_id, skill_id)
+    CONSTRAINT fk_user_employee
+        FOREIGN KEY (employee_id)
+        REFERENCES employees(id)
+        ON DELETE RESTRICT,
+
+    -- Exactly one must be present
+    CONSTRAINT chk_user_employee_xor_external
+        CHECK (
+            (employee_id IS NOT NULL AND external_employee_id IS NULL)
+         OR (employee_id IS NULL AND external_employee_id IS NOT NULL)
+        )
 );
 
---------------------------------------------------
--- CERTIFICATIONS
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS certifications (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(255) NOT NULL UNIQUE
-);
+-- Now connect users.external_employee_id -> external_employees.id (safe now)
+ALTER TABLE users
+ADD CONSTRAINT fk_user_external_employee
+    FOREIGN KEY (external_employee_id)
+    REFERENCES external_employees(id)
+    ON DELETE RESTRICT;
+
+-- Now connect departments.department_head_user_id -> users.id (safe now)
+ALTER TABLE departments
+ADD CONSTRAINT fk_department_head_user
+    FOREIGN KEY (department_head_user_id)
+    REFERENCES users(id)
+    ON DELETE SET NULL;
+
 
 --------------------------------------------------
+-- 5) MANY-TO-MANY / DETAIL TABLES
+--------------------------------------------------
+
 -- EMPLOYEE_CERTIFICATIONS
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS employee_certifications (
-    id                  BIGSERIAL PRIMARY KEY,
-    employee_id         BIGINT NOT NULL,
-    certification_id    BIGINT NOT NULL,
-    issuer              VARCHAR(255),
-    date_obtained       DATE,
-    valid_until         DATE,
+CREATE TABLE employee_certifications (
+    id BIGSERIAL PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    certification_id BIGINT NOT NULL,
+    issuer VARCHAR(255),
+    date_obtained DATE,
+    valid_until DATE,
 
     CONSTRAINT fk_emp_cert_employee
         FOREIGN KEY (employee_id) REFERENCES employees(id)
@@ -100,22 +217,12 @@ CREATE TABLE IF NOT EXISTS employee_certifications (
     CONSTRAINT uq_emp_cert UNIQUE (employee_id, certification_id)
 );
 
---------------------------------------------------
--- LANGUAGES
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS languages (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(100) NOT NULL UNIQUE  -- could be "DE", "EN" or "German"
-);
-
---------------------------------------------------
 -- EMPLOYEE_LANGUAGES
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS employee_languages (
-    id                  BIGSERIAL PRIMARY KEY,
-    employee_id         BIGINT NOT NULL,
-    language_id         BIGINT NOT NULL,
-    proficiency_level   VARCHAR(50),      -- e.g. "B2", "C1", "Native"
+CREATE TABLE employee_languages (
+    id BIGSERIAL PRIMARY KEY,
+    employee_id BIGINT NOT NULL,
+    language_id BIGINT NOT NULL,
+    proficiency_level VARCHAR(50),
 
     CONSTRAINT fk_emp_lang_employee
         FOREIGN KEY (employee_id) REFERENCES employees(id)
@@ -128,35 +235,10 @@ CREATE TABLE IF NOT EXISTS employee_languages (
     CONSTRAINT uq_emp_lang UNIQUE (employee_id, language_id)
 );
 
---------------------------------------------------
--- ROLES (system personas: PROJECT_MANAGER, EMPLOYEE, etc.)
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS roles (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(100) NOT NULL UNIQUE
-);
-
---------------------------------------------------
--- USERS (login accounts, linked optionally to employees)
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS users (
-    id              BIGSERIAL PRIMARY KEY,
-    email           VARCHAR(255) NOT NULL UNIQUE,
-    password_hash   VARCHAR(255) NOT NULL,
-
-    employee_id     BIGINT NOT NULL UNIQUE, 
-
-    CONSTRAINT fk_user_employee
-        FOREIGN KEY (employee_id) REFERENCES employees(id)
-);
-
---------------------------------------------------
--- USER_ROLES (many-to-many between users and roles)
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS user_roles (
-    user_id     BIGINT NOT NULL,
-    role_id     BIGINT NOT NULL,
-
+-- USER_ROLES
+CREATE TABLE user_roles (
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
     PRIMARY KEY (user_id, role_id),
 
     CONSTRAINT fk_user_roles_user
@@ -168,109 +250,99 @@ CREATE TABLE IF NOT EXISTS user_roles (
         ON DELETE CASCADE
 );
 
---------------------------------------------------
--- PROJECTS
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS projects (
-    id                  BIGSERIAL PRIMARY KEY,
-    name                VARCHAR(200) NOT NULL,
-    description         TEXT,               -- short/medium description
-    task_description    TEXT,               -- detailed tasks
-
-    start_date          DATE,
-    end_date            DATE,
-
-    location            VARCHAR(200),
-    links               TEXT,               -- URLs, comma-separated or markdown
-
-    status              VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
-    published           BOOLEAN NOT NULL DEFAULT FALSE,
-
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 --------------------------------------------------
--- STAFFING REQUESTS
+-- 6) STAFFING (refactored)
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS staffing_requests (
-    id                          BIGSERIAL PRIMARY KEY,
 
-    title                       VARCHAR(200) NOT NULL,
-    description                 TEXT,      
-    project_id                  BIGINT NOT NULL,
-    job_role_id                 BIGINT,          -- FK to job_roles
+-- STAFFING REQUESTS (request_id is the PK)
+CREATE TABLE staffing_requests (
+    request_id BIGSERIAL PRIMARY KEY,
 
-    availability_hours_per_week INTEGER,         -- requested hours/week
+    -- Optional "normal" id (keep only if you actually need it)
+    id BIGINT,
 
-    period_start                DATE,           -- request period from
-    period_end                  DATE,           -- request period to
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
 
-    status                      VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
-    remarks                     TEXT,
+    project_id BIGINT NOT NULL,
 
-    created_by_employee_id      BIGINT,         -- who created it (PM)
-    created_at                  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    published_at                TIMESTAMPTZ,
+    availability_hours_per_week INTEGER,
+
+    project_start_date DATE,
+    project_end_date DATE,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
+
+    created_by_employee_id BIGINT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    -- new fields
+    project_name VARCHAR(200),
+    department_id BIGINT NULL,
+    wage_per_hour NUMERIC(10,2),
+    required_skills JSONB,
+    project_context TEXT,
+    project_location VARCHAR(200),
+    work_location VARCHAR(200),
+    process_instance_key BIGINT,
+    assigned_user_id BIGINT NULL,
+    experience_years INTEGER,
 
     CONSTRAINT fk_staffreq_project
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-
-    CONSTRAINT fk_staffreq_jobrole
-        FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
+        FOREIGN KEY (project_id) REFERENCES projects(id)
+        ON DELETE CASCADE,
 
     CONSTRAINT fk_staffreq_creator
         FOREIGN KEY (created_by_employee_id) REFERENCES employees(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_staffreq_department
+        FOREIGN KEY (department_id) REFERENCES departments(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_staffreq_assigned_user
+        FOREIGN KEY (assigned_user_id) REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
---------------------------------------------------
--- STAFFING REQUEST SKILLS (REQ -> SKILL + LEVEL)
---------------------------------------------------
-CREATE TABLE IF NOT EXISTS staffing_request_skills (
-    id                      BIGSERIAL PRIMARY KEY,
-    staffing_request_id     BIGINT NOT NULL,
-    skill_id                BIGINT NOT NULL,
-    required_level          VARCHAR(100),  -- e.g. "Junior", "Senior"
+-- Now we can connect external_employees.staffing_request_id -> staffing_requests.request_id
+ALTER TABLE external_employees
+ADD CONSTRAINT fk_ext_emp_request
+    FOREIGN KEY (staffing_request_id)
+    REFERENCES staffing_requests(request_id)
+    ON DELETE SET NULL;
 
-    CONSTRAINT fk_staffreqskill_request
-        FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_staffreqskill_skill
-        FOREIGN KEY (skill_id) REFERENCES skills(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT uq_staffreq_skill UNIQUE (staffing_request_id, skill_id)
-);
 
 --------------------------------------------------
--- ASSIGNMENTS (EMPLOYEE <-> REQUEST/PROJECT)
+-- 7) ASSIGNMENTS
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS assignments (
-    id                      BIGSERIAL PRIMARY KEY,
 
-    employee_id             BIGINT NOT NULL,    -- the one who is assigned
-    staffing_request_id     BIGINT NOT NULL,
-    project_id              BIGINT,
+CREATE TABLE assignments (
+    id BIGSERIAL PRIMARY KEY,
 
-    status                  VARCHAR(50) NOT NULL,  -- 'WAITING_APPROVAL', 'APPROVED' 'REJECTED', 'ACTIVE', 'COMPLETED'
+    employee_id BIGINT NOT NULL,
+    staffing_request_id BIGINT NULL,     -- nullable because ON DELETE SET NULL
+    project_id BIGINT NULL,
 
-    period_start            DATE,
-    period_end              DATE,
+    status VARCHAR(50) NOT NULL,
 
-    performance_rating      SMALLINT,
-    feedback                TEXT,
+    period_start DATE,
+    period_end DATE,
 
-    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    performance_rating SMALLINT,
+    feedback TEXT,
 
-    created_by_employee_id  BIGINT NOT NULL,    -- the planner or PM who created the assignment
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    created_by_employee_id BIGINT NULL,  -- nullable because ON DELETE SET NULL
 
     CONSTRAINT fk_assignment_employee
         FOREIGN KEY (employee_id) REFERENCES employees(id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_assignment_request
-        FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(id)
+        FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(request_id)
         ON DELETE SET NULL,
 
     CONSTRAINT fk_assignment_project
@@ -281,40 +353,41 @@ CREATE TABLE IF NOT EXISTS assignments (
         FOREIGN KEY (created_by_employee_id) REFERENCES employees(id)
         ON DELETE SET NULL,
 
-
     CONSTRAINT chk_rating_range
-        CHECK (performance_rating IS NULL OR (performance_rating BETWEEN 1 AND 5)),
-
-    -- One employee should not have duplicate assignments for the same request
-    CONSTRAINT uq_assignment_emp_request
-        UNIQUE (employee_id, staffing_request_id)
+        CHECK (performance_rating IS NULL OR (performance_rating BETWEEN 1 AND 5))
 );
 
+-- Enforce unique employee+request only when request is not null
+CREATE UNIQUE INDEX uq_assignment_emp_request_notnull
+ON assignments(employee_id, staffing_request_id)
+WHERE staffing_request_id IS NOT NULL;
+
+
 --------------------------------------------------
--- EMPLOYEE APPLICATIONS (EMPLOYEE -> STAFFING REQUEST)
+-- 8) EMPLOYEE APPLICATIONS
 --------------------------------------------------
-CREATE TABLE IF NOT EXISTS employee_applications (
-    id                      BIGSERIAL PRIMARY KEY,
 
-    employee_id             BIGINT NOT NULL,       -- who applied
-    staffing_request_id     BIGINT NOT NULL,       -- what they applied for
+CREATE TABLE employee_applications (
+    id BIGSERIAL PRIMARY KEY,
 
-    status                  VARCHAR(50) NOT NULL DEFAULT 'APPLIED',
-    applied_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    employee_id BIGINT NOT NULL,
+    staffing_request_id BIGINT NOT NULL,
 
-    decision_at             TIMESTAMPTZ,           -- when planner/PM took action
-    decision_by_employee_id BIGINT,                -- WHO made the decision
-    comment                 TEXT,                  -- optional remark
+    status VARCHAR(50) NOT NULL DEFAULT 'APPLIED',
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+    decision_at TIMESTAMPTZ,
+    decision_by_employee_id BIGINT NULL,
+    comment TEXT,
 
     CONSTRAINT fk_app_employee
-        FOREIGN KEY (employee_id) 
+        FOREIGN KEY (employee_id)
         REFERENCES employees(id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_app_request
-        FOREIGN KEY (staffing_request_id) 
-        REFERENCES staffing_requests(id)
+        FOREIGN KEY (staffing_request_id)
+        REFERENCES staffing_requests(request_id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_app_decision_by

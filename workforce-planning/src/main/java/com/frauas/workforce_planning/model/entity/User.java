@@ -25,15 +25,19 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    // ✅ MODIFIED: employee_id is now nullable to allow for external users
+    /**
+     * Internal employee account (existing behaviour)
+     */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", unique = true)
     private Employee employee;
 
-    // ✅ NEW: Added mapping for external employees based on new schema
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "external_employee_id", unique = true)
-    private ExternalEmployee externalEmployee;
+    /**
+     * External employee (optional)
+     * FK: users.external_employee_id -> external_employees.id
+     */
+    @Column(name = "external_employee_id")
+    private Long externalEmployeeId;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

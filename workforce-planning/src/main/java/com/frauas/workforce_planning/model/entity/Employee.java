@@ -1,13 +1,16 @@
 package com.frauas.workforce_planning.model.entity;
 
 import com.frauas.workforce_planning.model.enums.ContractType;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -30,11 +33,17 @@ public class Employee {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    // ✅ FIXED: department is now an entity
-    @ManyToOne
+    // FK -> departments.id
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
 
+    // FK -> roles.id (default system role of the employee)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "default_role_id")
+    private Role defaultRole;
+
+    // FK -> employees.id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
     private Employee supervisor;
@@ -46,8 +55,11 @@ public class Employee {
     @Column(name = "contract_type", length = 50)
     private ContractType contractType;
 
-    @Column(name = "working_time_model", length = 100)
-    private String workingTimeModel;
+    @Column(name = "total_hours_per_week")
+    private Integer totalHoursPerWeek;
+
+    @Column(name = "remaining_hours_per_week")
+    private Integer remainingHoursPerWeek;
 
     @Column(name = "emergency_contact", length = 255)
     private String emergencyContact;
@@ -58,6 +70,7 @@ public class Employee {
     @Column(name = "availability_end")
     private LocalDate availabilityEnd;
 
+    // FK -> job_roles.id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
     private JobRole jobRole;
@@ -65,10 +78,18 @@ public class Employee {
     @Column(name = "project_preferences", columnDefinition = "TEXT")
     private String projectPreferences;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "interests", columnDefinition = "TEXT")
     private String interests;
 
-    // ✅ CORRECT relations for new schema
+    /**
+     * Skills stored as JSONB.
+     * This works if your JSON is like: ["Java","Spring"]
+     */
+    @Type(JsonType.class)
+    @Column(name = "skills", columnDefinition = "jsonb")
+    private List<String> skills;
+
+    // Relations
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<EmployeeCertification> certifications = new HashSet<>();
 
