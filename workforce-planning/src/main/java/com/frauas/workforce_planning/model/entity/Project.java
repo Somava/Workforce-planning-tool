@@ -2,15 +2,20 @@ package com.frauas.workforce_planning.model.entity;
 
 import com.frauas.workforce_planning.model.enums.ProjectStatus;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.OffsetDateTime;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "projects")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
 public class Project {
 
     @Id
@@ -45,15 +50,47 @@ public class Project {
     @Column(nullable = false)
     private Boolean published = false;
 
-    @Column(name = "created_at", nullable = false)
+    /**
+     * DB default is now(). Let DB fill it.
+     */
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    /**
+     * DB default is now(). But DB won't auto-update on UPDATE unless you add a trigger.
+     * For now, keep DB-managed on insert; update it in code in @PreUpdate (below).
+     */
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    @OneToMany(mappedBy = "project")
-    private Set<StaffingRequest> staffingRequests;
+    @PrePersist
+    protected void onCreate() {
+        if (updatedAt == null) {
+            updatedAt = OffsetDateTime.now();
+        }
+    }
 
-    @OneToMany(mappedBy = "project")
-    private Set<Assignment> assignments;
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = OffsetDateTime.now();
+    }
+
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private Set<StaffingRequest> staffingRequests = new HashSet<>();
+
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private Set<Assignment> assignments = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Project other = (Project) o;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

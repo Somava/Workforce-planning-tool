@@ -25,9 +25,19 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    /**
+     * Internal employee account (existing behaviour)
+     */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false, unique = true)
     private Employee employee;
+
+    /**
+     * External employee (optional)
+     * FK: users.external_employee_id -> external_employees.id
+     */
+    @Column(name = "external_employee_id")
+    private Long externalEmployeeId;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -40,8 +50,7 @@ public class User {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null) return false;
-        if (getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) return false;
         User other = (User) o;
         return id != null && id.equals(other.id);
     }

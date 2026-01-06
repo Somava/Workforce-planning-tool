@@ -8,10 +8,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(
-    name = "assignments",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"employee_id", "staffing_request_id"})
-)
+@Table(name = "assignments")
 @Data
 public class Assignment {
 
@@ -20,21 +17,22 @@ public class Assignment {
     private Long id;
 
     // who is assigned
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "employee_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @ManyToOne
+    // nullable because DB uses ON DELETE SET NULL
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staffing_request_id")
     private StaffingRequest staffingRequest;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private Project project;
-    
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private AssignmentStatus status; // WAITING_APPROVAL, REJECTED, ACTIVE, COMPLETED
+    @Column(name = "status", nullable = false, length = 50)
+    private AssignmentStatus status;
 
     @Column(name = "period_start")
     private LocalDate periodStart;
@@ -45,13 +43,21 @@ public class Assignment {
     @Column(name = "performance_rating")
     private Short performanceRating;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
-    @ManyToOne
+    // nullable because DB uses ON DELETE SET NULL
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_employee_id")
     private Employee createdBy;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = OffsetDateTime.now();
+        }
+    }
 }
