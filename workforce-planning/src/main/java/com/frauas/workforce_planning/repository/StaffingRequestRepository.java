@@ -27,6 +27,9 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     List<StaffingRequest> findByStatus(RequestStatus status);
 
+    // 🔹 Find all requests where the associated project is published
+List<StaffingRequest> findByProject_PublishedTrue();
+
     /**
      * PostgreSQL Native Query for JSONB search.
      */

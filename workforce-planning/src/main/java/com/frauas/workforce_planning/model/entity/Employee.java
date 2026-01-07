@@ -72,6 +72,8 @@ public class Employee {
 
     @Column(name = "availability_end")
     private LocalDate availabilityEnd;
+    @Column(name = "email", unique = true, length = 150)
+    private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
