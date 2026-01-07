@@ -1,64 +1,57 @@
 package com.frauas.workforce_planning.model.entity;
 
-import com.frauas.workforce_planning.model.enums.RequestStatus;
-import com.vladmihalcea.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import lombok.Data;
-import org.hibernate.annotations.Type;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Set;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.frauas.workforce_planning.model.enums.RequestStatus;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "staffing_requests")
 @Data
+@NoArgsConstructor
 public class StaffingRequest {
 
-    // =========================
-    // PRIMARY KEY
-    // =========================
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "request_id")
     private Long requestId;
 
-    // =========================
-    // BASIC INFO
-    // =========================
-    @Column(nullable = false, length = 200)
+    @Column(name = "id") 
+    private Long id;
+
+    @Column(nullable = false)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "project_name", length = 200)
-    private String projectName;
-
-    // =========================
-    // RELATIONSHIPS
-    // =========================
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
+    // BREAKS THE LOOP: Ignores the list of requests inside the Project object
+    @JsonIgnoreProperties({"staffingRequests", "assignments"})
     private Project project;
 
-    @ManyToOne
+    @Column(name = "project_name")
+    private String projectName;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "job_role_id")
+    @JsonIgnoreProperties({"staffingRequests", "employees"})
+    private JobRole jobRole;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"employees", "staffingRequests"})
     private Department department;
 
-    @ManyToOne
-    @JoinColumn(name = "created_by_employee_id")
-    private Employee createdBy;
-
-    @ManyToOne
-    @JoinColumn(name = "assigned_user_id")
-    private User assignedUser;
-
-    // =========================
-    // TIME & AVAILABILITY
-    // =========================
     @Column(name = "availability_hours_per_week")
     private Integer availabilityHoursPerWeek;
 
@@ -68,52 +61,48 @@ public class StaffingRequest {
     @Column(name = "project_end_date")
     private LocalDate projectEndDate;
 
-    // =========================
-    // STATUS & WORKFLOW
-    // =========================
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private RequestStatus status = RequestStatus.DRAFT;
+    private RequestStatus status;
 
-    @Column(name = "process_instance_key")
-    private Long processInstanceKey;
-
-    // =========================
-    // SKILLS & EXPERIENCE
-    // =========================
-    @Column(name = "required_skills", columnDefinition = "jsonb")
-    private String requiredSkills; // JSON stored as String
+    @Column(name = "wage_per_hour")
+    private BigDecimal wagePerHour;
 
     @Column(name = "experience_years")
     private Integer experienceYears;
 
-    // =========================
-    // PAYMENT & LOCATION
-    // =========================
-    @Column(name = "wage_per_hour", precision = 10, scale = 2)
-    private BigDecimal wagePerHour;
-
-    @Column(name = "project_location", length = 200)
-    private String projectLocation;
-
-    @Column(name = "work_location", length = 200)
-    private String workLocation;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "required_skills", columnDefinition = "jsonb")
+    private List<String> requiredSkills;
 
     @Column(name = "project_context", columnDefinition = "TEXT")
     private String projectContext;
 
-    // =========================
-    // AUDIT
-    // =========================
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "project_location")
+    private String projectLocation;
+
+    @Column(name = "work_location")
+    private String workLocation;
+
+    @Column(name = "process_instance_key")
+    private Long processInstanceKey;
+
+    @Column(name = "validation_error")
+    private String validationError;
+
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "created_by_employee_id")
+    // BREAKS THE LOOP: Ignores the lists inside the Employee object
+    @JsonIgnoreProperties({"createdStaffingRequests", "assignments", "department", "supervisor"})
+    private Employee createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_user_id") 
+    @JsonIgnoreProperties({"password", "roles"})
+    private User assignedUser;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
-
-    // =========================
-    // CHILD RELATIONS
-    // =========================
-    @OneToMany(mappedBy = "staffingRequest")
-    private Set<EmployeeApplication> applications;
-
-    @OneToMany(mappedBy = "staffingRequest")
-    private Set<Assignment> assignments;
-} 
+}

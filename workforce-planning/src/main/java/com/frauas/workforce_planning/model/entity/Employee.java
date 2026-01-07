@@ -1,17 +1,20 @@
 package com.frauas.workforce_planning.model.entity;
 
-import com.frauas.workforce_planning.model.enums.ContractType;
-import com.vladmihalcea.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.Type;
-
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.hibernate.annotations.Type;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.frauas.workforce_planning.model.enums.ContractType;
+import com.vladmihalcea.hibernate.type.json.JsonType;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "employees")
@@ -33,19 +36,19 @@ public class Employee {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    // FK -> departments.id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"employees", "departmentHead", "staffingRequests"})
     private Department department;
 
-    // FK -> roles.id (default system role of the employee)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_role_id")
+    @JsonIgnoreProperties("employees")
     private Role defaultRole;
 
-    // FK -> employees.id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
+    @JsonIgnoreProperties({"subordinates", "department", "createdStaffingRequests", "assignments", "supervisor"})
     private Employee supervisor;
 
     @Column(name = "primary_location", length = 150)
@@ -70,9 +73,9 @@ public class Employee {
     @Column(name = "availability_end")
     private LocalDate availabilityEnd;
 
-    // FK -> job_roles.id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
+    @JsonIgnoreProperties({"staffingRequests", "employees"})
     private JobRole jobRole;
 
     @Column(name = "project_preferences", columnDefinition = "TEXT")
@@ -81,31 +84,34 @@ public class Employee {
     @Column(name = "interests", columnDefinition = "TEXT")
     private String interests;
 
-    /**
-     * Skills stored as JSONB.
-     * This works if your JSON is like: ["Java","Spring"]
-     */
     @Type(JsonType.class)
     @Column(name = "skills", columnDefinition = "jsonb")
     private List<String> skills;
 
-    // Relations
+    // --- Relations with Recursion Breaks ---
+
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("employee")
     private Set<EmployeeCertification> certifications = new HashSet<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("employee")
     private Set<EmployeeLanguage> languages = new HashSet<>();
 
     @OneToMany(mappedBy = "employee")
+    @JsonIgnore // Stops Project -> Assignment -> Employee loop
     private Set<Assignment> assignments = new HashSet<>();
 
     @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
     private Set<Assignment> createdAssignments = new HashSet<>();
 
     @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore // Stops Request -> Employee -> CreatedRequests loop
     private Set<StaffingRequest> createdStaffingRequests = new HashSet<>();
 
     @OneToMany(mappedBy = "employee")
+    @JsonIgnoreProperties("employee")
     private Set<EmployeeApplication> applications = new HashSet<>();
 
     @Override
@@ -118,6 +124,6 @@ public class Employee {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return id != null ? id.hashCode() : getClass().hashCode();
     }
 }

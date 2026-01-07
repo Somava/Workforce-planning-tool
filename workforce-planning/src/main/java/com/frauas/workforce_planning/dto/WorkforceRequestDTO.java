@@ -1,21 +1,36 @@
 package com.frauas.workforce_planning.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.math.BigDecimal;
 
+/**
+ * Updated to match the JSON keys sent from Swagger/Frontend.
+ * Field names must match the JSON keys exactly for Spring to map them.
+ */
 public record WorkforceRequestDTO(
     String title,
     String description,
-    Integer experienceYears,       
     Long projectId,
-    Integer availabilityHours,
-    LocalDate startDate,
-    LocalDate endDate,
-    Long departmentId,             
-    BigDecimal wagePerHour,        
-    List<String> requiredSkills,
+    Long departmentId,
+    Long jobRoleId,           
+    Integer experienceYears,
+    
+    // Changed from availabilityHours to match JSON "availabilityHoursPerWeek"
+    Integer availabilityHoursPerWeek,
+    
+    // Changed from startDate to match JSON "projectStartDate"
+    LocalDate projectStartDate,
+    
+    // Changed from endDate to match JSON "projectEndDate"
+    LocalDate projectEndDate,
+    
+    BigDecimal wagePerHour,
     String projectContext,
-    String projectLocation,        
-    String workLocation
+    String projectLocation,
+    String workLocation,
+    List<String> requiredSkills,
+    
+    // Added to capture the creator ID from JSON "createdByEmployeeId"
+    Long createdByEmployeeId
 ) {}

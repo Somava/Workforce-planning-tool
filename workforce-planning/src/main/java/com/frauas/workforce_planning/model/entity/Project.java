@@ -1,15 +1,18 @@
 package com.frauas.workforce_planning.model.entity;
 
-import com.frauas.workforce_planning.model.enums.ProjectStatus;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.frauas.workforce_planning.model.enums.ProjectStatus;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "projects")
@@ -50,16 +53,9 @@ public class Project {
     @Column(nullable = false)
     private Boolean published = false;
 
-    /**
-     * DB default is now(). Let DB fill it.
-     */
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    /**
-     * DB default is now(). But DB won't auto-update on UPDATE unless you add a trigger.
-     * For now, keep DB-managed on insert; update it in code in @PreUpdate (below).
-     */
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
@@ -75,10 +71,13 @@ public class Project {
         updatedAt = OffsetDateTime.now();
     }
 
+    // BREAKS THE RECURSION
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    @JsonIgnore // Prevents Project -> Request -> Project loop
     private Set<StaffingRequest> staffingRequests = new HashSet<>();
 
     @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    @JsonIgnore // Prevents Project -> Assignment -> Employee -> Project loop
     private Set<Assignment> assignments = new HashSet<>();
 
     @Override
@@ -91,6 +90,6 @@ public class Project {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return id != null ? id.hashCode() : getClass().hashCode();
     }
 }

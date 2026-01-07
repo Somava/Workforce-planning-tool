@@ -8,6 +8,7 @@ public enum RequestStatus {
     REJECTED,
     APPROVED,
     ASSIGNED,
-    CANCELLED
+    CANCELLED,
+    OPEN,    // Added to match common workflow
+    CLOSED   // Added because your data.sql uses 'CLOSED' for request_id 6
 }
- //rewrite if needed
