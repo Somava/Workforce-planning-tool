@@ -45,10 +45,10 @@ public class StaffingRequestService {
     public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
         StaffingRequest entity = new StaffingRequest();
 
-        // 1. Map basic fields (Record syntax: dto.field())
+        // 1. Map basic fields (Record syntax: dto.field()))
         mapDtoToEntity(dto, entity);
 
-        // 2. Resolve Project & Name
+        // 2. Resolve Project
         Project project = projectRepository.findById(dto.projectId())
                 .orElseThrow(() -> new RuntimeException("Project not found: " + dto.projectId()));
         entity.setProject(project);
@@ -72,15 +72,19 @@ public class StaffingRequestService {
         entity.setCreatedBy(manager); 
 
         entity.setStatus(RequestStatus.SUBMITTED);
+
+          // Save and Flush to DB first so the Camunda Worker can find it immediately
         
-        // Save and Flush to DB first so the Camunda Worker can find it immediately
         StaffingRequest saved = repository.saveAndFlush(entity);
         return triggerCamundaProcess(saved);
     }
 
     /**
+
      * Updates an existing request.
+
      */
+
     @Transactional
     public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
         StaffingRequest existing = repository.findById(requestId)
@@ -97,10 +101,23 @@ public class StaffingRequestService {
         return repository.save(existing);
     }
 
-    /**
-     * Internal helper to ensure DTO mapping is consistent.
-     * Uses Record accessor syntax (dto.fieldName()).
-     */
+    @Transactional
+    public void rejectRequestByDepartmentHead(Long requestId) {
+        StaffingRequest request = repository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+        request.setStatus(RequestStatus.REJECTED);
+        repository.save(request);
+
+        if (request.getProcessInstanceKey() != null) {
+            zeebeClient.newCompleteCommand(request.getProcessInstanceKey()) 
+                    .variable("requestApproved", false)
+                    .variable("requestId", requestId)
+                    .send()
+                    .join();
+        }
+    }
+
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
         entity.setDescription(dto.description());
@@ -109,7 +126,10 @@ public class StaffingRequestService {
         entity.setProjectStartDate(dto.projectStartDate());
         entity.setProjectEndDate(dto.projectEndDate());
         entity.setWagePerHour(dto.wagePerHour());
+        
+        
         entity.setRequiredSkills(dto.requiredSkills());
+        
         entity.setProjectContext(dto.projectContext());
         entity.setProjectLocation(dto.projectLocation());
         entity.setWorkLocation(dto.workLocation());
@@ -120,8 +140,10 @@ public class StaffingRequestService {
         return repository.findAll();
     }
 
-    /**
+     /**
+
      * Triggers Zeebe and updates the process instance key.
+
      */
     private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
         Map<String, Object> variables = new HashMap<>();
@@ -144,5 +166,32 @@ public class StaffingRequestService {
             log.error("Zeebe failed for request {}. Error: {}", saved.getRequestId(), e.getMessage());
             return saved; 
         }
+    }
+
+    public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
+        List<StaffingRequest> entities = repository.findByProject_PublishedTrue();
+        return entities.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
+        return new WorkforceRequestDTO(
+            entity.getTitle(),
+            entity.getDescription(),
+            entity.getProject() != null ? entity.getProject().getId() : null,
+            entity.getDepartment() != null ? entity.getDepartment().getId() : null,
+            entity.getJobRole() != null ? entity.getJobRole().getId() : null,
+            entity.getExperienceYears(),
+            entity.getAvailabilityHoursPerWeek(),
+            entity.getProjectStartDate(),
+            entity.getProjectEndDate(),
+            entity.getWagePerHour(),
+            entity.getProjectContext(),
+            entity.getProjectLocation(),
+            entity.getWorkLocation(),
+            entity.getRequiredSkills(), // NO PARSING NEEDED: already a List<String>
+            entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null
+        );
     }
 }
