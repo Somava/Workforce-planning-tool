@@ -1,13 +1,16 @@
 package com.frauas.workforce_planning.workers;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.frauas.workforce_planning.repository.EmployeeMatchingRepository;
+
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.annotation.JobWorker;
-import org.springframework.stereotype.Component;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 //@Component
 public class MatchingEmployeeWorker {

@@ -1,11 +1,24 @@
 package com.frauas.workforce_planning.model.entity;
 
-import com.frauas.workforce_planning.model.enums.AssignmentStatus;
-import jakarta.persistence.*;
-import lombok.Data;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.frauas.workforce_planning.model.enums.AssignmentStatus;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.Data;
 
 @Entity
 @Table(name = "assignments")
@@ -19,15 +32,18 @@ public class Assignment {
     // The employee who is assigned
     @ManyToOne(optional = false)
     @JoinColumn(name = "employee_id")
+    @JsonIgnoreProperties({"assignments", "createdStaffingRequests", "department", "supervisor"})
     private Employee employee;
 
-    // ✅ FIXED: Mapping to the new PK 'request_id' in the staffing_requests table
+    // Mapping to the new PK 'request_id' in the staffing_requests table
     @ManyToOne
     @JoinColumn(name = "staffing_request_id", referencedColumnName = "request_id")
+    @JsonIgnoreProperties({"project", "department", "createdBy", "assignedUser"})
     private StaffingRequest staffingRequest;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
+    @JsonIgnoreProperties({"assignments", "staffingRequests"})
     private Project project;
 
     @Enumerated(EnumType.STRING)
@@ -40,7 +56,6 @@ public class Assignment {
     @Column(name = "period_end")
     private LocalDate periodEnd;
 
-    // ✅ SMALLINT in Postgres maps to Short or Integer
     @Column(name = "performance_rating")
     private Short performanceRating;
 
@@ -50,9 +65,10 @@ public class Assignment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    // nullable because DB uses ON DELETE SET NULL
+    // Creator of the assignment
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_employee_id")
+    @JsonIgnoreProperties({"assignments", "createdStaffingRequests", "department"})
     private Employee createdBy;
 
     @PrePersist

@@ -1,12 +1,26 @@
 package com.frauas.workforce_planning.model.entity;
 
-import jakarta.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -22,19 +36,20 @@ public class User {
     @Column(nullable = false, unique = true, length = 255)
     private String email;
 
+    @JsonIgnore 
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
     /**
-     * Internal employee account (existing behaviour)
+     * Internal employee account
      */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", unique = true)
+    @JsonIgnoreProperties({"department", "supervisor", "createdStaffingRequests", "assignments"})
     private Employee employee;
 
     /**
      * External employee (optional)
-     * FK: users.external_employee_id -> external_employees.id
      */
     @Column(name = "external_employee_id")
     private Long externalEmployeeId;
@@ -47,10 +62,17 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-        // Helper method to check if user is external
-    // Helper method to check if user is external
+    /**
+     * Staffing requests assigned to this user for approval or processing.
+     * ADDED: This fixes the 'No property assignedUser found' repository error.
+     */
+    @OneToMany(mappedBy = "assignedUser", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("assignedUser")
+    @JsonIgnore
+    private Set<StaffingRequest> staffingRequests = new HashSet<>();
+
     public boolean isExternal() {
-        return externalEmployeeId != null; // Correct: checks the field you actually defined
+        return externalEmployeeId != null;
     }   
 
     @Override
