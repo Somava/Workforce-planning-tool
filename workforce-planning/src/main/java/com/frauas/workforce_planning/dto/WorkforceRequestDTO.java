@@ -29,8 +29,5 @@ public record WorkforceRequestDTO(
     String projectContext,
     String projectLocation,
     String workLocation,
-    List<String> requiredSkills,
-    
-    // Added to capture the creator ID from JSON "createdByEmployeeId"
-    Long createdByEmployeeId
+    List<String> requiredSkills
 ) {}

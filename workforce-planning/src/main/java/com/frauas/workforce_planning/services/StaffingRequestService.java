@@ -9,9 +9,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
-import com.frauas.workforce_planning.model.entity.*;
+import com.frauas.workforce_planning.model.entity.Department;
+import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.model.entity.JobRole;
+import com.frauas.workforce_planning.model.entity.Project;
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
-import com.frauas.workforce_planning.repository.*;
+import com.frauas.workforce_planning.repository.DepartmentRepository;
+import com.frauas.workforce_planning.repository.EmployeeRepository;
+import com.frauas.workforce_planning.repository.JobRoleRepository;
+import com.frauas.workforce_planning.repository.ProjectRepository;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -190,8 +198,7 @@ public class StaffingRequestService {
             entity.getProjectContext(),
             entity.getProjectLocation(),
             entity.getWorkLocation(),
-            entity.getRequiredSkills(), // NO PARSING NEEDED: already a List<String>
-            entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null
+            entity.getRequiredSkills()
         );
     }
 }
