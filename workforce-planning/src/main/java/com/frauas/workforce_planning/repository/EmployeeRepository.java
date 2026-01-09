@@ -1,6 +1,8 @@
 package com.frauas.workforce_planning.repository;
 
 import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.model.enums.MatchingAvailability;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,4 +37,12 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     
     // 🔹 Search for employees with specific job roles
     List<Employee> findByJobRole_Id(Long jobRoleId);
+
+     // search with matching availability filters
+    List<Employee> findByMatchingAvailability(MatchingAvailability availability);
+
+    List<Employee> findByMatchingAvailabilityAndRemainingHoursPerWeekGreaterThanEqual(
+            MatchingAvailability availability,
+            Integer hours
+    );
 }

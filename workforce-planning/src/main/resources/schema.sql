@@ -79,6 +79,7 @@ CREATE TABLE employees (
     emergency_contact        VARCHAR(255),
     availability_start       DATE,
     availability_end         DATE,
+    matching_availability     VARCHAR(50) DEFAULT 'AVAILABLE',  -- AVAILABLE OR RESERVED
     job_role_id              BIGINT NULL,
     department_id            BIGINT NULL, 
     default_role_id          BIGINT NULL,

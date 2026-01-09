@@ -1,4 +1,6 @@
 package com.frauas.workforce_planning.model.entity;
+import com.frauas.workforce_planning.model.enums.MatchingAvailability;
+
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -74,6 +76,14 @@ public class Employee {
     private LocalDate availabilityEnd;
     @Column(name = "email", unique = true, length = 150)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+        name = "matching_availability",  
+        nullable = false,
+        length = 50
+    )
+    private MatchingAvailability matchingAvailability = MatchingAvailability.AVAILABLE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
