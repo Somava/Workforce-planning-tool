@@ -41,7 +41,7 @@ CREATE TABLE languages (
 );
 
 --------------------------------------------------
--- 2) CORE TABLES
+-- 2) CORE INFRASTRUCTURE
 --------------------------------------------------
 CREATE TABLE projects (
     id                  BIGSERIAL PRIMARY KEY,
@@ -58,14 +58,18 @@ CREATE TABLE projects (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Note: No UNIQUE on name, UNIQUE on department_head_user_id
 CREATE TABLE departments (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(150) NOT NULL UNIQUE,
-    department_head_user_id BIGINT NULL
+    name VARCHAR(150) NOT NULL, 
+    project_id BIGINT NOT NULL,
+    department_head_user_id BIGINT NULL UNIQUE, 
+    CONSTRAINT fk_dept_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE employees (
     id                       BIGSERIAL PRIMARY KEY,
+    email                    VARCHAR(150) UNIQUE,
     employee_id              VARCHAR(100) UNIQUE,
     first_name               VARCHAR(100) NOT NULL,
     last_name                VARCHAR(100) NOT NULL,
@@ -76,22 +80,23 @@ CREATE TABLE employees (
     availability_start       DATE,
     availability_end         DATE,
     job_role_id              BIGINT NULL,
-    department_id            BIGINT NULL,
+    department_id            BIGINT NULL, 
     default_role_id          BIGINT NULL,
     skills                   JSONB,
     total_hours_per_week     INTEGER,
     remaining_hours_per_week INTEGER,
     project_preferences      TEXT,
     interests                TEXT,
-    CONSTRAINT fk_employee_supervisor FOREIGN KEY (supervisor_id) REFERENCES employees(id),
     CONSTRAINT fk_employee_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
     CONSTRAINT fk_employee_department FOREIGN KEY (department_id) REFERENCES departments(id),
-    CONSTRAINT fk_employee_default_role FOREIGN KEY (default_role_id) REFERENCES roles(id)
+    CONSTRAINT fk_employee_default_role FOREIGN KEY (default_role_id) REFERENCES roles(id),
+    CONSTRAINT fk_employee_supervisor FOREIGN KEY (supervisor_id) REFERENCES employees(id)
 );
 
 --------------------------------------------------
--- 3) EXTERNAL EMPLOYEES
+-- 3) EXTERNAL & AUTH
 --------------------------------------------------
+-- Must be created before 'users' table because 'users' references it
 CREATE TABLE external_employees (
     id BIGSERIAL PRIMARY KEY,
     external_employee_id VARCHAR(150) NOT NULL,
@@ -99,16 +104,13 @@ CREATE TABLE external_employees (
     first_name VARCHAR(100) NOT NULL,
     last_name  VARCHAR(100) NOT NULL,
     skills JSONB,
-    staffing_request_id BIGINT NULL,
+    staffing_request_id BIGINT NULL, -- Will be linked later via ALTER
     project_id BIGINT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_external_employee UNIQUE (provider, external_employee_id),
     CONSTRAINT fk_ext_emp_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
 );
 
---------------------------------------------------
--- 4) USERS
---------------------------------------------------
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -116,17 +118,18 @@ CREATE TABLE users (
     employee_id BIGINT UNIQUE,
     external_employee_id BIGINT UNIQUE,
     CONSTRAINT fk_user_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_user_external_employee FOREIGN KEY (external_employee_id) REFERENCES external_employees(id) ON DELETE RESTRICT,
     CONSTRAINT chk_user_employee_xor_external CHECK (
         (employee_id IS NOT NULL AND external_employee_id IS NULL)
      OR (employee_id IS NULL AND external_employee_id IS NOT NULL)
     )
 );
 
-ALTER TABLE users ADD CONSTRAINT fk_user_external_employee FOREIGN KEY (external_employee_id) REFERENCES external_employees(id) ON DELETE RESTRICT;
+-- Late binding for the circular dependency between departments and users
 ALTER TABLE departments ADD CONSTRAINT fk_department_head_user FOREIGN KEY (department_head_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
 --------------------------------------------------
--- 5) MANY-TO-MANY / DETAIL TABLES
+-- 4) MANY-TO-MANY / DETAIL TABLES
 --------------------------------------------------
 CREATE TABLE employee_certifications (
     id BIGSERIAL PRIMARY KEY,
@@ -159,7 +162,7 @@ CREATE TABLE user_roles (
 );
 
 --------------------------------------------------
--- 6) STAFFING (UPDATED WITH NEW COLUMNS)
+-- 5) STAFFING
 --------------------------------------------------
 CREATE TABLE staffing_requests (
     request_id BIGSERIAL PRIMARY KEY,
@@ -167,7 +170,7 @@ CREATE TABLE staffing_requests (
     title VARCHAR(200) NOT NULL,
     description TEXT,
     project_id BIGINT NOT NULL,
-    job_role_id BIGINT NULL,                  -- ADDED: Required for your Service/Entity
+    job_role_id BIGINT NULL,
     availability_hours_per_week INTEGER,
     project_start_date DATE,
     project_end_date DATE,
@@ -184,20 +187,21 @@ CREATE TABLE staffing_requests (
     process_instance_key BIGINT,
     assigned_user_id BIGINT NULL,
     experience_years INTEGER,
-    validation_error TEXT,                   -- ADDED: Used by Camunda Worker
-    rejection_reason TEXT,                   -- ADDED: Used by Camunda Worker
+    validation_error TEXT,
+    rejection_reason TEXT,
 
     CONSTRAINT fk_staffreq_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT fk_staffreq_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id), -- ADDED FK
+    CONSTRAINT fk_staffreq_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
     CONSTRAINT fk_staffreq_creator FOREIGN KEY (created_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
     CONSTRAINT fk_staffreq_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
     CONSTRAINT fk_staffreq_assigned_user FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Fix for external employee link to staffing request
 ALTER TABLE external_employees ADD CONSTRAINT fk_ext_emp_request FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(request_id) ON DELETE SET NULL;
 
 --------------------------------------------------
--- 7) ASSIGNMENTS
+-- 6) ASSIGNMENTS & APPLICATIONS
 --------------------------------------------------
 CREATE TABLE assignments (
     id BIGSERIAL PRIMARY KEY,
@@ -220,9 +224,6 @@ CREATE TABLE assignments (
 
 CREATE UNIQUE INDEX uq_assignment_emp_request_notnull ON assignments(employee_id, staffing_request_id) WHERE staffing_request_id IS NOT NULL;
 
---------------------------------------------------
--- 8) EMPLOYEE APPLICATIONS
---------------------------------------------------
 CREATE TABLE employee_applications (
     id BIGSERIAL PRIMARY KEY,
     employee_id BIGINT NOT NULL,

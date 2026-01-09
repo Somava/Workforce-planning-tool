@@ -13,6 +13,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -22,6 +24,10 @@ public class RequestEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long id; 
+
+    public RequestEntity(String workLocation) {
+        this.workLocation = workLocation;
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -96,10 +102,6 @@ public class RequestEntity {
     @Column(name = "project_context", columnDefinition = "TEXT")
     private String projectContext;
 
-    // 11. Performance Location
-    @Column(name = "performance_location")
-    private String performanceLoc;
-
     // 12. Created By (Employee ID)
     @Column(name = "created_by_employee_id")
     private Integer createdById;
@@ -119,6 +121,12 @@ public class RequestEntity {
 
     @Column(name = "process_instance_key")
     private Long processInstanceKey;
+
+    @Column(name = "project_location")
+    private String projectLocation;
+
+    @Column(name = "work_location")
+    private String workLocation;
 
     // Add these manually if you aren't using Lombok
     public String getValidationError() {
@@ -153,9 +161,6 @@ public class RequestEntity {
     public String getProjectContext() { return projectContext; }
     public void setProjectContext(String projectContext) { this.projectContext = projectContext; }
 
-    public String getPerformanceLoc() { return performanceLoc; }
-    public void setPerformanceLoc(String performanceLoc) { this.performanceLoc = performanceLoc; }
-
     public Integer getCreatedById() { return createdById; }
     public void setCreatedById(Integer createdById) { this.createdById = createdById; }
 
@@ -165,6 +170,40 @@ public class RequestEntity {
 
     public void setProcessInstanceKey(Long processInstanceKey) {
     this.processInstanceKey = processInstanceKey;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "department_id", insertable = false, updatable = false)
+    private Department department;
+
+    @Column(name = "department_id")
+    private Long departmentId;
+
+    // FIX: This must return the ENTITY, not the Long ID
+    public Department getDepartment() {
+        return department;
+    }
+
+    // FIX: This must accept the ENTITY
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    // Separate getter for just the ID if you need it
+    public Long getDepartmentId() {
+        return departmentId;
+    }
+
+    public String getProjectLocation() {
+        return projectLocation;
+    }
+
+    public String getWorkLocation() {
+        return workLocation;
+    }
+
+    public void setWorkLocation(String workLocation) {
+        this.workLocation = workLocation;
     }
     
 }

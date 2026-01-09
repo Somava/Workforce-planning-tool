@@ -1,11 +1,11 @@
 package com.frauas.workforce_planning.repository;
 
-import com.frauas.workforce_planning.model.entity.EmployeeApplication;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Set;
+import com.frauas.workforce_planning.model.entity.EmployeeApplication;
 
 @Repository
 public interface EmployeeApplicationRepository extends JpaRepository<EmployeeApplication, Long> {

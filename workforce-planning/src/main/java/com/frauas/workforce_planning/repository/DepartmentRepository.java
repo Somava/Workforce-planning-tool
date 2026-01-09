@@ -1,18 +1,16 @@
 package com.frauas.workforce_planning.repository;
 
-import com.frauas.workforce_planning.model.entity.Department;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import com.frauas.workforce_planning.model.entity.Department;
 
 @Repository
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
-    // 🔹 Find a department by its unique name (e.g., "IT", "HR")
-    Optional<Department> findByName(String name);
-
-    // 🔹 Find the department managed by a specific User ID
-    // This matches your 'departmentHead' field in Department.java
-    Optional<Department> findByDepartmentHeadId(Long userId);
+    List<Department> findByProjectId(Long projectId);
+    Optional<Department> findByDepartmentHeadUserId(Long userId);
 }

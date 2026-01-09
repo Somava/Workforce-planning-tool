@@ -1,14 +1,21 @@
 package com.frauas.workforce_planning.controller;
 
-import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
-import com.frauas.workforce_planning.model.entity.EmployeeApplication;
-import com.frauas.workforce_planning.services.StaffingRequestService;
-import com.frauas.workforce_planning.services.EmployeeApplicationService; // Import the new service
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*; // Use wildcard to include PostMapping, PathVariable, etc.
-import com.frauas.workforce_planning.dto.EmployeeApplicationDTO;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity; // Import the new service
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable; // Use wildcard to include PostMapping, PathVariable, etc.
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.frauas.workforce_planning.dto.EmployeeApplicationDTO;
+import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
+import com.frauas.workforce_planning.services.EmployeeApplicationService;
+import com.frauas.workforce_planning.services.StaffingRequestService;
 
 @RestController
 @RequestMapping("/api/employee-portal")
