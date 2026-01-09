@@ -11,7 +11,7 @@ import java.util.Set;
 public interface EmployeeApplicationRepository extends JpaRepository<EmployeeApplication, Long> {
 
     // 🔹 Find all applications made by a specific employee
-    Set<EmployeeApplication> findByEmployee_Id(Long employeeId);
+    //Set<EmployeeApplication> findByEmployee_Id(Long employeeId);
 
     // 🔹 FIXED: Find applications for a specific staffing request
     // Uses 'requestId' to match the updated StaffingRequest entity
@@ -22,4 +22,8 @@ public interface EmployeeApplicationRepository extends JpaRepository<EmployeeApp
 
     // 🔹 Find applications handled/decided by a specific manager
     List<EmployeeApplication> findByDecisionBy_Id(Long employeeId);
+
+    // 🔹 Find all applications for a specific employee by their database ID
+    List<EmployeeApplication> findByEmployee_Id(Long employeeId);
+
 }
