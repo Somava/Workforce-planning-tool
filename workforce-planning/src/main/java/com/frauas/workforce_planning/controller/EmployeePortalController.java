@@ -7,7 +7,7 @@ import com.frauas.workforce_planning.services.EmployeeApplicationService; // Imp
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*; // Use wildcard to include PostMapping, PathVariable, etc.
-
+import com.frauas.workforce_planning.dto.EmployeeApplicationDTO;
 import java.util.List;
 
 @RestController
@@ -49,6 +49,38 @@ public class EmployeePortalController {
             return ResponseEntity.ok("Successfully applied for position!");
         } catch (RuntimeException e) {
             // Returns the "You already applied!" or "Not Found" error message
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    /**
+     * Dashboard: Get all applications for a specific employee using DTOs.
+     */
+    @GetMapping("/my-applications/{employeeId}")
+    // 2. Changed return type to List<EmployeeApplicationDTO>
+    public ResponseEntity<List<EmployeeApplicationDTO>> getMyApplications(@PathVariable Long employeeId) {
+        List<EmployeeApplicationDTO> applications = applicationService.getApplicationsForEmployee(employeeId);
+        
+        if (applications.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        
+        return ResponseEntity.ok(applications);
+    }
+    /**
+     * Withdraw an application.
+     * This removes the application record from the database.
+     */
+    @DeleteMapping("/withdraw/{applicationId}")
+    public ResponseEntity<String> withdrawApplication(
+            @PathVariable Long applicationId, 
+            @RequestParam Long employeeId) {
+        
+        try {
+            // Call the withdraw method in your service
+            applicationService.withdrawApplication(applicationId, employeeId);
+            return ResponseEntity.ok("Application withdrawn successfully.");
+        } catch (RuntimeException e) {
+            // Returns error if the application doesn't exist or doesn't belong to the employee
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

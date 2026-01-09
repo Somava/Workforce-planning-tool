@@ -48,6 +48,7 @@ camunda:
       client-id: aIaQ~q6v9zUQ7frCVWAX~Rz.hQoA.bAA
       client-secret: POFwESBE0noMniqolImdrh8GzTOa6T7fsawO.hst_BDHJP7wSE0LHBbxywNXz~Oe
     zeebe:
+      
       request-timeout: 60s
       worker:
         default-streaming-enabled: falsey

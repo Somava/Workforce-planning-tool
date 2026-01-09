@@ -177,11 +177,13 @@ public class StaffingRequestService {
     }
 
     public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
-        List<StaffingRequest> entities = repository.findByProject_PublishedTrue();
-        return entities.stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
+    // This ensures only APPROVED requests that are also PUBLISHED show up
+    List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
+    
+    return entities.stream()
+            .map(this::convertToDTO)
+            .toList();
+}
 
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
