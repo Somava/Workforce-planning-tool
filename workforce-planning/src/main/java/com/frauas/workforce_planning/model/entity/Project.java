@@ -2,14 +2,21 @@ package com.frauas.workforce_planning.model.entity;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.frauas.workforce_planning.model.enums.ProjectStatus;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,13 +32,12 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "task_description", columnDefinition = "TEXT")
+    
+    @Column(name = "task_description")
     private String taskDescription;
 
     @Column(name = "start_date")
@@ -40,56 +46,33 @@ public class Project {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(length = 200)
     private String location;
-
-    @Column(columnDefinition = "TEXT")
     private String links;
+    private String status;
+    private boolean published;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private ProjectStatus status = ProjectStatus.PLANNED;
-
-    @Column(nullable = false)
-    private Boolean published = false;
-
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    /**
+     * NEW: Bidirectional relationship to Departments.
+     * This maps to the 'project' field in Department.java.
+     */
+    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore // Important: Prevents infinite recursion in JSON responses
+    private List<Department> department;
 
     @PrePersist
     protected void onCreate() {
-        if (updatedAt == null) {
-            updatedAt = OffsetDateTime.now();
-        }
+        createdAt = OffsetDateTime.now();
+        updatedAt = OffsetDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
-    }
-
-    // BREAKS THE RECURSION
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    @JsonIgnore // Prevents Project -> Request -> Project loop
-    private Set<StaffingRequest> staffingRequests = new HashSet<>();
-
-    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
-    @JsonIgnore // Prevents Project -> Assignment -> Employee -> Project loop
-    private Set<Assignment> assignments = new HashSet<>();
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Project other = (Project) o;
-        return id != null && id.equals(other.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return id != null ? id.hashCode() : getClass().hashCode();
     }
 }

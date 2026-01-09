@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,19 +31,38 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 150)
+    // CHANGED: Removed unique = true because IT can exist in multiple projects
+    @Column(nullable = false, length = 150)
     private String name;
 
     /**
-     * FK: departments.department_head_user_id -> users.id
+     * NEW: Link to the Project. 
+     * Each of your 4 projects will have 3 departments.
      */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", nullable = false)
+    @JsonIgnoreProperties("departments")
+    private Project project;
+
+    // Inside DepartmentEntity.java
+
     @Column(name = "department_head_user_id")
     private Long departmentHeadUserId;
 
+    // The Controller is looking for this EXACT name
+    public Long getDepartmentHeadUserId() {
+        return departmentHeadUserId;
+    }
+
+    public void setDepartmentHeadUserId(Long departmentHeadUserId) {
+        this.departmentHeadUserId = departmentHeadUserId;
+    }
+
     /**
-     * Read-only object mapping.
+     * UPDATED: Changed to @OneToOne because your requirement is for 12 UNIQUE heads.
+     * The database has a UNIQUE constraint on this column now.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_head_user_id", insertable = false, updatable = false)
     @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
     private User departmentHead;
@@ -51,14 +71,14 @@ public class Department {
      * List of Staffing Requests in this department.
      */
     @OneToMany(mappedBy = "department")
-    @JsonIgnore // STOP recursion: StaffingRequest -> Department -> StaffingRequest (List)
+    @JsonIgnore 
     private List<StaffingRequest> staffingRequests;
 
     /**
      * List of Employees in this department.
      */
     @OneToMany(mappedBy = "department")
-    @JsonIgnore // STOP recursion: StaffingRequest -> Department -> Employee (List)
+    @JsonIgnore 
     private List<Employee> employees;
 
     @Override

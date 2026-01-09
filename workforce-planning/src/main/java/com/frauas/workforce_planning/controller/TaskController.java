@@ -22,8 +22,7 @@ import io.camunda.zeebe.client.ZeebeClient;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "*")
-
+@CrossOrigin(origins = "originPatterns = \"*\", allowCredentials = \"true\"")
 public class TaskController {
 
     @Autowired
@@ -33,19 +32,24 @@ public class TaskController {
     private RequestRepository requestRepository;
 
     /**
-     * Approves a request.
-     * @param userTaskId This is the internal Camunda Task Key (sent from frontend)
-     * @param requestId This is your custom DB Request ID (e.g. 20251234)
+     * Approves a request with authorization check.
      */
     @PostMapping("/approve/{userTaskId}")
     public ResponseEntity<String> approveRequest(
             @PathVariable Long userTaskId,
-            @RequestParam Long requestId) {
+            @RequestParam Long requestId,
+            @RequestParam Long deptHeadId) { // Added deptHeadId
 
-        // 1. Update the Database Status
         RequestEntity entity = requestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
-        entity.setStatus(com.frauas.workforce_planning.model.enums.RequestStatus.PUBLISHED);
+
+        // AUTHORIZATION: Verify this user is the head of the request's department
+        if (!entity.getDepartment().getDepartmentHeadUserId().equals(deptHeadId)) {
+            return ResponseEntity.status(403).body("You are not authorized to approve this request.");
+        }
+
+        // 1. Update the Database Status
+        entity.setStatus(RequestStatus.PUBLISHED);
         requestRepository.save(entity);
 
         // 2. Tell Camunda the Human is done
@@ -55,39 +59,55 @@ public class TaskController {
                 .variables(variables)
                 .send()
                 .join();
-        return ResponseEntity.ok("Request " + requestId + " has been approved and moved to Employee Search.");
+        
+        return ResponseEntity.ok("Request " + requestId + " approved by " + deptHeadId);
     }
 
     /**
-     * Rejects a request back to the Manager.
+     * Rejects a request with authorization check.
      */
     @PostMapping("/reject/{userTaskId}")
     public ResponseEntity<String> rejectRequest(
             @PathVariable Long userTaskId,
-            @RequestParam Long requestId) {
+            @RequestParam Long requestId,
+            @RequestParam String deptHeadId) { // Added deptHeadId
 
-        // 1. Update Database
         RequestEntity entity = requestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
-        entity.setStatus(com.frauas.workforce_planning.model.enums.RequestStatus.DRAFT);
-        entity.setValidationError("Rejected by Dept Head. Please revise.");
+
+        // AUTHORIZATION: Verify this user is the head of the request's department
+        if (!entity.getDepartment().getDepartmentHeadUserId().equals(deptHeadId)) {
+            return ResponseEntity.status(403).body("You are not authorized to reject this request.");
+        }
+
+        // 1. Update Database
+        entity.setStatus(RequestStatus.DRAFT);
+        entity.setValidationError("Rejected by Dept Head: " + deptHeadId);
         requestRepository.save(entity);
 
-        // 2. Tell Camunda to move back (isValid = false will trigger the gateway)
+        // 2. Tell Camunda to move back
         Map<String, Object> variables = new HashMap<>();
         variables.put("deptHeadApproved", false);
         zeebeClient.newCompleteCommand(userTaskId)
                 .variables(variables)
                 .send()
                 .join();
+        
         return ResponseEntity.ok("Request " + requestId + " rejected and sent back to Manager.");
     }
 
+    /**
+     * Filters pending approvals based on the logged-in Department Head.
+     */
     @GetMapping("/dept-head")
-    public ResponseEntity<List<RequestEntity>> getPendingApprovals() {
-        List<RequestEntity> pendingRequests = requestRepository.findAllByStatus(RequestStatus.PENDING_APPROVAL);
+    public ResponseEntity<List<RequestEntity>> getPendingApprovals(@RequestParam Long departmentHeadUserId) {
+        // You need to create this method in your RequestRepository
+        // List<RequestEntity> pendingRequests = requestRepository
+        //     .findAllByStatusAndDepartment_DepartmentHeadUserId(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
+
+        List<RequestEntity> pendingRequests = requestRepository
+            .findPendingRequestsByDeptHead(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
+        
         return ResponseEntity.ok(pendingRequests);
-
     }
-
 }
