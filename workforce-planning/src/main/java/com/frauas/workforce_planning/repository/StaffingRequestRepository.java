@@ -22,7 +22,7 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
     // Relationship filters
     List<StaffingRequest> findByProject_Id(Long projectId);
 
-    List<StaffingRequest> findByDepartment_Id(Long departmentId);
+    List<StaffingRequest> findByDepartmentId(Long departmentId);
 
     // This now works because 'assignedUser' is defined in the Entity
     List<StaffingRequest> findByAssignedUser_Id(Long userId);
@@ -30,9 +30,9 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
     List<StaffingRequest> findByStatus(RequestStatus status);
 
     // 🔹 Find all requests where the associated project is published
-List<StaffingRequest> findByProject_PublishedTrue();
+    List<StaffingRequest> findByProject_PublishedTrue();
 
- List<StaffingRequest> findByStatusAndProject_PublishedTrue(RequestStatus status);
+    List<StaffingRequest> findByStatusAndProject_PublishedTrue(RequestStatus status);
 
     /**
      * PostgreSQL Native Query for JSONB search.
@@ -45,4 +45,5 @@ List<StaffingRequest> findByProject_PublishedTrue();
         nativeQuery = true
     )
     List<StaffingRequest> findByRequiredSkills(@Param("skills") String skillsJson);
+    
 }

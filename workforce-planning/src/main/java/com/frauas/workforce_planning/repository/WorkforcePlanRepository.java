@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.frauas.workforce_planning.model.entity.WorkforcePlan;
@@ -14,10 +16,11 @@ public interface WorkforcePlanRepository extends JpaRepository<WorkforcePlan, Lo
     // 🔹 Find the plan associated with a specific project
     Optional<WorkforcePlan> findByProject_Id(Long projectId);
 
-    // 🔹 Find all plans for a specific department
-    // (Navigates: WorkforcePlan -> Project -> StaffingRequests -> Department)
-    List<WorkforcePlan> findByProject_StaffingRequests_Department_Id(Long departmentId);
+    @Query("SELECT w FROM WorkforcePlan w JOIN w.project p JOIN StaffingRequest s ON s.project = p WHERE s.department.id = :deptId")
+    List<WorkforcePlan> findByDepartmentId(@Param("deptId") Long deptId);
 
     // 🔹 Find plans that have been recently updated
     List<WorkforcePlan> findAllByOrderByUpdatedAtDesc();
+
+
 }

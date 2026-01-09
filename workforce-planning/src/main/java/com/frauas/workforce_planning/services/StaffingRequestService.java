@@ -48,12 +48,13 @@ public class StaffingRequestService {
 
     /**
      * Creates a new request and starts the Camunda process.
+     * Validates that the selected department belongs to the specified project.
      */
     @Transactional
     public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
         StaffingRequest entity = new StaffingRequest();
 
-        // 1. Map basic fields (Record syntax: dto.field()))
+        // 1. Map basic fields
         mapDtoToEntity(dto, entity);
 
         // 2. Resolve Project
@@ -65,6 +66,12 @@ public class StaffingRequestService {
         // 3. Resolve Department
         Department dept = departmentRepository.findById(dto.departmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found: " + dto.departmentId()));
+        
+        // Validation: Ensure the department is actually part of the chosen project
+        if (!dept.getProject().getId().equals(project.getId())) {
+            throw new RuntimeException("Inconsistency: Department '" + dept.getName() + 
+                                       "' does not belong to Project '" + project.getName() + "'");
+        }
         entity.setDepartment(dept);
 
         // 4. Resolve Job Role
@@ -81,18 +88,15 @@ public class StaffingRequestService {
 
         entity.setStatus(RequestStatus.SUBMITTED);
 
-          // Save and Flush to DB first so the Camunda Worker can find it immediately
-        
+        // Save and Flush so the database record exists before Camunda workers try to access it
         StaffingRequest saved = repository.saveAndFlush(entity);
+        
         return triggerCamundaProcess(saved);
     }
 
     /**
-
      * Updates an existing request.
-
      */
-
     @Transactional
     public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
         StaffingRequest existing = repository.findById(requestId)
@@ -109,6 +113,9 @@ public class StaffingRequestService {
         return repository.save(existing);
     }
 
+    /**
+     * Sets the request to REJECTED and completes the current Camunda task.
+     */
     @Transactional
     public void rejectRequestByDepartmentHead(Long requestId) {
         StaffingRequest request = repository.findById(requestId)
@@ -126,6 +133,28 @@ public class StaffingRequestService {
         }
     }
 
+    @Transactional
+    public void approveRequestByDepartmentHead(Long requestId) {
+        StaffingRequest request = repository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+        // 1. Update Database
+        request.setStatus(RequestStatus.APPROVED);
+        repository.save(request);
+
+        // 2. Notify Camunda to move past the User Task gateway
+        if (request.getProcessInstanceKey() != null) {
+            zeebeClient.newCompleteCommand(request.getProcessInstanceKey()) 
+                    .variable("requestApproved", true) // Tells the Gateway to go to "Publish"
+                    .variable("requestId", requestId)
+                    .send()
+                    .join();
+        }
+    }
+
+    /**
+     * Internal mapping from DTO to Entity.
+     */
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
         entity.setDescription(dto.description());
@@ -134,29 +163,29 @@ public class StaffingRequestService {
         entity.setProjectStartDate(dto.projectStartDate());
         entity.setProjectEndDate(dto.projectEndDate());
         entity.setWagePerHour(dto.wagePerHour());
-        
-        
         entity.setRequiredSkills(dto.requiredSkills());
-        
         entity.setProjectContext(dto.projectContext());
         entity.setProjectLocation(dto.projectLocation());
         entity.setWorkLocation(dto.workLocation());
-        // 'performanceLocation' is removed as it's not in your 25 columns list
     }
 
     public List<StaffingRequest> getAllRequests() {
         return repository.findAll();
     }
 
-     /**
-
-     * Triggers Zeebe and updates the process instance key.
-
+    /**
+     * Triggers Zeebe and passes relevant project/department variables.
+     * Includes the deptHeadUserId so Camunda can assign the task to the specific head.
      */
     private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
         Map<String, Object> variables = new HashMap<>();
         variables.put("requestId", saved.getRequestId()); 
         variables.put("projectId", saved.getProject().getId());
+        variables.put("departmentId", saved.getDepartment().getId());
+        
+        // Logic for unique Department Head routing in Camunda
+        variables.put("deptHeadUserId", saved.getDepartment().getDepartmentHeadUserId());
+        
         variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
         variables.put("status", saved.getStatus().toString());
 
@@ -177,14 +206,17 @@ public class StaffingRequestService {
     }
 
     public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
-    // This ensures only APPROVED requests that are also PUBLISHED show up
-    List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
-    
-    return entities.stream()
-            .map(this::convertToDTO)
-            .toList();
-}
+        // Fetches approved requests from projects marked as published
+        List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
+        
+        return entities.stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
 
+    /**
+     * Mapping from Entity back to DTO for API responses.
+     */
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
             entity.getTitle(),
