@@ -65,4 +65,74 @@ public class AuthService {
                 roleNames
         );
     }
+
+    public LoginResponse loginAuto(LoginAutoRequest req) {
+        User user = userRepository.findByEmailWithEmployeeRolesAndDefaultRole(req.email())
+                .orElseThrow(InvalidCredentialsException::new);
+
+        if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+            throw new InvalidCredentialsException();
+        }
+
+        List<String> roleNames = user.getRoles().stream().map(r -> r.getName()).toList();
+
+        // ✅ EXTERNAL user handling (employee is null)
+        if (user.getEmployee() == null) {
+            // For now: return token + placeholder identity; selectedRole left as EXTERNAL
+            String selectedRole = "EXTERNAL"; // or null if you prefer
+            String token = jwtService.generateToken(user.getEmail(), selectedRole, roleNames, "EXTERNAL");
+
+            return new LoginResponse(
+                    token,
+                    user.getId(),
+                    null,          // employeeDbId
+                    "EXTERNAL",    // employeeHrId
+                    "External",    // firstName placeholder
+                    "User",        // lastName placeholder
+                    selectedRole,
+                    roleNames
+            );
+        }
+
+        // ✅ INTERNAL user handling (same logic as you already wrote)
+
+        // 1) Try default role name
+        String defaultRoleName = user.getEmployee().getDefaultRole() != null
+                ? user.getEmployee().getDefaultRole().getName()
+                : null;
+
+        // 2) Decide selected role WITHOUT reassigning the same variable
+        final String selectedRole =
+                (defaultRoleName != null) ? defaultRoleName
+                : (roleNames.stream().anyMatch(r -> r.equalsIgnoreCase("EMPLOYEE"))) ? "EMPLOYEE"
+                : (!roleNames.isEmpty()) ? roleNames.get(0)
+                : null;
+
+        if (selectedRole == null) {
+            throw new RoleNotAllowedException("NO_ROLE_ASSIGNED");
+        }
+
+        // Safety: ensure role exists for that user
+        // boolean allowed = roleNames.stream().anyMatch(r -> r.equalsIgnoreCase(selectedRole));
+        // if (!allowed) {
+        //     throw new RoleNotAllowedException(selectedRole);
+        // }
+
+
+            String employeeHrId = user.getEmployee().getEmployeeId();
+            String token = jwtService.generateToken(user.getEmail(), selectedRole, roleNames, employeeHrId);
+
+            return new LoginResponse(
+                    token,
+                    user.getId(),
+                    user.getEmployee().getId(),
+                    employeeHrId,
+                    user.getEmployee().getFirstName(),
+                    user.getEmployee().getLastName(),
+                    selectedRole,
+                    roleNames
+            );
+    }
+
+
 }
