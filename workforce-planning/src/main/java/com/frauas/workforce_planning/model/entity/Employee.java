@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.math.BigDecimal;
+
 
 import org.hibernate.annotations.Type;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -59,6 +61,12 @@ public class Employee {
     @Enumerated(EnumType.STRING)
     @Column(name = "contract_type", length = 50)
     private ContractType contractType;
+
+    @Column(name = "experience_years")
+    private Integer experienceYears;
+
+    @Column(name = "wage_per_hour")
+    private BigDecimal wagePerHour;
 
     @Column(name = "total_hours_per_week")
     private Integer totalHoursPerWeek;
