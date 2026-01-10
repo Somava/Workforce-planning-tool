@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.frauas.workforce_planning.model.entity.RequestEntity;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.RequestRepository;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
 
 import io.camunda.zeebe.client.ZeebeClient;
 
@@ -30,6 +32,10 @@ public class TaskController {
 
     @Autowired
     private RequestRepository requestRepository;
+
+    @Autowired
+    private StaffingRequestRepository staffingRequestRepository;
+
 
     /**
      * Approves a request with authorization check.
@@ -99,15 +105,22 @@ public class TaskController {
     /**
      * Filters pending approvals based on the logged-in Department Head.
      */
-    @GetMapping("/dept-head")
-    public ResponseEntity<List<RequestEntity>> getPendingApprovals(@RequestParam Long departmentHeadUserId) {
-        // You need to create this method in your RequestRepository
-        // List<RequestEntity> pendingRequests = requestRepository
-        //     .findAllByStatusAndDepartment_DepartmentHeadUserId(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
+    // @GetMapping("/dept-head")
+    // public ResponseEntity<List<RequestEntity>> getPendingApprovals(@RequestParam Long departmentHeadUserId) {
+    //     // You need to create this method in your RequestRepository
+    //     // List<RequestEntity> pendingRequests = requestRepository
+    //     //     .findAllByStatusAndDepartment_DepartmentHeadUserId(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
 
-        List<RequestEntity> pendingRequests = requestRepository
-            .findPendingRequestsByDeptHead(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
+    //     List<RequestEntity> pendingRequests = requestRepository
+    //         .findPendingRequestsByDeptHead(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
         
-        return ResponseEntity.ok(pendingRequests);
+    //     return ResponseEntity.ok(pendingRequests);
+    // }
+
+    @GetMapping("/dept-head")
+    public ResponseEntity<List<StaffingRequest>> getPendingApprovals(@RequestParam Long departmentHeadUserId) {
+        var pending = staffingRequestRepository.findPendingByDeptHead(RequestStatus.PENDING_APPROVAL, departmentHeadUserId);
+        return ResponseEntity.ok(pending);
     }
+
 }
