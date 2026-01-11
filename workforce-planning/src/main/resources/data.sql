@@ -158,3 +158,27 @@ SELECT setval(pg_get_serial_sequence('departments', 'id'), (SELECT MAX(id) FROM 
 SELECT setval(pg_get_serial_sequence('staffing_requests', 'request_id'), (SELECT MAX(request_id) FROM staffing_requests));
 SELECT setval(pg_get_serial_sequence('external_employees', 'id'), (SELECT MAX(id) FROM external_employees));
 SELECT setval(pg_get_serial_sequence('job_roles', 'id'), (SELECT MAX(id) FROM job_roles));
+
+
+--------------------------------------------------
+-- 9) Testing
+--------------------------------------------------
+
+UPDATE employees
+SET experience_years = 6,
+    wage_per_hour = 90.00,
+    skills = '["Java","AWS","Microservices"]'::jsonb
+WHERE id = 1;
+
+UPDATE employees
+SET experience_years = 4,
+    wage_per_hour = 80.00,
+    skills = '["Java","Spring"]'::jsonb
+WHERE id = 2;
+
+UPDATE employees
+SET experience_years = 8,
+    wage_per_hour = 120.00,
+    skills = '["AWS","Terraform"]'::jsonb
+WHERE id = 4;
+

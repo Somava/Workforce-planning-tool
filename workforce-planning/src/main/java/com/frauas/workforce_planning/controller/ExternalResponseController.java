@@ -22,35 +22,40 @@ public class ExternalResponseController {
   public ResponseEntity<Map<String, Object>> receiveExternalResponse(
       @RequestBody ExternalWorkforceResponseDTO dto
   ) {
-    // 1) validate mandatory fields
-    if (dto.internalRequestId() == null || dto.internalRequestId().isBlank()) {
+    // 1) validate mandatory fields from 3B
+    if (dto.internalRequestId() == null) {
       return ResponseEntity.badRequest().body(Map.of("error", "internalRequestId is mandatory"));
     }
-    if (dto.candidate() == null) {
-      return ResponseEntity.badRequest().body(Map.of("error", "externalResourceFound is mandatory"));
+    if (dto.status() == null || dto.status().isBlank()) {
+      return ResponseEntity.badRequest().body(Map.of("error", "status is mandatory"));
     }
 
-    // 2) Map response -> Camunda variables
-    Map<String, Object> vars = new HashMap<>();
-    vars.put("requestId", dto.internalRequestId()); // keep consistent
-    vars.put("externalResourceFound", dto.candidate());
+    boolean hired = "EXTERNAL_HIRED".equalsIgnoreCase(dto.status())
+        && dto.expertDetails() != null;
 
-    if (Boolean.TRUE.equals(dto.candidate())) {
-      vars.put("externalEmployeeId", dto.candidate());
+    // 2) Variables to continue BPMN
+    Map<String, Object> vars = new HashMap<>();
+    vars.put("requestId", String.valueOf(dto.internalRequestId())); // must match BPMN correlation key variable
+    vars.put("externalResourceFound", hired);
+
+    if (hired) {
+      vars.put("externalExpertName", dto.expertDetails().name());
+      vars.put("externalExpertSupplier", dto.expertDetails().supplier());
+      vars.put("externalExpertDailyRate", dto.expertDetails().dailyRate());
     }
 
     // 3) Publish message to release "Await External Response"
     zeebeClient.newPublishMessageCommand()
-        .messageName("ExternalResourceResponse")     // must match BPMN message name
-        .correlationKey(dto.internalRequestId())     // must match =requestId
+        .messageName("ExternalResourceResponse")               // must match BPMN message name
+        .correlationKey(String.valueOf(dto.internalRequestId())) // must match requestId value in process
         .variables(vars)
         .send()
         .join();
 
-    // 4) Return ack to caller (3B or your mock)
     return ResponseEntity.ok(Map.of(
         "status", "PUBLISHED_TO_CAMUNDA",
-        "internalRequestId", dto.internalRequestId()
+        "internalRequestId", dto.internalRequestId(),
+        "externalResourceFound", hired
     ));
   }
 }
