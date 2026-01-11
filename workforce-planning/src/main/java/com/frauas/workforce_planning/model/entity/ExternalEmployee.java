@@ -9,6 +9,8 @@ import org.hibernate.annotations.Type;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.math.BigDecimal;
+
 
 @Entity
 @Table(
@@ -41,10 +43,18 @@ public class ExternalEmployee {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
+    @Column(length = 255)
+    private String email;
+
     @Type(JsonType.class)
     @Column(name = "skills", columnDefinition = "jsonb")
     private List<String> skills;
 
+    @Column(name = "experience_years")
+    private Integer experienceYears;
+
+    @Column(name = "wage_per_hour")
+    private BigDecimal wagePerHour;
     // keep as IDs (fine)
     @Column(name = "staffing_request_id")
     private Long staffingRequestId;

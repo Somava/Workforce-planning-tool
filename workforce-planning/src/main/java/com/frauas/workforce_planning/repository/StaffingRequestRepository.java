@@ -45,5 +45,20 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         nativeQuery = true
     )
     List<StaffingRequest> findByRequiredSkills(@Param("skills") String skillsJson);
+
+
+    @Query("""
+    SELECT sr
+    FROM StaffingRequest sr
+    JOIN sr.department d
+    WHERE sr.status = :status
+      AND d.departmentHeadUserId = :departmentHeadUserId
+    """)
+    List<StaffingRequest> findPendingByDeptHead(
+        @Param("status") RequestStatus status,
+        @Param("departmentHeadUserId") Long departmentHeadUserId
+    );
+
+
     
 }

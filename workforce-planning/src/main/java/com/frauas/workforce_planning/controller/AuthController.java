@@ -17,4 +17,10 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/login/auto")
+    public ResponseEntity<LoginResponse> loginAuto(@Valid @RequestBody LoginAutoRequest request) {
+        return ResponseEntity.ok(authService.loginAuto(request));
+    }
+
 }

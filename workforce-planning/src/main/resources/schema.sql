@@ -55,9 +55,10 @@ CREATE TABLE projects (
     status              VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
     published           BOOLEAN NOT NULL DEFAULT FALSE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    manager_user_id         BIGINT NULL,
+    resource_planner_user_id BIGINT NULL
 );
-
 -- Note: No UNIQUE on name, UNIQUE on department_head_user_id
 CREATE TABLE departments (
     id BIGSERIAL PRIMARY KEY,
@@ -76,9 +77,12 @@ CREATE TABLE employees (
     supervisor_id            BIGINT NULL,
     primary_location         VARCHAR(150),
     contract_type            VARCHAR(50),
+    experience_years         INTEGER,
+    wage_per_hour NUMERIC(10,2),
     emergency_contact        VARCHAR(255),
     availability_start       DATE,
     availability_end         DATE,
+    matching_availability     VARCHAR(50) DEFAULT 'AVAILABLE',  -- AVAILABLE OR RESERVED
     job_role_id              BIGINT NULL,
     department_id            BIGINT NULL, 
     default_role_id          BIGINT NULL,
@@ -103,10 +107,13 @@ CREATE TABLE external_employees (
     provider VARCHAR(150) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name  VARCHAR(100) NOT NULL,
+    email VARCHAR(255),
     skills JSONB,
+    experience_years INTEGER,
+    wage_per_hour NUMERIC(10,2),
     staffing_request_id BIGINT NULL, -- Will be linked later via ALTER
     project_id BIGINT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_external_employee UNIQUE (provider, external_employee_id),
     CONSTRAINT fk_ext_emp_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
 );
@@ -126,9 +133,22 @@ CREATE TABLE users (
 );
 
 -- Late binding for the circular dependency between departments and users
-ALTER TABLE departments ADD CONSTRAINT fk_department_head_user FOREIGN KEY (department_head_user_id) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE departments 
+    ADD CONSTRAINT fk_department_head_user 
+        FOREIGN KEY (department_head_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
---------------------------------------------------
+ALTER TABLE projects
+  ADD CONSTRAINT fk_project_manager_user
+  FOREIGN KEY (manager_user_id) REFERENCES users(id)
+  ON DELETE SET NULL;
+
+ALTER TABLE projects
+  ADD CONSTRAINT fk_project_resource_planner_user
+  FOREIGN KEY (resource_planner_user_id) REFERENCES users(id)
+  ON DELETE SET NULL;
+
+
+------------------------------------------------
 -- 4) MANY-TO-MANY / DETAIL TABLES
 --------------------------------------------------
 CREATE TABLE employee_certifications (

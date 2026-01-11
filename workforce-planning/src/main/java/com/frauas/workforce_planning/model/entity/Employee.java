@@ -1,9 +1,13 @@
 package com.frauas.workforce_planning.model.entity;
+import com.frauas.workforce_planning.model.enums.MatchingAvailability;
+
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.math.BigDecimal;
+
 
 import org.hibernate.annotations.Type;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -58,6 +62,12 @@ public class Employee {
     @Column(name = "contract_type", length = 50)
     private ContractType contractType;
 
+    @Column(name = "experience_years")
+    private Integer experienceYears;
+
+    @Column(name = "wage_per_hour")
+    private BigDecimal wagePerHour;
+
     @Column(name = "total_hours_per_week")
     private Integer totalHoursPerWeek;
 
@@ -74,6 +84,14 @@ public class Employee {
     private LocalDate availabilityEnd;
     @Column(name = "email", unique = true, length = 150)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+        name = "matching_availability",  
+        nullable = false,
+        length = 50
+    )
+    private MatchingAvailability matchingAvailability = MatchingAvailability.AVAILABLE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_role_id")
