@@ -48,10 +48,12 @@ public class AuthService {
         String lastName = (user.getEmployee() != null) ? user.getEmployee().getLastName() : "User";
 
         String token = jwtService.generateToken(
+                user.getId(),
                 user.getEmail(),
                 req.portalRole(),
                 roleNames,
-                employeeHrId
+                employeeHrId,
+                empId // employeeDbId (null for external)
         );
 
         return new LoginResponse(
@@ -80,7 +82,14 @@ public class AuthService {
         if (user.getEmployee() == null) {
             // For now: return token + placeholder identity; selectedRole left as EXTERNAL
             String selectedRole = "EXTERNAL"; // or null if you prefer
-            String token = jwtService.generateToken(user.getEmail(), selectedRole, roleNames, "EXTERNAL");
+            String token = jwtService.generateToken(
+                    user.getId(),
+                    user.getEmail(),
+                    selectedRole,
+                    roleNames,
+                    "EXTERNAL",
+                    null
+            );
 
             return new LoginResponse(
                     token,
@@ -119,19 +128,27 @@ public class AuthService {
         // }
 
 
-            String employeeHrId = user.getEmployee().getEmployeeId();
-            String token = jwtService.generateToken(user.getEmail(), selectedRole, roleNames, employeeHrId);
+        String employeeHrId = user.getEmployee().getEmployeeId();
+        String token = jwtService.generateToken(
+                user.getId(),
+                user.getEmail(),
+                selectedRole,
+                roleNames,
+                employeeHrId,
+                user.getEmployee().getId()
+        );
 
-            return new LoginResponse(
-                    token,
-                    user.getId(),
-                    user.getEmployee().getId(),
-                    employeeHrId,
-                    user.getEmployee().getFirstName(),
-                    user.getEmployee().getLastName(),
-                    selectedRole,
-                    roleNames
-            );
+
+        return new LoginResponse(
+                token,
+                user.getId(),
+                user.getEmployee().getId(),
+                employeeHrId,
+                user.getEmployee().getFirstName(),
+                user.getEmployee().getLastName(),
+                selectedRole,
+                roleNames
+        );
     }
 
 

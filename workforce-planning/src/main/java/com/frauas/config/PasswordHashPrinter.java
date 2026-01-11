@@ -1,4 +1,4 @@
-package com.frauas.config;
+package com.frauas.workforce_planning.config;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
