@@ -30,26 +30,27 @@ public class EmployeeApplicationService {
     @Autowired 
     private EmployeeRepository employeeRepository;
 
-    @Transactional
+   @Transactional
     public void apply(Long requestId, Long employeeId) {
-        // 1. Check for duplicate application
+        // 1. UPDATED: Check for duplicate application, but IGNORE withdrawn ones
+        // This allows an employee to re-apply if they withdrew previously
         boolean alreadyApplied = applicationRepository.findByEmployee_Id(employeeId).stream()
-                .anyMatch(app -> app.getStaffingRequest().getRequestId().equals(requestId));
+                .anyMatch(app -> app.getStaffingRequest().getRequestId().equals(requestId) 
+                          && app.getStatus() != ApplicationStatus.WITHDRAWN);
 
         if (alreadyApplied) {
-            throw new RuntimeException("You have already applied for this position!");
+            throw new RuntimeException("You have an active application for this position!");
         }
 
-        // 2. FETCH LOGIC UPDATED: Now only looks for APPROVED status
-        // This matches the "Yes" path from Department Head Approval in your BPMN
+        // 2. Fetch Logic (Stays the same - only APPROVED requests)
         StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
-                .orElseThrow(() -> new RuntimeException("Access Denied: You can only apply for positions that have been Approved by the Department Head."));
+                .orElseThrow(() -> new RuntimeException("Access Denied: Position not approved."));
 
-        // 3. Fetch the Employee (Applicant)
+        // 3. Fetch Employee
         Employee emp = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // 4. Create and Save Application
+        // 4. Save Application
         EmployeeApplication app = new EmployeeApplication();
         app.setStaffingRequest(req);
         app.setEmployee(emp);
@@ -90,17 +91,18 @@ public class EmployeeApplicationService {
         EmployeeApplication app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found with ID: " + applicationId));
 
-        // 1. Ownership Check
         if (!app.getEmployee().getId().equals(employeeId)) {
-            throw new RuntimeException("Access Denied: You can only withdraw your own applications.");
+            throw new RuntimeException("Access Denied: Not your application.");
         }
 
-        // 2. 🔹 Status Check: Block withdrawal if status is not 'APPLIED'
         if (app.getStatus() != ApplicationStatus.APPLIED) {
-            throw new RuntimeException("Withdrawal failed: Your application has already been processed or rejected.");
+            throw new RuntimeException("Withdrawal failed: Already processed or rejected.");
         }
 
-        applicationRepository.delete(app);
-        log.info("Application ID {} withdrawn by Employee ID {}", applicationId, employeeId);
+        // 🔹 CHANGE: Instead of delete, we update the status
+        app.setStatus(ApplicationStatus.WITHDRAWN);
+        applicationRepository.save(app);
+        
+        log.info("Application ID {} status changed to WITHDRAWN by Employee ID {}", applicationId, employeeId);
     }
 }
