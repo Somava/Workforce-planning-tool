@@ -17,7 +17,7 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
     // Primary key access
     Optional<StaffingRequest> findByRequestId(Long requestId);
     // 🔹 The New Security Method for Applying
-    Optional<StaffingRequest> findByRequestIdAndStatusAndProject_PublishedTrue(Long requestId, RequestStatus status);
+    Optional<StaffingRequest> findByRequestIdAndStatus(Long requestId, RequestStatus status);
 
     // Relationship filters
     List<StaffingRequest> findByProject_Id(Long projectId);
@@ -29,10 +29,6 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     List<StaffingRequest> findByStatus(RequestStatus status);
 
-    // 🔹 Find all requests where the associated project is published
-    List<StaffingRequest> findByProject_PublishedTrue();
-
-    List<StaffingRequest> findByStatusAndProject_PublishedTrue(RequestStatus status);
 
     /**
      * PostgreSQL Native Query for JSONB search.

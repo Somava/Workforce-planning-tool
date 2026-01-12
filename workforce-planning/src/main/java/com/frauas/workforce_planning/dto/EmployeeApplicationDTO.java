@@ -9,5 +9,6 @@ public record EmployeeApplicationDTO(
     Long applicationId,
     String projectTitle,
     String status,
-    OffsetDateTime appliedAt
+    OffsetDateTime appliedAt,
+    boolean canWithdraw // 🔹 New field to control UI button visibility
 ) {}

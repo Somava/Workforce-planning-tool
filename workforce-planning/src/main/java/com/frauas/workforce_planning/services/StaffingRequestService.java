@@ -143,11 +143,11 @@ public class StaffingRequestService {
         return repository.save(existing);
     }
 
-    public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
-        List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
+    public List<WorkforceRequestDTO> getApprovedRequestsForEmployees() {
+        // Changed from findByStatusAndProject_PublishedTrue to findByStatus
+        List<StaffingRequest> entities = repository.findByStatus(RequestStatus.APPROVED);
         return entities.stream().map(this::convertToDTO).toList();
     }
-
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
             entity.getTitle(), entity.getDescription(),

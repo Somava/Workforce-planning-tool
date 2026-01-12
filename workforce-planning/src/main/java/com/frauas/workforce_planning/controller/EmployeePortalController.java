@@ -32,7 +32,7 @@ public class EmployeePortalController {
      */
     @GetMapping("/open-positions")
     public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions() {
-        List<WorkforceRequestDTO> positions = staffingRequestService.getPublishedRequestsForEmployees();
+        List<WorkforceRequestDTO> positions = staffingRequestService.getApprovedRequestsForEmployees();
         
         if (positions.isEmpty()) {
             return ResponseEntity.noContent().build();
