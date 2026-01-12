@@ -50,8 +50,9 @@ camunda:
     zeebe:
       
       request-timeout: 60s
-      worker:
-        default-streaming-enabled: falsey
+
+
+  
 
 app:
   jwt:

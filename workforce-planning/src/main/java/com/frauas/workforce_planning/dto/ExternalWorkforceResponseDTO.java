@@ -1,15 +1,14 @@
 package com.frauas.workforce_planning.dto;
 
 public record ExternalWorkforceResponseDTO(
-    String internalRequestId,     // REQUIRED (correlation key)
-    String status,                // REQUIRED: FOUND / NOT_FOUND / IN_PROGRESS
-    ExternalCandidate candidate,  // OPTIONAL (present when FOUND)
-    String reason                 // OPTIONAL (present when NOT_FOUND)
+    Long internalRequestId,   // from us (Echo)
+    String status,            // e.g. "EXTERNAL_HIRED"
+    ExpertDetails expertDetails
 ) {
-  public record ExternalCandidate(
-      String externalEmployeeId,        // REQUIRED when FOUND
-      Integer workloadHoursPerWeek,     // OPTIONAL but very useful
-      String skills,                    // OPTIONAL (CSV)
-      String availableFrom              // OPTIONAL (YYYY-MM-DD)
+  public record ExpertDetails(
+      String name,
+      String supplier,
+      Double dailyRate
+      // optionally later: String externalEmployeeId (if 3B/4B provides it)
   ) {}
 }

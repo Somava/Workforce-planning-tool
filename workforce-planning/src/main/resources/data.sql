@@ -159,3 +159,6 @@ SELECT setval(pg_get_serial_sequence('departments', 'id'), (SELECT MAX(id) FROM 
 SELECT setval(pg_get_serial_sequence('staffing_requests', 'request_id'), (SELECT MAX(request_id) FROM staffing_requests));
 SELECT setval(pg_get_serial_sequence('external_employees', 'id'), (SELECT MAX(id) FROM external_employees));
 SELECT setval(pg_get_serial_sequence('job_roles', 'id'), (SELECT MAX(id) FROM job_roles));
+
+
+
