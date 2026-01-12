@@ -1,4 +1,5 @@
 package com.frauas.workforce_planning.services;
+import com.frauas.workforce_planning.model.enums.RequestStatus;
 
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
 import com.frauas.workforce_planning.model.entity.Employee;
@@ -39,7 +40,16 @@ public class MatchingService {
         StaffingRequest request = staffingRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("StaffingRequest not found: " + requestId));
 
-        int requiredHours = safeInt(request.getAvailabilityHoursPerWeek(), 0);
+       
+
+        // ✅ Add the status check RIGHT HERE
+    if (request.getStatus() != RequestStatus.APPROVED) {
+        throw new IllegalStateException(
+                "Matching is allowed only for APPROVED requests. Current status = " + request.getStatus()
+        );
+    }
+
+    int requiredHours = safeInt(request.getAvailabilityHoursPerWeek(), 0);
 
         // 1) Get all "applied" employees for this request (subset of internal employees)
         Set<Long> appliedEmployeeDbIds = employeeApplicationRepository

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.frauas.workforce_planning.model.entity.EmployeeApplication;
+import com.frauas.workforce_planning.model.enums.ApplicationStatus;
 
 @Repository
 public interface EmployeeApplicationRepository extends JpaRepository<EmployeeApplication, Long> {
@@ -18,7 +19,7 @@ public interface EmployeeApplicationRepository extends JpaRepository<EmployeeApp
     List<EmployeeApplication> findByStaffingRequest_RequestId(Long requestId);
 
     // 🔹 Find applications by status (e.g., 'APPLIED', 'REJECTED', 'ACCEPTED')
-    List<EmployeeApplication> findByStatus(String status);
+    List<EmployeeApplication> findByStatus(ApplicationStatus status);
 
     // 🔹 Find applications handled/decided by a specific manager
     List<EmployeeApplication> findByDecisionBy_Id(Long employeeId);
