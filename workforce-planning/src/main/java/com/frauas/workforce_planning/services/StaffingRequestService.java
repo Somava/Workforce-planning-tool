@@ -47,60 +47,90 @@ public class StaffingRequestService {
     private ZeebeClient zeebeClient;
 
     /**
-     * Creates a new request and starts the Camunda process.
-     * Validates that the selected department belongs to the specified project.
+     * Entry Point: No @Transactional here. 
+     * This ensures the DB commit is finished before Camunda starts.
      */
-    @Transactional
     public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
-        StaffingRequest entity = new StaffingRequest();
+        // 1. Save to DB and COMMIT the transaction immediately
+        StaffingRequest saved = saveToDatabase(dto, currentManagerId);
+        
+        // 2. Trigger Camunda now that the record is visible in the DB
+        return triggerCamundaProcess(saved);
+    }
 
-        // 1. Map basic fields
+    @Transactional
+    public StaffingRequest saveToDatabase(WorkforceRequestDTO dto, Long currentManagerId) {
+        StaffingRequest entity = new StaffingRequest();
         mapDtoToEntity(dto, entity);
 
-        // 2. Resolve Project
         Project project = projectRepository.findById(dto.projectId())
                 .orElseThrow(() -> new RuntimeException("Project not found: " + dto.projectId()));
         entity.setProject(project);
         entity.setProjectName(project.getName()); 
 
-        // 3. Resolve Department
         Department dept = departmentRepository.findById(dto.departmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found: " + dto.departmentId()));
         
-        // Validation: Ensure the department is actually part of the chosen project
         if (!dept.getProject().getId().equals(project.getId())) {
-            throw new RuntimeException("Inconsistency: Department '" + dept.getName() + 
-                                       "' does not belong to Project '" + project.getName() + "'");
+            throw new RuntimeException("Inconsistency: Dept does not belong to Project");
         }
         entity.setDepartment(dept);
 
-        // 4. Resolve Job Role
         if (dto.jobRoleId() != null) {
             JobRole jobRole = jobRoleRepository.findById(dto.jobRoleId())
                     .orElseThrow(() -> new RuntimeException("JobRole not found"));
             entity.setJobRole(jobRole);
         }
 
-        // 5. Resolve Manager (Creator)
         Employee manager = employeeRepository.findById(currentManagerId)
                 .orElseThrow(() -> new RuntimeException("Manager not found"));
         entity.setCreatedBy(manager); 
 
         entity.setStatus(RequestStatus.SUBMITTED);
 
-        // Save and Flush so the database record exists before Camunda workers try to access it
-        StaffingRequest saved = repository.saveAndFlush(entity);
-        
-        return triggerCamundaProcess(saved);
+        // Force write to DB so the Worker can find it
+        return repository.saveAndFlush(entity);
     }
 
-    /**
-     * Updates an existing request.
-     */
+    private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("requestId", saved.getRequestId()); 
+        variables.put("projectId", saved.getProject().getId());
+        variables.put("departmentId", saved.getDepartment().getId());
+        variables.put("deptHeadUserId", saved.getDepartment().getDepartmentHeadUserId());
+        variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
+
+        try {
+        var event = zeebeClient.newCreateInstanceCommand()
+                .bpmnProcessId("Process_ResourceAllocation")
+                .latestVersion()
+                .variables(variables)
+                .send()
+                .join(); 
+
+        long key = event.getProcessInstanceKey();
+
+        // CRITICAL STEP: Fetch the LATEST version from the DB.
+        // This version contains the "PENDING_APPROVAL" status from the worker.
+        StaffingRequest latest = repository.findByRequestId(saved.getRequestId())
+                .orElse(saved);
+
+        // Update ONLY the key
+        latest.setProcessInstanceKey(key);
+
+        // Save this version. It now has BOTH the key AND the correct status.
+        return repository.save(latest);
+        
+        } catch (Exception e) {
+            log.error("Zeebe failed for request {}: {}", saved.getRequestId(), e.getMessage());
+            return saved; 
+        }
+    }
+
     @Transactional
     public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
-        StaffingRequest existing = repository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Staffing Request not found ID: " + requestId));
+        StaffingRequest existing = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found ID: " + requestId));
 
         mapDtoToEntity(dto, existing);
 
@@ -113,48 +143,55 @@ public class StaffingRequestService {
         return repository.save(existing);
     }
 
-    /**
-     * Sets the request to REJECTED and completes the current Camunda task.
-     */
+    public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
+        List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
+        return entities.stream().map(this::convertToDTO).toList();
+    }
+
+    private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
+        return new WorkforceRequestDTO(
+            entity.getTitle(), entity.getDescription(),
+            entity.getProject() != null ? entity.getProject().getId() : null,
+            entity.getDepartment() != null ? entity.getDepartment().getId() : null,
+            entity.getJobRole() != null ? entity.getJobRole().getId() : null,
+            entity.getExperienceYears(), entity.getAvailabilityHoursPerWeek(),
+            entity.getProjectStartDate(), entity.getProjectEndDate(),
+            entity.getWagePerHour(), entity.getProjectContext(),
+            entity.getProjectLocation(), entity.getWorkLocation(),
+            entity.getRequiredSkills()
+        );
+    }
+
     @Transactional
     public void rejectRequestByDepartmentHead(Long requestId) {
-        StaffingRequest request = repository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
-
+        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
         request.setStatus(RequestStatus.REJECTED);
         repository.save(request);
 
-        if (request.getProcessInstanceKey() != null) {
-            zeebeClient.newCompleteCommand(request.getProcessInstanceKey()) 
-                    .variable("requestApproved", false)
-                    .variable("requestId", requestId)
+        zeebeClient.newPublishMessageCommand()
+                    .messageName("DeptHeadDecision")
+                    .correlationKey(requestId.toString()) // Matches the Modeler key
+                    .variable("deptHeadApproved", false)
                     .send()
                     .join();
-        }
+                
     }
 
     @Transactional
     public void approveRequestByDepartmentHead(Long requestId) {
-        StaffingRequest request = repository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
-
-        // 1. Update Database
+        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
         request.setStatus(RequestStatus.APPROVED);
         repository.save(request);
 
-        // 2. Notify Camunda to move past the User Task gateway
-        if (request.getProcessInstanceKey() != null) {
-            zeebeClient.newCompleteCommand(request.getProcessInstanceKey()) 
-                    .variable("requestApproved", true) // Tells the Gateway to go to "Publish"
-                    .variable("requestId", requestId)
-                    .send()
-                    .join();
-        }
+        zeebeClient.newPublishMessageCommand()
+            .messageName("DeptHeadDecision")
+            .correlationKey(requestId.toString()) // Matches the Modeler key
+            .variable("deptHeadApproved", true)
+            .send()
+            .join();
+        
     }
 
-    /**
-     * Internal mapping from DTO to Entity.
-     */
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
         entity.setDescription(dto.description());
@@ -171,68 +208,5 @@ public class StaffingRequestService {
 
     public List<StaffingRequest> getAllRequests() {
         return repository.findAll();
-    }
-
-    /**
-     * Triggers Zeebe and passes relevant project/department variables.
-     * Includes the deptHeadUserId so Camunda can assign the task to the specific head.
-     */
-    private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", saved.getRequestId()); 
-        variables.put("projectId", saved.getProject().getId());
-        variables.put("departmentId", saved.getDepartment().getId());
-        
-        // Logic for unique Department Head routing in Camunda
-        variables.put("deptHeadUserId", saved.getDepartment().getDepartmentHeadUserId());
-        
-        variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
-        variables.put("status", saved.getStatus().toString());
-
-        try {
-            var event = zeebeClient.newCreateInstanceCommand()
-                    .bpmnProcessId("Process_ResourceAllocation")
-                    .latestVersion()
-                    .variables(variables)
-                    .send()
-                    .join(); 
-
-            saved.setProcessInstanceKey(event.getProcessInstanceKey());
-            return repository.saveAndFlush(saved);
-        } catch (Exception e) {
-            log.error("Zeebe failed for request {}. Error: {}", saved.getRequestId(), e.getMessage());
-            return saved; 
-        }
-    }
-
-    public List<WorkforceRequestDTO> getPublishedRequestsForEmployees() {
-        // Fetches approved requests from projects marked as published
-        List<StaffingRequest> entities = repository.findByStatusAndProject_PublishedTrue(RequestStatus.APPROVED);
-        
-        return entities.stream()
-                .map(this::convertToDTO)
-                .toList();
-    }
-
-    /**
-     * Mapping from Entity back to DTO for API responses.
-     */
-    private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
-        return new WorkforceRequestDTO(
-            entity.getTitle(),
-            entity.getDescription(),
-            entity.getProject() != null ? entity.getProject().getId() : null,
-            entity.getDepartment() != null ? entity.getDepartment().getId() : null,
-            entity.getJobRole() != null ? entity.getJobRole().getId() : null,
-            entity.getExperienceYears(),
-            entity.getAvailabilityHoursPerWeek(),
-            entity.getProjectStartDate(),
-            entity.getProjectEndDate(),
-            entity.getWagePerHour(),
-            entity.getProjectContext(),
-            entity.getProjectLocation(),
-            entity.getWorkLocation(),
-            entity.getRequiredSkills()
-        );
     }
 }

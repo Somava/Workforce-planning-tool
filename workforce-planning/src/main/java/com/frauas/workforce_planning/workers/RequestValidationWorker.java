@@ -28,68 +28,65 @@ public class RequestValidationWorker {
     @Autowired
     private ProjectRepository projectRepository;
 
-    /**
-     * Handles the "Validate Request Data" task in BPMN.
-     * Ensures database consistency and business rule validation.
-     */
     @JobWorker(type = "validate-request-data")
     @Transactional 
     public Map<String, Object> handleValidation(final ActivatedJob job, @Variable Long requestId) {
+        System.out.println("!!! WORKER TRIGGERED FOR REQUEST: " + requestId);
         logger.info("Starting Business Validation for Request ID: {}", requestId);
 
-        // 1. Fetch the entity using the repository method mapped to 'request_id'
-        // Using findById (JPA default) or findByRequestId based on your repo definition
-        StaffingRequest entity = requestRepository.findById(requestId).orElse(null);
+        // 1. Fetch the entity
+        StaffingRequest entity = requestRepository.findByRequestId(requestId).orElse(null);
+
+        if (entity == null) {
+            logger.error("CRITICAL: Record {} not exist.", requestId);
+            return Map.of("isValid", false, "businessErrorCode", "DATABASE_MISSING_RECORD");
+        }
 
         boolean isValid = true;
         StringBuilder errorLog = new StringBuilder();
-
-        if (entity == null) {
-            logger.error("Request entity {} not found in database.", requestId);
-            return Map.of("isValid", false, "businessErrorCode", "NOT_FOUND");
-        }
-
-        // --- BUSINESS LOGIC SECTION ---
         
-        // Rule A: Check if Project exists and is linked
+        // --- BUSINESS LOGIC RULES ---
+        
+        // Rule A: Project Validation
         if (entity.getProject() == null || !projectRepository.existsById(entity.getProject().getId())) { 
             isValid = false;
-            errorLog.append("Project reference is missing or invalid. ");
+            errorLog.append("[Project Invalid] ");
         }
 
-        // Rule B: Business constraint - Max 40 hours per week
+        // Rule B: Capacity Validation (Max 40h)
         if (entity.getAvailabilityHoursPerWeek() != null && entity.getAvailabilityHoursPerWeek() > 40) {
             isValid = false;
-            errorLog.append("Request exceeds maximum weekly capacity (40h). ");
+            errorLog.append("[Hours > 40h] ");
         }
 
-        // Rule C: Ensure a Job Role is actually assigned
+        // Rule C: Job Role Validation
         if (entity.getJobRole() == null) {
             isValid = false;
-            errorLog.append("Job Role is mandatory for validation. ");
+            errorLog.append("[Missing Job Role] ");
         }
 
-        // 2. Update the Database based on validation result
+        // --- DATABASE UPDATE ---
+        
         if (isValid) {
             entity.setStatus(com.frauas.workforce_planning.model.enums.RequestStatus.PENDING_APPROVAL);
-            entity.setValidationError(null);
-            // Sync the process instance key from the current job
+            entity.setValidationError(null); // Clear previous errors if fixed
             entity.setProcessInstanceKey(job.getProcessInstanceKey()); 
             logger.info("Validation successful for Request {}.", requestId);
         } else {
-            // Revert to DRAFT and record the error
+            // Set status back to DRAFT so the manager can fix it
             entity.setStatus(com.frauas.workforce_planning.model.enums.RequestStatus.DRAFT);
-            entity.setValidationError(errorLog.toString().trim());
+            // PERSIST THE REASON: This maps to your 'validation_error' column
+            entity.setValidationError(errorLog.toString().trim()); 
             logger.warn("Validation failed for Request {}: {}", requestId, errorLog);
         }
 
-        // Use saveAndFlush to ensure the DB update is committed before Camunda moves to the next task
+        // Save immediately so the UI/Operate can see the error
         requestRepository.saveAndFlush(entity);
 
-        // 3. Return variables to Camunda
+        // --- RETURN TO CAMUNDA ---
         Map<String, Object> variables = new HashMap<>();
-        variables.put("isValid", isValid);
-        variables.put("businessErrorCode", isValid ? "NONE" : "VALIDATION_FAILED");
+        variables.put("isValid", isValid); // Used by Gateway
+        variables.put("validationReason", errorLog.toString().trim()); // Useful for debugging in Operate
         
         return variables;
     }

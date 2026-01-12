@@ -36,9 +36,6 @@ public class StaffingRequest {
     @Column(name = "request_id")
     private Long requestId;
 
-    @Column(name = "id") 
-    private Long id;
-
     @Column(nullable = false)
     private String title;
 
