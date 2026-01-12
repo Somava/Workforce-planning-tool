@@ -22,20 +22,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
-
-                // JWT = stateless (no HttpSession)
+                .cors(Customizer.withDefaults()) // Links to WebConfig
+                .csrf(csrf -> csrf.disable())      // Required for POST requests
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/auth/**").permitAll() // Allows login/auto-login
+                        .anyRequest().permitAll()                    // Temporary for testing
                 )
-
-                // ✅ "middleware": run JWT filter before Spring's auth filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-
                 .build();
     }
 
@@ -44,3 +38,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
