@@ -9,13 +9,14 @@ const ManagerHome = () => {
         <div style={styles.container}>
             <div style={styles.welcomeBox}>
                 <h1>Hello, {firstName}!</h1>
-                <p>Welcome to your Management Dashboard. From here, you can initiate new staffing requests for your department.</p>
+                <p>Welcome to your Management Dashboard.</p>
+                <p> From here, you can initiate new staffing requests for your department.</p>
                 
                 <button 
                     onClick={() => navigate("/create-request")} 
                     style={styles.createBtn}
                 >
-                    + Create New Staffing Request
+                    Create New Staffing Request
                 </button>
             </div>
         </div>

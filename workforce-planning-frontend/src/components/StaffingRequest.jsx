@@ -10,9 +10,9 @@ const StaffingRequest = () => {
         description: '',
         experienceYears: '',
         projectId: '',
-        availabilityHours: '',
-        startDate: '',
-        endDate: '',
+        availabilityHoursPerWeek: '',
+        projectStartDate: '',
+        projectEndDate: '',
         departmentId: '',
         wagePerHour: '',
         requiredSkills: '', 
@@ -24,63 +24,72 @@ const StaffingRequest = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // 1. Fetch Projects and Departments for dropdowns
+    // Initial Load: Fetch Projects
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchProjects = async () => {
             try {
-                const [projRes, deptRes] = await Promise.all([
-                    fetch('http://localhost:8080/api/projects'),
-                    fetch('http://localhost:8080/api/departments')
-                ]);
-                
+                const projRes = await fetch('http://localhost:8080/api/projects');
                 const projData = projRes.ok ? await projRes.json() : [];
-                const deptData = deptRes.ok ? await deptRes.json() : [];
-                
                 setProjects(projData);
-                setDepartments(deptData);
 
-                if (!projRes.ok || !deptRes.ok) {
-                    setMessage({ type: 'error', text: 'Data failed to load. Please refresh.' });
+                if (!projRes.ok) {
+                    setMessage({ type: 'error', text: 'Projects failed to load. Please refresh.' });
                 }
             } catch (err) {
                 setMessage({ type: 'error', text: 'Connection error: Backend is unreachable.' });
             }
         };
-        fetchData();
+        fetchProjects();
     }, []);
 
-    // 2. Dynamic Auto-fill for locations
-    const handleProjectChange = (e) => {
+    // Filter Departments based on Project Selection
+    const handleProjectChange = async (e) => {
         const id = e.target.value;
         const selectedProj = projects.find(p => p.id.toString() === id);
         
+        setDepartments([]);
         setFormData({
             ...formData,
             projectId: id,
+            departmentId: '', 
             projectLocation: selectedProj ? selectedProj.location : '',
             workLocation: selectedProj ? selectedProj.location : ''
         });
+
+        if (id) {
+            try {
+                const deptRes = await fetch(`http://localhost:8080/api/departments/project/${id}`);
+                const deptData = deptRes.ok ? await deptRes.json() : [];
+                setDepartments(deptData);
+            } catch (err) {
+                console.error("Error fetching project departments:", err);
+            }
+        }
     };
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // 3. Logic validation (Wage, Experience, Dates)
+    // Business Logic Validations
     const validateForm = () => {
-        const start = new Date(formData.startDate);
-        const end = new Date(formData.endDate);
+        const start = new Date(formData.projectStartDate);
+        const end = new Date(formData.projectEndDate);
         const wage = parseFloat(formData.wagePerHour);
         const experience = parseInt(formData.experienceYears);
+        const hours = parseInt(formData.availabilityHoursPerWeek);
 
         if (!formData.projectId || !formData.departmentId) return "Project and Department are required.";
         if (end < start) return "End date cannot be before start date.";
+        
+        // Logic checks
         if (wage > 40) return "Max wage allowed is 40.00 €.";
         if (experience > 25) return "Max experience allowed is 25 years.";
+        if (hours > 40) return "Availability cannot exceed 40 hours per week.";
+        
         return null;
     };
 
-    // 4. Integrated Submission to Backend & Camunda Trigger
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
@@ -94,13 +103,12 @@ const StaffingRequest = () => {
 
         setLoading(true);
         
+        // Note: 'status' is omitted here so the backend can set it per DB logic
         const payload = {
             ...formData,
-            status: 'SUBMITTED', // Initial status before Worker validation
             experienceYears: parseInt(formData.experienceYears),
-            availabilityHours: parseInt(formData.availabilityHours),
+            availabilityHoursPerWeek: parseInt(formData.availabilityHoursPerWeek),
             wagePerHour: parseFloat(formData.wagePerHour),
-            // Parse string into List<String> for Java
             requiredSkills: formData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== ""),
             projectId: parseInt(formData.projectId),
             departmentId: parseInt(formData.departmentId)
@@ -111,14 +119,13 @@ const StaffingRequest = () => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-User-ID': '1' // Replace with Auth state later
+                    'X-User-ID': '1' 
                 },
                 body: JSON.stringify(payload)
             });
 
             if (response.ok) {
                 setIsSubmitted(true);
-                setMessage({ type: 'success', text: 'Success! Workflow triggered.' });
             } else {
                 setMessage({ type: 'error', text: 'Backend rejected the request.' });
             }
@@ -129,20 +136,23 @@ const StaffingRequest = () => {
         }
     };
 
-    // Success View
     if (isSubmitted) {
         return (
             <div style={styles.container}>
                 <div style={{...styles.glassCard, textAlign: 'center', padding: '60px'}}>
-                    <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px'}} />
+                    <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px', marginLeft: 'auto', marginRight: 'auto'}} />
                     <h2 style={styles.title}>Request Submitted</h2>
                     <p style={{color: '#6b7280', margin: '15px 0 30px'}}>
-                        Your request is now being validated by the Camunda process engine. 
-                        Status: <b>SUBMITTED</b>
+                        Your request has been sent and is now being processed.
                     </p>
-                    <button onClick={() => window.location.reload()} style={styles.submitBtn}>
-                        Create Another Request
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                        <button 
+                            onClick={() => window.location.reload()} 
+                            style={{...styles.submitBtn, width: 'auto', paddingLeft: '40px', paddingRight: '40px'}}
+                        >
+                            Create Another Request
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -175,39 +185,46 @@ const StaffingRequest = () => {
                     </div>
 
                     <div style={styles.row}>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Project</label>
-                            <select name="projectId" style={styles.select} onChange={handleProjectChange} required>
+                            <select name="projectId" value={formData.projectId} style={styles.select} onChange={handleProjectChange} required>
                                 <option value="">Select Project</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Department</label>
-                            <select name="departmentId" style={styles.select} onChange={handleChange} required>
-                                <option value="">Select Dept</option>
+                            <select 
+                                name="departmentId" 
+                                value={formData.departmentId} 
+                                style={styles.select} 
+                                onChange={handleChange} 
+                                required
+                                disabled={!formData.projectId}
+                            >
+                                <option value="">{!formData.projectId ? "Select Project First" : "Select Dept"}</option>
                                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                         </div>
                     </div>
 
                     <div style={styles.row}>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}><MapPin size={14}/> Project Location</label>
                             <input name="projectLocation" value={formData.projectLocation} style={{...styles.input, background: '#f9fafb'}} readOnly />
                         </div>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}><MapPin size={14}/> Work Location</label>
                             <input name="workLocation" value={formData.workLocation} style={{...styles.input, background: '#f9fafb'}} readOnly />
                         </div>
                     </div>
 
                     <div style={styles.row}>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Experience (Years)</label>
                             <input name="experienceYears" type="number" style={styles.input} onChange={handleChange} required />
                         </div>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Wage / Hour (€)</label>
                             <input name="wagePerHour" type="number" step="0.01" style={styles.input} onChange={handleChange} required />
                         </div>
@@ -224,17 +241,17 @@ const StaffingRequest = () => {
                     </div>
 
                     <div style={styles.row}>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Start Date</label>
-                            <input name="startDate" type="date" style={styles.input} onChange={handleChange} required />
+                            <input name="projectStartDate" type="date" style={styles.input} onChange={handleChange} required />
                         </div>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>End Date</label>
-                            <input name="endDate" type="date" style={styles.input} onChange={handleChange} required />
+                            <input name="projectEndDate" type="date" style={styles.input} onChange={handleChange} required />
                         </div>
-                        <div style={{...styles.inputGroup, flex: 1}}>
+                        <div style={styles.flexItem}>
                             <label style={styles.label}>Hrs/Week</label>
-                            <input name="availabilityHours" type="number" style={styles.input} onChange={handleChange} required />
+                            <input name="availabilityHoursPerWeek" type="number" style={styles.input} onChange={handleChange} required />
                         </div>
                     </div>
 
@@ -248,18 +265,19 @@ const StaffingRequest = () => {
 };
 
 const styles = {
-    container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', padding: '40px' },
-    glassCard: { background: '#fff', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '800px' },
-    header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '25px' },
+    container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', padding: '20px' },
+    glassCard: { background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '850px' },
+    header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     msgBox: { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' },
     form: { display: 'flex', flexDirection: 'column', gap: '20px' },
     inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    row: { display: 'flex', flexWrap: 'wrap', gap: '20px', width: '100%' },
+    flexItem: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '0' },
     label: { fontSize: '14px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '5px' },
-    input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' },
-    select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff' },
+    input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
+    select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', boxSizing: 'border-box' },
     textarea: { minHeight: '90px', resize: 'vertical' },
-    row: { display: 'flex', gap: '15px' },
     submitBtn: { marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', borderRadius: '8px', border: 'none', background: '#4F46E5', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }
 };
 
