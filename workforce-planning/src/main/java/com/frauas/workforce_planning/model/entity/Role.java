@@ -1,8 +1,8 @@
 package com.frauas.workforce_planning.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.util.Set;
 
 @Entity
@@ -14,11 +14,10 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // e.g. PROJECT_MANAGER, DEPARTMENT_HEAD, RESOURCE_PLANNER, EMPLOYEE
     @Column(nullable = false, unique = true, length = 100)
     private String name;
-    public String getName() { return name; }
 
     @ManyToMany(mappedBy = "roles")
+    @JsonIgnore // <--- ADD THIS to break the infinite recursion loop
     private Set<User> users;
 }
