@@ -65,8 +65,9 @@ public class NotifyRequesterWorker {
         }
 
         Boolean dataValid = (Boolean) variables.get("dataValid");
-        Boolean approved = (Boolean) variables.get("requestApproved");
-
+        Boolean approved = (Boolean) variables.get("deptHeadApproved");
+        // 1. PULL THE REASON FROM VARIABLES
+String rejectionReason = (String) variables.getOrDefault("rejectionReason", "No specific reason provided.");
         String subject;
         String body;
 
@@ -92,10 +93,13 @@ public class NotifyRequesterWorker {
             body = String.format("""
                                  Dear %s, 
                                  Your staffing request for project '%s' was reviewed and rejected by the Department Head.
+                                 Reason for Rejection:
+                                 "%s"
+                                 
                                  Please follow up with your approver for more details.
                                  
                                  Thank you.""",
-                requesterName, projectName
+                requesterName, projectName, rejectionReason
             );
         }
         // -------------------------------------
@@ -119,23 +123,23 @@ public class NotifyRequesterWorker {
         // SEND EMAIL
         // -------------------------------------
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(senderEmail);
-            message.setTo(requesterEmail);
-            message.setSubject(subject);
-            message.setText(body);
+    // Check if email is null before trying to use it
+    if (requesterEmail == null || requesterEmail.trim().isEmpty()) {
+        log.error("ABORTING EMAIL: No recipient email address found for Request ID {}", requestId);
+    } else {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(senderEmail);
+        message.setTo(requesterEmail);
+        message.setSubject(subject);
+        message.setText(body);
 
-            emailSender.send(message);
+        emailSender.send(message);
+        log.info("Email sent successfully to Manager: {} ({})", requesterName, requesterEmail);
+    }
 
-            //System.out.println("Email sent successfully to: " + requesterEmail);
-            log.info("Email sent successfully to Manager: {} ({})", requesterName, requesterEmail);
-
-        } catch (MailException e) {
-            //System.err.println("ERROR sending email: " + e.getMessage());
-            log.error("ERROR sending email to {}: {}", requesterEmail, e.getMessage());
-            // Optional: retry job
-            // throw new RuntimeException(e);
-        }
+} catch (MailException e) {
+    log.error("ERROR sending email to {}: {}", requesterEmail, e.getMessage());
+}
 
         // -------------------------------------
         // COMPLETE JOB
