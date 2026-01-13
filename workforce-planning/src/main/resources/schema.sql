@@ -56,8 +56,7 @@ CREATE TABLE projects (
     published           BOOLEAN NOT NULL DEFAULT FALSE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    manager_user_id         BIGINT NULL,
-    resource_planner_user_id BIGINT NULL
+    manager_user_id     BIGINT NULL
 );
 -- Note: No UNIQUE on name, UNIQUE on department_head_user_id
 CREATE TABLE departments (
@@ -65,6 +64,7 @@ CREATE TABLE departments (
     name VARCHAR(150) NOT NULL, 
     project_id BIGINT NOT NULL,
     department_head_user_id BIGINT NULL UNIQUE, 
+    resource_planner_user_id BIGINT NULL UNIQUE,
     CONSTRAINT fk_dept_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
@@ -140,11 +140,6 @@ ALTER TABLE departments
 ALTER TABLE projects
   ADD CONSTRAINT fk_project_manager_user
   FOREIGN KEY (manager_user_id) REFERENCES users(id)
-  ON DELETE SET NULL;
-
-ALTER TABLE projects
-  ADD CONSTRAINT fk_project_resource_planner_user
-  FOREIGN KEY (resource_planner_user_id) REFERENCES users(id)
   ON DELETE SET NULL;
 
 
@@ -258,3 +253,12 @@ CREATE TABLE employee_applications (
     CONSTRAINT fk_app_decision_by FOREIGN KEY (decision_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
     CONSTRAINT uq_app_emp_request UNIQUE (employee_id, staffing_request_id)
 );
+
+-- 1. Ensure columns exist without unique constraints
+-- 2. If the constraint was already created by Hibernate, drop it:
+ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_department_head_user_id_key;
+ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_resource_planner_user_id_key;
+
+-- 3. Fix the external_employees "created_at" error from your logs
+-- Give it a default value so existing rows aren't NULL
+ALTER TABLE external_employees ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;

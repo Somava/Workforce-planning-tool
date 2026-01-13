@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 
 import org.hibernate.annotations.Type;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.frauas.workforce_planning.model.enums.ContractType;

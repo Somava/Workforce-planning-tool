@@ -1,21 +1,9 @@
 package com.frauas.workforce_planning.model.entity;
 
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,55 +19,58 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // CHANGED: Removed unique = true because IT can exist in multiple projects
     @Column(nullable = false, length = 150)
     private String name;
 
     /**
-     * NEW: Link to the Project. 
-     * Each of your 4 projects will have 3 departments.
+     * Link to the Project. 
+     * Each project can have multiple departments.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     @JsonIgnoreProperties("departments")
     private Project project;
 
-    // Inside DepartmentEntity.java
+    // --- ID Columns for Manual Updates/Payloads ---
 
     @Column(name = "department_head_user_id")
     private Long departmentHeadUserId;
 
-    // The Controller is looking for this EXACT name
-    public Long getDepartmentHeadUserId() {
-        return departmentHeadUserId;
-    }
+    @Column(name = "resource_planner_user_id")
+    private Long resourcePlannerUserId;
 
-    public void setDepartmentHeadUserId(Long departmentHeadUserId) {
-        this.departmentHeadUserId = departmentHeadUserId;
-    }
+    // --- Relationship Mappings ---
 
     /**
-     * UPDATED: Changed to @OneToOne because your requirement is for 12 UNIQUE heads.
-     * The database has a UNIQUE constraint on this column now.
+     * UPDATED: Changed to @ManyToOne.
+     * This allows one User to be the head of multiple departments/projects.
+     * Use insertable/updatable = false because we manage the ID via departmentHeadUserId.
      */
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_head_user_id", insertable = false, updatable = false)
     @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
     private User departmentHead;
 
     /**
-     * List of Staffing Requests in this department.
+     * UPDATED: Changed to @ManyToOne.
+     * Allows one Resource Planner to be assigned to multiple departments.
      */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resource_planner_user_id", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
+    private User resourcePlanner;
+
+    // --- Collections ---
+
     @OneToMany(mappedBy = "department")
     @JsonIgnore 
     private List<StaffingRequest> staffingRequests;
 
-    /**
-     * List of Employees in this department.
-     */
     @OneToMany(mappedBy = "department")
     @JsonIgnore 
     private List<Employee> employees;
+
+    // --- Standard Methods ---
 
     @Override
     public boolean equals(Object o) {

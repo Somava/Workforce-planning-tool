@@ -11,13 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.Department;
 import com.frauas.workforce_planning.model.entity.Employee;
-import com.frauas.workforce_planning.model.entity.JobRole;
 import com.frauas.workforce_planning.model.entity.Project;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.DepartmentRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
-import com.frauas.workforce_planning.repository.JobRoleRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 
@@ -39,9 +37,6 @@ public class StaffingRequestService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
-
-    @Autowired
-    private JobRoleRepository jobRoleRepository;
 
     @Autowired
     private ZeebeClient zeebeClient;

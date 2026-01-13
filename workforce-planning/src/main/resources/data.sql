@@ -2,13 +2,6 @@
 -- 1) LOOKUP TABLES
 --------------------------------------------------
 
-INSERT INTO projects (id, name, description, status, start_date, end_date, location, published) VALUES 
-(1, 'Cloud Migration 2026', 'Moving legacy infrastructure to AWS.', 'PLANNED', '2026-01-01', '2026-12-31', 'Frankfurt', true),
-(2, 'AI Customer Portal', 'LLM-based support system.', 'PLANNED', '2026-03-01', '2027-02-28', 'Remote', true),
-(3, 'Legacy ERP Shutdown', 'Decommissioning old local servers.', 'COMPLETED', '2025-01-01', '2025-11-30', 'Frankfurt', true),
-(4, 'Mobile App Alpha', 'Internal testing phase for mobile portal.', 'PLANNED', '2026-05-01', '2026-12-01', 'Berlin', false)
-ON CONFLICT (id) DO NOTHING;
-
 INSERT INTO job_roles (id, name) VALUES 
 (1, 'Software Engineer'), (2, 'Project Manager'), (3, 'DevOps Specialist'), 
 (4, 'QA Engineer'), (5, 'Data Scientist'), (6, 'UI/UX Designer'),
@@ -27,38 +20,45 @@ INSERT INTO languages (id, name) VALUES
 (1, 'English'), (2, 'German'), (3, 'Spanish') 
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO departments (id, name, project_id, department_head_user_id) VALUES 
--- Project 1 (Cloud)
-(1, 'Information Technology', 1, NULL), (2, 'Research & Development', 1, NULL), (3, 'Human Resource', 1, NULL),
--- Project 2 (AI)
-(4, 'Information Technology', 2, NULL), (5, 'Research & Development', 2, NULL), (6, 'Human Resource', 2, NULL),
--- Project 3 (Legacy)
-(7, 'Information Technology', 3, NULL), (8, 'Research & Development', 3, NULL), (9, 'Human Resource', 3, NULL),
--- Project 4 (Mobile)
-(10, 'Information Technology', 4, NULL), (11, 'Research & Development', 4, NULL), (12, 'Human Resource', 4, NULL)
+INSERT INTO projects (id, name, description, status, start_date, end_date, location, published, manager_user_id) VALUES 
+(1, 'Cloud Migration 2026', 'Moving legacy infrastructure to AWS.', 'PLANNED', '2026-01-01', '2026-12-31', 'Frankfurt', true, NULL),
+(2, 'AI Customer Portal', 'LLM-based support system.', 'PLANNED', '2026-03-01', '2027-02-28', 'Remote', true, NULL),
+(3, 'Legacy ERP Shutdown', 'Decommissioning old local servers.', 'COMPLETED', '2025-01-01', '2025-11-30', 'Frankfurt', true, NULL),
+(4, 'Mobile App Alpha', 'Internal testing phase for mobile portal.', 'PLANNED', '2026-05-01', '2026-12-01', 'Berlin', false, Null)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO employees (id, employee_id, first_name, last_name, primary_location, job_role_id, department_id, total_hours_per_week, remaining_hours_per_week) VALUES 
-(1, 'E-101', 'Alice', 'Schmidt', 'Frankfurt', 3, 1, 40, 40),
-(2, 'E-102', 'Bob', 'Müller', 'Frankfurt', 3, 1, 40, 40),
-(3, 'E-103', 'Charlie', 'Wagner', 'Remote', 3, 1, 40, 0),
-(4, 'E-104', 'Diana', 'Prince', 'Berlin', 3, 2, 40, 40),
-(5, 'E-105', 'Eve', 'Curie', 'Berlin', 1, 3, 40, 40),
-(6, 'E-106', 'Frank', 'Castle', 'Frankfurt', 1, 1, 40, 10),
-(7, 'E-107', 'Grace', 'Hopper', 'Remote', 4, 2, 35, 15),
+INSERT INTO departments (id, name, project_id, department_head_user_id, resource_planner_user_id) VALUES 
+-- Project 1 (Cloud)
+(1, 'Information Technology', 1, NULL, NULL), (5, 'Research & Development', 1, NULL, NULL), (9, 'Human Resource', 1, NULL, NULL),
+-- Project 2 (AI)
+(2, 'Information Technology', 2, NULL, NULL), (6, 'Research & Development', 2, NULL, NULL), (10, 'Human Resource', 2, NULL, NULL),
+-- Project 3 (Legacy)
+(3, 'Information Technology', 3, NULL, NULL), (7, 'Research & Development', 3, NULL, NULL), (11, 'Human Resource', 3, NULL, NULL),
+-- Project 4 (Mobile)
+(4, 'Information Technology', 4, NULL, NULL), (8, 'Research & Development', 4, NULL, NULL), (12, 'Human Resource', 4, NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO employees (id, employee_id, first_name, last_name, primary_location, job_role_id, department_id, total_hours_per_week, remaining_hours_per_week, email) VALUES 
+(1, 'E-101', 'Alice', 'Schmidt', 'Frankfurt', 3, 1, 40, 40, 'alice@frauas.de'),
+(2, 'E-102', 'Bob', 'Müller', 'Frankfurt', 2, 1, 40, 40, 'bob@frauas.de'),
+(3, 'E-103', 'Charlie', 'Wagner', 'Remote', 2, 1, 40, 0, 'charlie@frauas.de'),
+(4, 'E-104', 'Diana', 'Prince', 'Berlin', 2, 2, 40, 40, 'diana@frauas.de'),
+(5, 'E-105', 'Eve', 'Curie', 'Berlin', 1, 3, 40, 40, 'eve@frauas.de'),
+(6, 'E-106', 'Frank', 'Castle', 'Frankfurt', 1, 1, 40, 10, 'frank@frauas.de'),
+(7, 'E-107', 'Grace', 'Hopper', 'Remote', 1, 2, 35, 15, 'hopper.it@frauas.de'),
 -- The 12 Dept Heads
-(8, 'E-108', 'Marcus', 'Wagner', 'Frankfurt', 2, 1, 40, 40), 
-(9, 'E-109', 'Elena', 'Fischer', 'Frankfurt', 2, 2, 40, 40), 
-(10, 'E-110', 'Thomas', 'Weber', 'Frankfurt', 2, 3, 40, 40),
-(11, 'E-111', 'Sarah', 'Becker', 'Remote', 2, 4, 40, 40), 
-(12, 'E-112', 'Lukas', 'Hoffmann', 'Remote', 2, 5, 40, 40), 
-(13, 'E-113', 'Miriam', 'Schulz', 'Remote', 2, 6, 40, 40),
-(14, 'E-114', 'Julian', 'Koch', 'Frankfurt', 2, 7, 40, 40), 
-(15, 'E-115', 'Sophia', 'Bauer', 'Frankfurt', 2, 8, 40, 40), 
-(16, 'E-116', 'David', 'Richter', 'Frankfurt', 2, 9, 40, 40),
-(17, 'E-117', 'Hannah', 'Wolf', 'Berlin', 2, 10, 40, 40), 
-(18, 'E-118', 'Simon', 'Klein', 'Berlin', 2, 11, 40, 40), 
-(19, 'E-119', 'Laura', 'Neumann', 'Berlin', 2, 12, 40, 40)
+(8, 'E-108', 'Marcus', 'Wagner', 'Frankfurt', 4, 1, 40, 40, 'wagner.it@frauas.de'), 
+(9, 'E-109', 'Elena', 'Fischer', 'Frankfurt', 4, 2, 40, 40, 'fischer.rd@frauas.de'), 
+(10, 'E-110', 'Thomas', 'Weber', 'Frankfurt', 4, 3, 40, 40, 'weber.hr@frauas.de'),
+(11, 'E-111', 'Sarah', 'Becker', 'Remote', 4, 4, 40, 40, 'becker.it@frauas.de'), 
+(12, 'E-112', 'Lukas', 'Hoffmann', 'Remote', 4, 5, 40, 40, 'hoffmann.rd@frauas.de'), 
+(13, 'E-113', 'Miriam', 'Schulz', 'Remote', 4, 6, 40, 40, 'schulz.hr@frauas.de'),
+(14, 'E-114', 'Julian', 'Koch', 'Frankfurt', 4, 7, 40, 40, 'koch.it@frauas.de'), 
+(15, 'E-115', 'Sophia', 'Bauer', 'Frankfurt', 4, 8, 40, 40, 'bauer.rd@frauas.de'), 
+(16, 'E-116', 'David', 'Richter', 'Frankfurt', 4, 9, 40, 40, 'richter.hr@frauas.de'),
+(17, 'E-117', 'Hannah', 'Wolf', 'Berlin', 4, 10, 40, 40, 'wolf.it@frauas.de'), 
+(18, 'E-118', 'Simon', 'Klein', 'Berlin', 4, 11, 40, 40, 'klein.rd@frauas.de'), 
+(19, 'E-119', 'Laura', 'Neumann', 'Berlin', 4, 12, 40, 40, 'neumann.hr@frauas.de')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE employees SET supervisor_id = 1 WHERE id IN (2, 3, 4, 5, 6, 7);
@@ -69,9 +69,10 @@ INSERT INTO users (id, email, password_hash, employee_id) VALUES
 (2, 'bob@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 2),
 (3, 'charlie@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 3),
 (4, 'diana@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 4),
-(6, 'eve@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 5),
-(7, 'frank@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 6),
+(5, 'eve@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 5),
+(6, 'frank@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 6),
 -- Auth for Heads
+(7, 'hopper.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 7),
 (8, 'wagner.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 8),
 (9, 'fischer.rd@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 9),
 (10, 'weber.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 10),
@@ -87,27 +88,20 @@ INSERT INTO users (id, email, password_hash, employee_id) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 
-UPDATE departments SET department_head_user_id = 8 WHERE id = 1; 
-UPDATE departments SET department_head_user_id = 9 WHERE id = 2;
-UPDATE departments SET department_head_user_id = 10 WHERE id = 3; -- Marcus heads IT
-UPDATE departments SET department_head_user_id = 11 WHERE id = 4;
-UPDATE departments SET department_head_user_id = 12 WHERE id = 5; -- Marcus heads IT
-UPDATE departments SET department_head_user_id = 13 WHERE id = 6;
-UPDATE departments SET department_head_user_id = 14 WHERE id = 7; -- Marcus heads IT
-UPDATE departments SET department_head_user_id = 15 WHERE id = 8;
-UPDATE departments SET department_head_user_id = 16 WHERE id = 9; -- Marcus heads IT
-UPDATE departments SET department_head_user_id = 17 WHERE id = 10;
-UPDATE departments SET department_head_user_id = 18 WHERE id = 11; -- Marcus heads IT
-UPDATE departments SET department_head_user_id = 19 WHERE id = 12;
+UPDATE departments SET department_head_user_id = 2, resource_planner_user_id = 5 WHERE id IN (1, 2, 3, 4); 
+UPDATE departments SET department_head_user_id = 3, resource_planner_user_id = 6 WHERE id IN (5, 6, 7, 8);
+UPDATE departments SET department_head_user_id = 4, resource_planner_user_id = 7 WHERE id IN (9, 10, 11, 12);
+
+UPDATE projects SET manager_user_id = 1;
 
 -- Assign Roles
 INSERT INTO user_roles (user_id, role_id) VALUES 
-(1,2), (2,3), (3,4), (4,4), (6,2), (7,4) 
+(1,3), (2,2), (3,2), (4,2),(5,1), (6,1), (7,1) 
 ON CONFLICT DO NOTHING;
 
 -- NEW: Automated role assignment for the 12 unique heads
 INSERT INTO user_roles (user_id, role_id)
-SELECT id, 2 FROM users WHERE id BETWEEN 8 AND 19
+SELECT id, 4 FROM users WHERE id BETWEEN 8 AND 19
 ON CONFLICT DO NOTHING;
 
 --------------------------------------------------
