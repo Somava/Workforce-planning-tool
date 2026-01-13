@@ -13,6 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Department {
 
     @Id
@@ -22,16 +23,10 @@ public class Department {
     @Column(nullable = false, length = 150)
     private String name;
 
-    /**
-     * Link to the Project. 
-     * Each project can have multiple departments.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     @JsonIgnoreProperties("departments")
     private Project project;
-
-    // --- ID Columns for Manual Updates/Payloads ---
 
     @Column(name = "department_head_user_id")
     private Long departmentHeadUserId;
@@ -39,28 +34,15 @@ public class Department {
     @Column(name = "resource_planner_user_id")
     private Long resourcePlannerUserId;
 
-    // --- Relationship Mappings ---
-
-    /**
-     * UPDATED: Changed to @ManyToOne.
-     * This allows one User to be the head of multiple departments/projects.
-     * Use insertable/updatable = false because we manage the ID via departmentHeadUserId.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_head_user_id", insertable = false, updatable = false)
     @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
     private User departmentHead;
 
-    /**
-     * UPDATED: Changed to @ManyToOne.
-     * Allows one Resource Planner to be assigned to multiple departments.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resource_planner_user_id", insertable = false, updatable = false)
     @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
     private User resourcePlanner;
-
-    // --- Collections ---
 
     @OneToMany(mappedBy = "department")
     @JsonIgnore 
@@ -69,8 +51,6 @@ public class Department {
     @OneToMany(mappedBy = "department")
     @JsonIgnore 
     private List<Employee> employees;
-
-    // --- Standard Methods ---
 
     @Override
     public boolean equals(Object o) {

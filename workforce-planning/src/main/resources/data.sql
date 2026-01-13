@@ -112,11 +112,11 @@ INSERT INTO staffing_requests (
     status, created_by_employee_id, wage_per_hour, required_skills, 
     experience_years, availability_hours_per_week
 ) VALUES 
-(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'SUBMITTED', 2, 95.00, '["Java", "AWS"]', 5, 40),
-(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'DRAFT', 2, 80.00, '["React", "TypeScript"]', 2, 20),
-(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PUBLISHED', 2, 125.00, '["AWS", "Terraform"]', 8, 40),
-(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'DRAFT', 2, 45.00, '["Python", "Excel"]', 1, 40),
-(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'SUBMITTED', 5, 75.00, '["API Integration", "HRIS"]', 4, 35),
+(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'SUBMITTED', 1, 95.00, '["Java", "AWS"]', 5, 40),
+(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'DRAFT', 1, 80.00, '["React", "TypeScript"]', 2, 20),
+(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PUBLISHED', 1, 125.00, '["AWS", "Terraform"]', 8, 40),
+(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'DRAFT', 1, 45.00, '["Python", "Excel"]', 1, 40),
+(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'SUBMITTED', 1, 75.00, '["API Integration", "HRIS"]', 4, 35),
 (6, 'Network Security Audit', 'Final audit for ERP shutdown.', 3, 1, 7, 'CANCELLED', 1, 110.00, '["Security", "Audit"]', 6, 40)
 ON CONFLICT (request_id) DO NOTHING;
 

@@ -3,23 +3,9 @@ package com.frauas.workforce_planning.model.entity;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,6 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Project {
 
     @Id
@@ -64,18 +51,15 @@ public class Project {
     @JoinColumn(name = "manager_user_id")
     private User managerUser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resource_planner_user_id")
-    private User resourcePlannerUser;
-
+    // NOTE: resource_planner_user_id is removed because it is missing from the 'projects' table in your data.sql
 
     /**
-     * NEW: Bidirectional relationship to Departments.
-     * This maps to the 'project' field in Department.java.
+     * Bidirectional relationship to Departments.
+     * mappedBy must match the 'project' variable name in Department.java
      */
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // Important: Prevents infinite recursion in JSON responses
-    private List<Department> department;
+    @JsonIgnore 
+    private List<Department> departments; // Renamed to plural for better code style
 
     @PrePersist
     protected void onCreate() {

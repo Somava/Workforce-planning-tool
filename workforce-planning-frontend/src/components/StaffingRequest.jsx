@@ -24,25 +24,23 @@ const StaffingRequest = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Initial Load: Fetch Projects
     useEffect(() => {
         const fetchProjects = async () => {
             try {
                 const projRes = await fetch('http://localhost:8080/api/projects');
-                const projData = projRes.ok ? await projRes.json() : [];
-                setProjects(projData);
-
-                if (!projRes.ok) {
-                    setMessage({ type: 'error', text: 'Projects failed to load. Please refresh.' });
+                if (projRes.ok) {
+                    const projData = await projRes.json();
+                    setProjects(projData);
+                } else {
+                    setMessage({ type: 'error', text: 'Projects failed to load. Check API.' });
                 }
             } catch (err) {
-                setMessage({ type: 'error', text: 'Connection error: Backend is unreachable.' });
+                setMessage({ type: 'error', text: 'Connection error: Backend unreachable.' });
             }
         };
         fetchProjects();
     }, []);
 
-    // Filter Departments based on Project Selection
     const handleProjectChange = async (e) => {
         const id = e.target.value;
         const selectedProj = projects.find(p => p.id.toString() === id);
@@ -59,8 +57,18 @@ const StaffingRequest = () => {
         if (id) {
             try {
                 const deptRes = await fetch(`http://localhost:8080/api/departments/project/${id}`);
-                const deptData = deptRes.ok ? await deptRes.json() : [];
-                setDepartments(deptData);
+                if (deptRes.ok) {
+                    const deptData = await deptRes.json();
+                    
+                    // Logic to ensure only UNIQUE department names appear in dropdown
+                    const uniqueDepts = deptData.reduce((acc, current) => {
+                        const exists = acc.find(item => item.name === current.name);
+                        if (!exists) return acc.concat([current]);
+                        return acc;
+                    }, []);
+                    
+                    setDepartments(uniqueDepts);
+                }
             } catch (err) {
                 console.error("Error fetching project departments:", err);
             }
@@ -71,7 +79,6 @@ const StaffingRequest = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Business Logic Validations
     const validateForm = () => {
         const start = new Date(formData.projectStartDate);
         const end = new Date(formData.projectEndDate);
@@ -81,8 +88,6 @@ const StaffingRequest = () => {
 
         if (!formData.projectId || !formData.departmentId) return "Project and Department are required.";
         if (end < start) return "End date cannot be before start date.";
-        
-        // Logic checks
         if (wage > 40) return "Max wage allowed is 40.00 €.";
         if (experience > 25) return "Max experience allowed is 25 years.";
         if (hours > 40) return "Availability cannot exceed 40 hours per week.";
@@ -103,7 +108,6 @@ const StaffingRequest = () => {
 
         setLoading(true);
         
-        // Note: 'status' is omitted here so the backend can set it per DB logic
         const payload = {
             ...formData,
             experienceYears: parseInt(formData.experienceYears),
@@ -130,7 +134,7 @@ const StaffingRequest = () => {
                 setMessage({ type: 'error', text: 'Backend rejected the request.' });
             }
         } catch (err) {
-            setMessage({ type: 'error', text: 'Network Error: Check if Spring Boot is running.' });
+            setMessage({ type: 'error', text: 'Network Error: Check Spring Boot.' });
         } finally {
             setLoading(false);
         }
@@ -140,16 +144,13 @@ const StaffingRequest = () => {
         return (
             <div style={styles.container}>
                 <div style={{...styles.glassCard, textAlign: 'center', padding: '60px'}}>
-                    <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px', marginLeft: 'auto', marginRight: 'auto'}} />
+                    <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px', marginInline: 'auto'}} />
                     <h2 style={styles.title}>Request Submitted</h2>
                     <p style={{color: '#6b7280', margin: '15px 0 30px'}}>
                         Your request has been sent and is now being processed.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                        <button 
-                            onClick={() => window.location.reload()} 
-                            style={{...styles.submitBtn, width: 'auto', paddingLeft: '40px', paddingRight: '40px'}}
-                        >
+                        <button onClick={() => window.location.reload()} style={{...styles.submitBtn, width: 'auto', paddingInline: '40px'}}>
                             Create Another Request
                         </button>
                     </div>
@@ -194,14 +195,7 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Department</label>
-                            <select 
-                                name="departmentId" 
-                                value={formData.departmentId} 
-                                style={styles.select} 
-                                onChange={handleChange} 
-                                required
-                                disabled={!formData.projectId}
-                            >
+                            <select name="departmentId" value={formData.departmentId} style={styles.select} onChange={handleChange} required disabled={!formData.projectId}>
                                 <option value="">{!formData.projectId ? "Select Project First" : "Select Dept"}</option>
                                 {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
@@ -256,7 +250,7 @@ const StaffingRequest = () => {
                     </div>
 
                     <button type="submit" style={styles.submitBtn} disabled={loading}>
-                        {loading ? 'Processing Workflow...' : <><Send size={18} /> Submit Request</>}
+                        {loading ? 'Processing...' : <><Send size={18} /> Submit Request</>}
                     </button>
                 </form>
             </div>
