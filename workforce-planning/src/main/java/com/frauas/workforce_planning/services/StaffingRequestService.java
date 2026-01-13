@@ -117,15 +117,15 @@ public class StaffingRequestService {
         }
     }
 
-    @Transactional
-    public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
-        StaffingRequest existing = repository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found ID: " + requestId));
+    // @Transactional
+    // public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
+    //     StaffingRequest existing = repository.findByRequestId(requestId)
+    //             .orElseThrow(() -> new RuntimeException("Request not found ID: " + requestId));
 
-        mapDtoToEntity(dto, existing);
+    //     mapDtoToEntity(dto, existing);
         
-        return repository.save(existing);
-    }
+    //     return repository.save(existing);
+    // }
 
     public List<WorkforceRequestDTO> getApprovedRequestsForEmployees() {
         // Changed from findByStatusAndProject_PublishedTrue to findByStatus
