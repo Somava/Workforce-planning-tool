@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.services.StaffingRequestService;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/requests")
 public class WorkforceController {
@@ -50,12 +53,12 @@ public class WorkforceController {
         StaffingRequest updated = staffingService.updateExistingRequest(requestId, dto);
         return ResponseEntity.ok(updated);
     }
-
-    /**
-     * New helper endpoint to view all requests
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<StaffingRequest>> getAllRequests() {
-        return ResponseEntity.ok(staffingService.getAllRequests());
+    
+    // In WorkforceController.java
+    @GetMapping("/manager-requests")
+    public ResponseEntity<List<StaffingRequest>> getManagerRequests(@RequestParam String email) {
+        log.info("Fetching requests created by manager: {}", email);
+        List<StaffingRequest> requests = staffingService.getRequestsByManagerEmail(email);
+        return ResponseEntity.ok(requests);
     }
 }

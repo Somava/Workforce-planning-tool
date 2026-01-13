@@ -76,12 +76,6 @@ public class StaffingRequestService {
         }
         entity.setDepartment(dept);
 
-        if (dto.jobRoleId() != null) {
-            JobRole jobRole = jobRoleRepository.findById(dto.jobRoleId())
-                    .orElseThrow(() -> new RuntimeException("JobRole not found"));
-            entity.setJobRole(jobRole);
-        }
-
         Employee manager = employeeRepository.findById(currentManagerId)
                 .orElseThrow(() -> new RuntimeException("Manager not found"));
         entity.setCreatedBy(manager); 
@@ -134,12 +128,6 @@ public class StaffingRequestService {
                 .orElseThrow(() -> new RuntimeException("Request not found ID: " + requestId));
 
         mapDtoToEntity(dto, existing);
-
-        if (dto.jobRoleId() != null) {
-            JobRole jobRole = jobRoleRepository.findById(dto.jobRoleId())
-                    .orElseThrow(() -> new RuntimeException("JobRole not found"));
-            existing.setJobRole(jobRole);
-        }
         
         return repository.save(existing);
     }
@@ -154,7 +142,6 @@ public class StaffingRequestService {
             entity.getTitle(), entity.getDescription(),
             entity.getProject() != null ? entity.getProject().getId() : null,
             entity.getDepartment() != null ? entity.getDepartment().getId() : null,
-            entity.getJobRole() != null ? entity.getJobRole().getId() : null,
             entity.getExperienceYears(), entity.getAvailabilityHoursPerWeek(),
             entity.getProjectStartDate(), entity.getProjectEndDate(),
             entity.getWagePerHour(), entity.getProjectContext(),
@@ -231,4 +218,10 @@ public void rejectRequestByDepartmentHead(Long requestId, String reason) {
     public List<StaffingRequest> getAllRequests() {
         return repository.findAll();
     }
+    
+    public List<StaffingRequest> getRequestsByManagerEmail(String email) {
+    // Calling the repository method that performs the triple-table join
+    return repository.findByCreatedBy_User_Email(email);
+}   
+
 }

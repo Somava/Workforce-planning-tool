@@ -27,4 +27,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmailWithEmployeeRolesAndDefaultRole(@Param("email") String email);
 
     Optional<User> findByExternalEmployeeId(Long externalEmployeeId);
+    Optional<User> findByEmail(String email);
 }

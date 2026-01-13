@@ -59,12 +59,6 @@ public class RequestValidationWorker {
             errorLog.append("[Hours > 40h] ");
         }
 
-        // Rule C: Job Role Validation
-        if (entity.getJobRole() == null) {
-            isValid = false;
-            errorLog.append("[Missing Job Role] ");
-        }
-
         // --- DATABASE UPDATE ---
         
         if (isValid) {

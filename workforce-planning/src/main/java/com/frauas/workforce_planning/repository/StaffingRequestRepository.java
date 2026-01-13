@@ -54,7 +54,8 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         @Param("status") RequestStatus status,
         @Param("departmentHeadUserId") Long departmentHeadUserId
     );
-
+    // Navigation: Employee (createdBy) -> User (user) -> Email (email)
+    List<StaffingRequest> findByCreatedBy_User_Email(String email);
 
     
 }

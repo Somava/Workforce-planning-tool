@@ -114,4 +114,5 @@ public class StaffingRequest {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
+
 }
