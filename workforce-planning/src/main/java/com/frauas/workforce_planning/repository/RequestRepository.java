@@ -40,4 +40,5 @@ public interface RequestRepository extends JpaRepository<RequestEntity, Long> {
         @Param("status") RequestStatus status, 
         @Param("headId") Long headId
     );
+    
 }

@@ -12,8 +12,7 @@ public record WorkforceRequestDTO(
     String title,
     String description,
     Long projectId,
-    Long departmentId,
-    Long jobRoleId,           
+    Long departmentId,          
     Integer experienceYears,
     
     // Changed from availabilityHours to match JSON "availabilityHoursPerWeek"

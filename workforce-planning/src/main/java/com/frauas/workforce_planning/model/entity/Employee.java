@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 
 
 import org.hibernate.annotations.Type;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.frauas.workforce_planning.model.enums.ContractType;
@@ -146,4 +148,7 @@ public class Employee {
     public int hashCode() {
         return id != null ? id.hashCode() : getClass().hashCode();
     }
+    @OneToOne(mappedBy = "employee")
+    @JsonIgnore
+    private User user;
 }
