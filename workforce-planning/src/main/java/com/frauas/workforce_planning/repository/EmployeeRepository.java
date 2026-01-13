@@ -27,6 +27,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     // 🔹 Support for the new capacity tracking fields in the new schema
     List<Employee> findByRemainingHoursPerWeekGreaterThanEqual(Integer hours);
 
+    // 🔹 Find by Email for the Employee Portal lookups
+Optional<Employee> findByEmail(String email);
+
     // 🔹 PostgreSQL Native Query to search within the JSONB skills column
     // The '@>' operator checks if the JSON on the left contains the JSON on the right
     @Query(value = """

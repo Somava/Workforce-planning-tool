@@ -25,69 +25,44 @@ public class EmployeePortalController {
     private StaffingRequestService staffingRequestService;
 
     @Autowired
-    private EmployeeApplicationService applicationService; // Inject the application service
+    private EmployeeApplicationService applicationService;
 
-    /**
-     * View all staffing requests where the project is 'published'.
-     */
+    // 1. View Open Positions
     @GetMapping("/open-positions")
     public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions() {
         List<WorkforceRequestDTO> positions = staffingRequestService.getApprovedRequestsForEmployees();
-        
-        if (positions.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        
-        return ResponseEntity.ok(positions);
+        return positions.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(positions);
     }
 
-    /**
-     * Logic for the "Apply" part. 
-     * Allows an employee to apply for a specific request.
-     */
-    @PostMapping("/apply/{requestId}")
+    // 2. Apply: No IDs in URL. Uses email and requestId as params.
+    @PostMapping("/apply")
     public ResponseEntity<?> applyForPosition(
-            @PathVariable Long requestId, 
-            @RequestParam Long employeeId) {
-        
+            @RequestParam Long requestId, 
+            @RequestParam String email) {
         try {
-            // Use the 'apply' method from your new service
-            applicationService.apply(requestId, employeeId);
+            applicationService.apply(requestId, email);
             return ResponseEntity.ok("Successfully applied for position!");
         } catch (RuntimeException e) {
-            // Returns the "You already applied!" or "Not Found" error message
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    /**
-     * Dashboard: Get all applications for a specific employee using DTOs.
-     */
-    @GetMapping("/my-applications/{employeeId}")
-    // 2. Changed return type to List<EmployeeApplicationDTO>
-    public ResponseEntity<List<EmployeeApplicationDTO>> getMyApplications(@PathVariable Long employeeId) {
-        List<EmployeeApplicationDTO> applications = applicationService.getApplicationsForEmployee(employeeId);
-        
-        if (applications.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-        
-        return ResponseEntity.ok(applications);
+
+    // 3. Dashboard: Fetch by email query parameter
+    @GetMapping("/my-applications")
+    public ResponseEntity<List<EmployeeApplicationDTO>> getMyApplications(@RequestParam String email) {
+        List<EmployeeApplicationDTO> applications = applicationService.getApplicationsForEmployee(email);
+        return applications.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(applications);
     }
-    /**
-     * Withdraw an application.
-     * This removes the application record from the database.
-     */
-    @DeleteMapping("/withdraw/{applicationId}")
+
+    // 4. Withdraw: Uses applicationId and email to verify ownership
+    @PostMapping("/withdraw") 
     public ResponseEntity<String> withdrawApplication(
-            @PathVariable Long applicationId, 
-            @RequestParam Long employeeId) {
-        
+            @RequestParam Long applicationId, 
+            @RequestParam String email) {
         try {
-            // Call the withdraw method in your service
-            applicationService.withdrawApplication(applicationId, employeeId);
+            applicationService.withdrawApplication(applicationId, email);
             return ResponseEntity.ok("Application withdrawn successfully.");
         } catch (RuntimeException e) {
-            // Returns error if the application doesn't exist or doesn't belong to the employee
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

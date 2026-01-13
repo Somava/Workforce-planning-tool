@@ -31,10 +31,13 @@ public class EmployeeApplicationService {
     private EmployeeRepository employeeRepository;
 
    @Transactional
-    public void apply(Long requestId, Long employeeId) {
-        // 1. UPDATED: Check for duplicate application, but IGNORE withdrawn ones
-        // This allows an employee to re-apply if they withdrew previously
-        boolean alreadyApplied = applicationRepository.findByEmployee_Id(employeeId).stream()
+    public void apply(Long requestId, String email) { // Changed parameter to String email
+        // 0. Resolve Employee by Email
+        Employee emp = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found with email: " + email));
+
+        // 1. Check for duplicate application, ignoring withdrawn ones
+        boolean alreadyApplied = applicationRepository.findByEmployee_Id(emp.getId()).stream()
                 .anyMatch(app -> app.getStaffingRequest().getRequestId().equals(requestId) 
                           && app.getStatus() != ApplicationStatus.WITHDRAWN);
 
@@ -42,13 +45,9 @@ public class EmployeeApplicationService {
             throw new RuntimeException("You have an active application for this position!");
         }
 
-        // 2. Fetch Logic (Stays the same - only APPROVED requests)
+        // 2. Fetch Logic (Only APPROVED requests)
         StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
                 .orElseThrow(() -> new RuntimeException("Access Denied: Position not approved."));
-
-        // 3. Fetch Employee
-        Employee emp = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
         // 4. Save Application
         EmployeeApplication app = new EmployeeApplication();
@@ -60,15 +59,16 @@ public class EmployeeApplicationService {
         applicationRepository.save(app);
     }
 
-    /**
-     * Dashboard: Returns a list of DTOs for the specific employee.
-     */
     @Transactional(readOnly = true)
-    public List<EmployeeApplicationDTO> getApplicationsForEmployee(Long employeeId) {
-        List<EmployeeApplication> entities = applicationRepository.findByEmployee_Id(employeeId);
+    public List<EmployeeApplicationDTO> getApplicationsForEmployee(String email) { // Changed parameter to String email
+        // Resolve Employee by Email
+        Employee emp = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found: " + email));
+
+        List<EmployeeApplication> entities = applicationRepository.findByEmployee_Id(emp.getId());
         
         if (entities.isEmpty()) {
-            log.info("No applications found for employee ID: {}", employeeId);
+            log.info("No applications found for employee: {}", email);
         }
         
         return entities.stream()
@@ -77,21 +77,21 @@ public class EmployeeApplicationService {
                         app.getStaffingRequest().getTitle(),
                         app.getStatus().toString(),
                         app.getAppliedAt(),
-                        // 🔹 Logic: Can only withdraw if the Planner hasn't processed it yet
                         app.getStatus() == ApplicationStatus.APPLIED
                 ))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Withdraw logic: Blocks withdrawal if status is already REJECTED or SELECTED.
-     */
     @Transactional
-    public void withdrawApplication(Long applicationId, Long employeeId) {
+    public void withdrawApplication(Long applicationId, String email) { // Changed parameter to String email
         EmployeeApplication app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new RuntimeException("Application not found with ID: " + applicationId));
 
-        if (!app.getEmployee().getId().equals(employeeId)) {
+        // 0. Resolve Employee to check ownership
+        Employee emp = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found: " + email));
+
+        if (!app.getEmployee().getId().equals(emp.getId())) {
             throw new RuntimeException("Access Denied: Not your application.");
         }
 
@@ -99,10 +99,9 @@ public class EmployeeApplicationService {
             throw new RuntimeException("Withdrawal failed: Already processed or rejected.");
         }
 
-        // 🔹 CHANGE: Instead of delete, we update the status
         app.setStatus(ApplicationStatus.WITHDRAWN);
         applicationRepository.save(app);
         
-        log.info("Application ID {} status changed to WITHDRAWN by Employee ID {}", applicationId, employeeId);
+        log.info("Application ID {} changed to WITHDRAWN by {}", applicationId, email);
     }
 }
