@@ -112,12 +112,12 @@ INSERT INTO staffing_requests (
     status, created_by_employee_id, wage_per_hour, required_skills, 
     experience_years, availability_hours_per_week
 ) VALUES 
-(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'SUBMITTED', 1, 95.00, '["Java", "AWS"]', 5, 40),
-(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'DRAFT', 1, 80.00, '["React", "TypeScript"]', 2, 20),
-(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PUBLISHED', 1, 125.00, '["AWS", "Terraform"]', 8, 40),
-(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'DRAFT', 1, 45.00, '["Python", "Excel"]', 1, 40),
-(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'SUBMITTED', 1, 75.00, '["API Integration", "HRIS"]', 4, 35),
-(6, 'Network Security Audit', 'Final audit for ERP shutdown.', 3, 1, 7, 'CANCELLED', 1, 110.00, '["Security", "Audit"]', 6, 40)
+(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'PENDING_APPROVAL', 1, 95.00, '["Java", "AWS"]', 5, 40),
+(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'PENDING_APPROVAL', 1, 80.00, '["React", "TypeScript"]', 2, 20),
+(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PENDING_APPROVAL', 1, 125.00, '["AWS", "Terraform"]', 8, 40),
+(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'PENDING_APPROVAL', 1, 45.00, '["Python", "Excel"]', 1, 40),
+(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'APPROVED', 1, 75.00, '["API Integration", "HRIS"]', 4, 35),
+(6, 'Network Security Audit', 'Final audit for ERP shutdown.', 3, 1, 7, 'APPROVED', 1, 110.00, '["Security", "Audit"]', 6, 40)
 ON CONFLICT (request_id) DO NOTHING;
 
 --------------------------------------------------
@@ -134,8 +134,7 @@ VALUES (50, 'john.doe@freelance.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymG
 -- 7) APPLICATIONS & ASSIGNMENTS
 --------------------------------------------------
 INSERT INTO employee_applications (employee_id, staffing_request_id, status, comment) 
-VALUES (3, 1, 'APPLIED', 'I have 5 years of Java exp.'),
-       (6, 3, 'APPLIED', 'I have extensive Kubernetes experience.') 
+VALUES (14, 1, 'APPLIED', 'I have extensive Kubernetes experience.') 
 ON CONFLICT DO NOTHING;
 
 INSERT INTO assignments (employee_id, project_id, status, period_start, period_end) 
