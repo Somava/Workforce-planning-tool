@@ -4,7 +4,7 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
       #mode: never
 
   datasource:
@@ -42,18 +42,30 @@ spring:
 camunda:
   client:
     mode: saas
-    cluster-id: ece89c82-5dfa-4736-8beb-97335792858d
+    cluster-id: bca9fda6-8d74-494e-bbd7-d62c25f5b160
     region: sin-1
     auth:
-      client-id: aIaQ~q6v9zUQ7frCVWAX~Rz.hQoA.bAA
-      client-secret: POFwESBE0noMniqolImdrh8GzTOa6T7fsawO.hst_BDHJP7wSE0LHBbxywNXz~Oe
+      client-id: vVhXO-DdEmix.d.eerh3JX~JdYrsYNaL
+      client-secret: E96o36zUop0JxxEf8ig_kiSGygKNtbWf~rxTNVeH.09vjG03BTsH.qZ4qb.mKNey
     zeebe:
       
       request-timeout: 60s
+      keep-alive: 30s
+# camunda:
+#   client:
+#     mode: saas
+#     cluster-id: ece89c82-5dfa-4736-8beb-97335792858d
+#     region: sin-1
+#     auth:
+#       client-id: aIaQ~q6v9zUQ7frCVWAX~Rz.hQoA.bAA
+#       client-secret: POFwESBE0noMniqolImdrh8GzTOa6T7fsawO.hst_BDHJP7wSE0LHBbxywNXz~Oe
+#     zeebe:
+      
+#       request-timeout: 60s
+
 
 
   
-
 app:
   jwt:
     secret: 12345678901234567890123456789012

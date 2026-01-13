@@ -99,6 +99,7 @@ public class StaffingRequestService {
         variables.put("departmentId", saved.getDepartment().getId());
         variables.put("deptHeadUserId", saved.getDepartment().getDepartmentHeadUserId());
         variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
+        variables.put("requesterEmail", saved.getCreatedBy().getEmail());
 
         try {
         var event = zeebeClient.newCreateInstanceCommand()
@@ -161,21 +162,42 @@ public class StaffingRequestService {
             entity.getRequiredSkills()
         );
     }
-
     @Transactional
-    public void rejectRequestByDepartmentHead(Long requestId) {
-        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
-        request.setStatus(RequestStatus.REJECTED);
-        repository.save(request);
+public void rejectRequestByDepartmentHead(Long requestId) {
+    // This hardcoded string is what the Manager will see on their dashboard
+    String autoReason = "Rejected by Department Head (No specific reason provided).";
+    
+    // Call the original method with the hardcoded reason
+    this.rejectRequestByDepartmentHead(requestId, autoReason);
+}
 
-        zeebeClient.newPublishMessageCommand()
-                    .messageName("DeptHeadDecision")
-                    .correlationKey(requestId.toString()) // Matches the Modeler key
-                    .variable("deptHeadApproved", false)
-                    .send()
-                    .join();
-                
-    }
+   @Transactional
+public void rejectRequestByDepartmentHead(Long requestId, String reason) {
+    // 1. Fetch the request
+    StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+    
+    // 2. Update Database (The "Pull" part for the Manager's Dashboard)
+    request.setStatus(RequestStatus.REJECTED);
+    request.setRejectionReason(reason); // This maps directly to your entity field
+    repository.save(request);
+
+    // 3. Prepare variables for Camunda
+    Map<String, Object> variables = new HashMap<>();
+    variables.put("deptHeadApproved", false);
+    variables.put("dataValid", true);
+    variables.put("rejectionReason", reason); // Pass it to the process engine
+
+    // 4. Signal Camunda
+    zeebeClient.newPublishMessageCommand()
+            .messageName("DeptHeadDecision")
+            .correlationKey(requestId.toString()) 
+            .variables(variables)
+            .send()
+            .join();
+    
+    log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId);
+}
 
     @Transactional
     public void approveRequestByDepartmentHead(Long requestId) {
