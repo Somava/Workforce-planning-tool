@@ -45,93 +45,64 @@ public class StaffingRequestService {
      * Entry Point: No @Transactional here. 
      * This ensures the DB commit is finished before Camunda starts.
      */
-    public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
-        // 1. Save to DB and COMMIT the transaction immediately
-        StaffingRequest saved = saveToDatabase(dto, currentManagerId);
-        
-        // 2. Trigger Camunda now that the record is visible in the DB
-        return triggerCamundaProcess(saved);
-    }
-
     @Transactional
-    public StaffingRequest saveToDatabase(WorkforceRequestDTO dto, Long currentManagerId) {
+    public StaffingRequest createAndStartRequest(WorkforceRequestDTO dto, Long currentManagerId) {
+        // 1. Create and map the entity
         StaffingRequest entity = new StaffingRequest();
         mapDtoToEntity(dto, entity);
 
+        // 2. Load relationships (Fast Lookups)
         Project project = projectRepository.findById(dto.projectId())
-                .orElseThrow(() -> new RuntimeException("Project not found: " + dto.projectId()));
-        entity.setProject(project);
-        entity.setProjectName(project.getName()); 
-
-        Department dept = departmentRepository.findById(dto.departmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found: " + dto.departmentId()));
+                .orElseThrow(() -> new RuntimeException("Project not found"));
         
-        if (!dept.getProject().getId().equals(project.getId())) {
-            throw new RuntimeException("Inconsistency: Dept does not belong to Project");
-        }
-        entity.setDepartment(dept);
+        Department dept = departmentRepository.findById(dto.departmentId())
+                .orElseThrow(() -> new RuntimeException("Department not found"));
 
         Employee manager = employeeRepository.findById(currentManagerId)
                 .orElseThrow(() -> new RuntimeException("Manager not found"));
-        entity.setCreatedBy(manager); 
 
-        entity.setStatus(RequestStatus.SUBMITTED);
+        // 3. Set properties and FORCE status to PENDING_APPROVAL
+        entity.setProject(project);
+        entity.setProjectName(project.getName());
+        entity.setDepartment(dept);
+        entity.setCreatedBy(manager);
+        entity.setStatus(RequestStatus.PENDING_APPROVAL);
 
-        // Force write to DB so the Worker can find it
-        return repository.saveAndFlush(entity);
-    }
+        // 4. Save to DB first to get the ID
+        StaffingRequest saved = repository.saveAndFlush(entity);
 
-    private StaffingRequest triggerCamundaProcess(StaffingRequest saved) {
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("requestId", saved.getRequestId()); 
-        variables.put("projectId", saved.getProject().getId());
-        variables.put("departmentId", saved.getDepartment().getId());
-        variables.put("deptHeadUserId", saved.getDepartment().getDepartmentHeadUserId());
-        variables.put("managerName", saved.getCreatedBy().getFirstName() + " " + saved.getCreatedBy().getLastName());
-        variables.put("requesterEmail", saved.getCreatedBy().getEmail());
-
+        // 5. Start Camunda Process
         try {
-        var event = zeebeClient.newCreateInstanceCommand()
-                .bpmnProcessId("Process_ResourceAllocation")
-                .latestVersion()
-                .variables(variables)
-                .send()
-                .join(); 
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("requestId", saved.getRequestId());
+            variables.put("deptHeadUserId", dept.getDepartmentHeadUserId());
+            variables.put("managerName", manager.getFirstName() + " " + manager.getLastName());
+            variables.put("requesterEmail", manager.getEmail());
 
-        long key = event.getProcessInstanceKey();
+            var event = zeebeClient.newCreateInstanceCommand()
+                    .bpmnProcessId("Process_ResourceAllocation")
+                    .latestVersion()
+                    .variables(variables)
+                    .send()
+                    .join();
 
-        // CRITICAL STEP: Fetch the LATEST version from the DB.
-        // This version contains the "PENDING_APPROVAL" status from the worker.
-        StaffingRequest latest = repository.findByRequestId(saved.getRequestId())
-                .orElse(saved);
+            // Store the process key back in the entity
+            saved.setProcessInstanceKey(event.getProcessInstanceKey());
+            return repository.save(saved);
 
-        // Update ONLY the key
-        latest.setProcessInstanceKey(key);
-
-        // Save this version. It now has BOTH the key AND the correct status.
-        return repository.save(latest);
-        
         } catch (Exception e) {
-            log.error("Zeebe failed for request {}: {}", saved.getRequestId(), e.getMessage());
-            return saved; 
+            log.error("Camunda failed to start for request {}. Error: {}", saved.getRequestId(), e.getMessage());
+            // We return the saved entity anyway so the UI knows the DB record exists
+            return saved;
         }
     }
-
-    // @Transactional
-    // public StaffingRequest updateExistingRequest(Long requestId, WorkforceRequestDTO dto) {
-    //     StaffingRequest existing = repository.findByRequestId(requestId)
-    //             .orElseThrow(() -> new RuntimeException("Request not found ID: " + requestId));
-
-    //     mapDtoToEntity(dto, existing);
-        
-    //     return repository.save(existing);
-    // }
 
     public List<WorkforceRequestDTO> getApprovedRequestsForEmployees() {
         // Changed from findByStatusAndProject_PublishedTrue to findByStatus
         List<StaffingRequest> entities = repository.findByStatus(RequestStatus.APPROVED);
         return entities.stream().map(this::convertToDTO).toList();
     }
+
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
             entity.getTitle(), entity.getDescription(),
@@ -145,41 +116,41 @@ public class StaffingRequestService {
         );
     }
     @Transactional
-public void rejectRequestByDepartmentHead(Long requestId) {
-    // This hardcoded string is what the Manager will see on their dashboard
-    String autoReason = "Rejected by Department Head (No specific reason provided).";
-    
-    // Call the original method with the hardcoded reason
-    this.rejectRequestByDepartmentHead(requestId, autoReason);
-}
+    public void rejectRequestByDepartmentHead(Long requestId) {
+        // This hardcoded string is what the Manager will see on their dashboard
+        String autoReason = "Rejected by Department Head (No specific reason provided).";
+        
+        // Call the original method with the hardcoded reason
+        this.rejectRequestByDepartmentHead(requestId, autoReason);
+    }
 
    @Transactional
-public void rejectRequestByDepartmentHead(Long requestId, String reason) {
-    // 1. Fetch the request
-    StaffingRequest request = repository.findByRequestId(requestId)
-            .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
-    
-    // 2. Update Database (The "Pull" part for the Manager's Dashboard)
-    request.setStatus(RequestStatus.REJECTED);
-    request.setRejectionReason(reason); // This maps directly to your entity field
-    repository.save(request);
+    public void rejectRequestByDepartmentHead(Long requestId, String reason) {
+        // 1. Fetch the request
+        StaffingRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+        
+        // 2. Update Database (The "Pull" part for the Manager's Dashboard)
+        request.setStatus(RequestStatus.REJECTED);
+        request.setRejectionReason(reason); // This maps directly to your entity field
+        repository.save(request);
 
-    // 3. Prepare variables for Camunda
-    Map<String, Object> variables = new HashMap<>();
-    variables.put("deptHeadApproved", false);
-    variables.put("dataValid", true);
-    variables.put("rejectionReason", reason); // Pass it to the process engine
+        // 3. Prepare variables for Camunda
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("deptHeadApproved", false);
+        variables.put("dataValid", true);
+        variables.put("rejectionReason", reason); // Pass it to the process engine
 
-    // 4. Signal Camunda
-    zeebeClient.newPublishMessageCommand()
-            .messageName("DeptHeadDecision")
-            .correlationKey(requestId.toString()) 
-            .variables(variables)
-            .send()
-            .join();
-    
-    log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId);
-}
+        // 4. Signal Camunda
+        zeebeClient.newPublishMessageCommand()
+                .messageName("DeptHeadDecision")
+                .correlationKey(requestId.toString()) 
+                .variables(variables)
+                .send()
+                .join();
+        
+        log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId);
+    }
 
     @Transactional
     public void approveRequestByDepartmentHead(Long requestId) {

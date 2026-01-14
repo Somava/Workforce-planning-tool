@@ -128,7 +128,6 @@
     </bpmn:extensionElements>
     <bpmn:laneSet id="LaneSet_1">
       <bpmn:lane id="Lane_Employee" name="4. Employee">
-        <bpmn:flowNodeRef>Activity_TriggerExternalSourcing</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_ExternalResourceOutcome</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_AssignmentComplete</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_AssignEmployeePlanner</bpmn:flowNodeRef>
@@ -136,32 +135,32 @@
         <bpmn:flowNodeRef>Activity_FinalNotification</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_1kqdpb1</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_035p8yb</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_TriggerExternalSourcing</bpmn:flowNodeRef>
       </bpmn:lane>
       <bpmn:lane id="Lane_Planner" name="3. Resource Planner">
         <bpmn:flowNodeRef>Activity_ReevaluateRequest</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_SuitableResource</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Message_ExternalResponseReceived</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Activity_1dnw9bo</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_ReviewConflict</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_1dnw9bo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SuitableResource</bpmn:flowNodeRef>
       </bpmn:lane>
       <bpmn:lane id="Lane_DeptHead" name="2. Department Head">
-        <bpmn:flowNodeRef>Gateway_Approved</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_ApproveEmployeeAssignment</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_0bnomq5</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_0wvuod1</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_127m3pi</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_DepartmentHeadApproval</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_Approved</bpmn:flowNodeRef>
       </bpmn:lane>
       <bpmn:lane id="Lane_Manager" name="1. Manager">
         <bpmn:flowNodeRef>Activity_ReviewExternalFailure</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_ResubmitDecision</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>EndEvent_RequestRejected</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_Cancelled</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_Resubmitted</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Activity_NotifyRequesterRejected</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_ValidateRequestData</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Gateway_DataValid</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Event_Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_NotifyRequesterRejected</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_RequestRejected</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
     <bpmn:serviceTask id="Activity_ValidateRequestData" name="Validate Request Data">
@@ -171,10 +170,6 @@
       <bpmn:incoming>Flow_1246sdl</bpmn:incoming>
       <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:exclusiveGateway id="Gateway_DataValid" name="Data Valid?">
-      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
-      <bpmn:outgoing>Flow_ValidData</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
     <bpmn:userTask id="Activity_ReviewExternalFailure" name="Review External Sourcing Failure">
       <bpmn:extensionElements>
         <zeebe:assignmentDefinition candidateGroups="Managers" />
@@ -281,7 +276,7 @@
       <bpmn:incoming>Flow_05e6i2u</bpmn:incoming>
       <bpmn:outgoing>Flow_03a0z6p</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Activity_ValidateRequestData" targetRef="Gateway_DataValid" />
+    <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Activity_ValidateRequestData" targetRef="Activity_DepartmentHeadApproval" />
     <bpmn:sequenceFlow id="Flow_05e6i2u" name="No" sourceRef="Gateway_Approved" targetRef="Activity_NotifyRequesterRejected">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=deptHeadApproved = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
@@ -389,11 +384,8 @@
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1ji4lm8" name="Re-select Internal Candidate" sourceRef="Activity_ReviewConflict" targetRef="Activity_1dnw9bo" />
     <bpmn:sequenceFlow id="Flow_1u3i2k9" sourceRef="Activity_DepartmentHeadApproval" targetRef="Gateway_Approved" />
-    <bpmn:sequenceFlow id="Flow_ValidData" sourceRef="Gateway_DataValid" targetRef="Activity_DepartmentHeadApproval">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isValid = true</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
     <bpmn:receiveTask id="Activity_DepartmentHeadApproval" name="Department Head Approval" messageRef="Message_0v293ld">
-      <bpmn:incoming>Flow_ValidData</bpmn:incoming>
+      <bpmn:incoming>Flow_ToGateway</bpmn:incoming>
       <bpmn:outgoing>Flow_1u3i2k9</bpmn:outgoing>
     </bpmn:receiveTask>
   </bpmn:process>
@@ -421,12 +413,6 @@
       <bpmndi:BPMNShape id="Activity_ValidateRequestData_di" bpmnElement="Activity_ValidateRequestData">
         <omgdc:Bounds x="300" y="110" width="100" height="60" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_DataValid_di" bpmnElement="Gateway_DataValid" isMarkerVisible="true">
-        <omgdc:Bounds x="430" y="120" width="40" height="40" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="421" y="96" width="57" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_ReviewExternalFailure_di" bpmnElement="Activity_ReviewExternalFailure">
         <omgdc:Bounds x="1145" y="110" width="150" height="60" />
       </bpmndi:BPMNShape>
@@ -439,28 +425,12 @@
       <bpmndi:BPMNShape id="Activity_ReviewConflict_di" bpmnElement="Activity_ReviewConflict">
         <omgdc:Bounds x="1675" y="350" width="150" height="60" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_TriggerExternalSourcing_di" bpmnElement="Activity_TriggerExternalSourcing">
-        <omgdc:Bounds x="1140" y="430" width="170" height="60" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_16g8588_di" bpmnElement="Activity_FinalNotification">
         <omgdc:Bounds x="1840" y="530" width="100" height="60" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_SaveFinalAssignment_di" bpmnElement="Activity_SaveFinalAssignment">
         <omgdc:Bounds x="1650" y="510" width="120" height="60" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
-        <omgdc:Bounds x="710" y="240" width="40" height="40" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="703" y="223" width="53" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Gateway_SuitableResource_di" bpmnElement="Gateway_SuitableResource" isMarkerVisible="true">
-        <omgdc:Bounds x="1070" y="370" width="40" height="40" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1046" y="409.5" width="88" height="27" />
-        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_ExternalResourceOutcome_di" bpmnElement="Gateway_ExternalResourceOutcome" isMarkerVisible="true">
         <omgdc:Bounds x="1420" y="440" width="40" height="40" />
@@ -480,12 +450,6 @@
           <omgdc:Bounds x="1333" y="408" width="70" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_RequestRejected_di" bpmnElement="EndEvent_RequestRejected">
-        <omgdc:Bounds x="912" y="132" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="886" y="113" width="88" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_AssignmentComplete_di" bpmnElement="EndEvent_AssignmentComplete">
         <omgdc:Bounds x="1832" y="662" width="36" height="36" />
         <bpmndi:BPMNLabel>
@@ -503,9 +467,6 @@
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1639" y="164" width="62" height="27" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1bxm6lz_di" bpmnElement="Activity_NotifyRequesterRejected">
-        <omgdc:Bounds x="750" y="110" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0ggt0d0_di" bpmnElement="Activity_ApproveEmployeeAssignment">
         <omgdc:Bounds x="880" y="220" width="100" height="80" />
@@ -543,48 +504,77 @@
         <omgdc:Bounds x="1820" y="210" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1dnw9bo_di" bpmnElement="Activity_1dnw9bo">
-        <omgdc:Bounds x="880" y="350" width="100" height="80" />
+      <bpmndi:BPMNShape id="Activity_0864pzy_di" bpmnElement="Activity_DepartmentHeadApproval">
+        <omgdc:Bounds x="410" y="220" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0864pzy_di" bpmnElement="Activity_DepartmentHeadApproval">
-        <omgdc:Bounds x="565" y="230" width="100" height="80" />
+      <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
+        <omgdc:Bounds x="580" y="240" width="40" height="40" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="573" y="223" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1bxm6lz_di" bpmnElement="Activity_NotifyRequesterRejected">
+        <omgdc:Bounds x="620" y="110" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_RequestRejected_di" bpmnElement="EndEvent_RequestRejected">
+        <omgdc:Bounds x="802" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="776" y="103" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1dnw9bo_di" bpmnElement="Activity_1dnw9bo">
+        <omgdc:Bounds x="690" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_SuitableResource_di" bpmnElement="Gateway_SuitableResource" isMarkerVisible="true">
+        <omgdc:Bounds x="910" y="360" width="40" height="40" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="886" y="400" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_TriggerExternalSourcing_di" bpmnElement="Activity_TriggerExternalSourcing">
+        <omgdc:Bounds x="1025" y="460" width="170" height="60" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_ToGateway_di" bpmnElement="Flow_ToGateway">
         <omgdi:waypoint x="400" y="140" />
-        <omgdi:waypoint x="430" y="140" />
+        <omgdi:waypoint x="460" y="140" />
+        <omgdi:waypoint x="460" y="220" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_05e6i2u_di" bpmnElement="Flow_05e6i2u">
-        <omgdi:waypoint x="750" y="260" />
-        <omgdi:waypoint x="800" y="260" />
-        <omgdi:waypoint x="800" y="190" />
+        <omgdi:waypoint x="620" y="260" />
+        <omgdi:waypoint x="670" y="260" />
+        <omgdi:waypoint x="670" y="190" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="760" y="237" width="15" height="14" />
+          <omgdc:Bounds x="630" y="237" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_03a0z6p_di" bpmnElement="Flow_03a0z6p">
-        <omgdi:waypoint x="850" y="150" />
-        <omgdi:waypoint x="912" y="150" />
+        <omgdi:waypoint x="720" y="150" />
+        <omgdi:waypoint x="761" y="150" />
+        <omgdi:waypoint x="761" y="140" />
+        <omgdi:waypoint x="802" y="140" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_InternalSuccess_di" bpmnElement="Flow_InternalSuccess">
-        <omgdi:waypoint x="1090" y="370" />
-        <omgdi:waypoint x="1090" y="290" />
-        <omgdi:waypoint x="980" y="290" />
+        <omgdi:waypoint x="930" y="360" />
+        <omgdi:waypoint x="930" y="300" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1097" y="333" width="65" height="14" />
+          <omgdc:Bounds x="937" y="331" width="65" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0k6a1f2_di" bpmnElement="Flow_0k6a1f2">
-        <omgdi:waypoint x="1110" y="390" />
-        <omgdi:waypoint x="1195" y="390" />
-        <omgdi:waypoint x="1195" y="430" />
+        <omgdi:waypoint x="950" y="380" />
+        <omgdi:waypoint x="1080" y="380" />
+        <omgdi:waypoint x="1080" y="460" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1135" y="367" width="66" height="14" />
+          <omgdc:Bounds x="1006" y="357" width="66" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_TriggerToWait_di" bpmnElement="Flow_TriggerToWait">
-        <omgdi:waypoint x="1310" y="460" />
+        <omgdi:waypoint x="1195" y="490" />
+        <omgdi:waypoint x="1273" y="490" />
+        <omgdi:waypoint x="1273" y="460" />
         <omgdi:waypoint x="1350" y="460" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ResponseToGateway_di" bpmnElement="Flow_ResponseToGateway">
@@ -708,22 +698,24 @@
         <omgdi:waypoint x="1810" y="350" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1v1v9d0_Success_di" bpmnElement="Flow_1v1v9d0_Success">
-        <omgdi:waypoint x="730" y="280" />
-        <omgdi:waypoint x="730" y="390" />
-        <omgdi:waypoint x="880" y="390" />
+        <omgdi:waypoint x="600" y="280" />
+        <omgdi:waypoint x="600" y="390" />
+        <omgdi:waypoint x="690" y="390" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="731" y="303" width="18" height="14" />
+          <omgdc:Bounds x="601" y="303" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1qypvtd_di" bpmnElement="Flow_1qypvtd">
-        <omgdi:waypoint x="980" y="390" />
-        <omgdi:waypoint x="1070" y="390" />
+        <omgdi:waypoint x="790" y="390" />
+        <omgdi:waypoint x="850" y="390" />
+        <omgdi:waypoint x="850" y="380" />
+        <omgdi:waypoint x="910" y="380" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1wxn9dv_di" bpmnElement="Flow_1wxn9dv">
         <omgdi:waypoint x="1640" y="255" />
         <omgdi:waypoint x="1640" y="310" />
-        <omgdi:waypoint x="930" y="310" />
-        <omgdi:waypoint x="930" y="350" />
+        <omgdi:waypoint x="740" y="310" />
+        <omgdi:waypoint x="740" y="350" />
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1651" y="266" width="37" height="14" />
         </bpmndi:BPMNLabel>
@@ -732,22 +724,16 @@
         <omgdi:waypoint x="1675" y="380" />
         <omgdi:waypoint x="1328" y="380" />
         <omgdi:waypoint x="1328" y="420" />
-        <omgdi:waypoint x="980" y="420" />
+        <omgdi:waypoint x="790" y="420" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1206" y="406" width="87" height="27" />
+          <omgdc:Bounds x="1163" y="406" width="87" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1u3i2k9_di" bpmnElement="Flow_1u3i2k9">
-        <omgdi:waypoint x="665" y="260" />
-        <omgdi:waypoint x="710" y="260" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_ValidData_di" bpmnElement="Flow_ValidData">
-        <omgdi:waypoint x="450" y="160" />
-        <omgdi:waypoint x="450" y="260" />
-        <omgdi:waypoint x="565" y="260" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="459" y="202" width="23" height="14" />
-        </bpmndi:BPMNLabel>
+        <omgdi:waypoint x="510" y="250" />
+        <omgdi:waypoint x="545" y="250" />
+        <omgdi:waypoint x="545" y="260" />
+        <omgdi:waypoint x="580" y="260" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
