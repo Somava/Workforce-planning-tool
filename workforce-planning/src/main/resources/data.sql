@@ -21,10 +21,10 @@ INSERT INTO languages (id, name) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO projects (id, name, description, status, start_date, end_date, location, published, manager_user_id) VALUES 
-(1, 'Cloud Migration 2026', 'Moving legacy infrastructure to AWS.', 'PLANNED', '2026-01-01', '2026-12-31', 'Frankfurt', true, NULL),
-(2, 'AI Customer Portal', 'LLM-based support system.', 'PLANNED', '2026-03-01', '2027-02-28', 'Remote', true, NULL),
-(3, 'Legacy ERP Shutdown', 'Decommissioning old local servers.', 'COMPLETED', '2025-01-01', '2025-11-30', 'Frankfurt', true, NULL),
-(4, 'Mobile App Alpha', 'Internal testing phase for mobile portal.', 'PLANNED', '2026-05-01', '2026-12-01', 'Berlin', false, Null)
+(1, 'Project Skyfall: AWS Migration', 'Migrating core on-premise banking services to a multi-region AWS architecture for high availability.', 'Planned', '2026-01-01', '2032-12-31', 'Munich', true, NULL),
+(2, 'NeuralCare: AI Support Portal', 'Development of a Generative AI-driven customer service interface to automate Tier-1 technical support.', 'Planned', '2026-03-01', '2033-02-28', 'Remote', true, NULL),
+(3, 'Legacy ERP Sunset Phase 1', 'Final data archiving and decommissioning of the SAP R/3 legacy environment and physical server hardware.', 'Completed', '2025-01-01', '2034-11-30', 'Frankfurt', true, NULL),
+(4, 'WorkForce Go: Mobile Alpha', 'Internal testing and rollout of the React Native employee portal for mobile expense and shift management.', 'Planned', '2026-05-01', '2032-12-01', 'Berlin', false, Null)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO departments (id, name, project_id, department_head_user_id, resource_planner_user_id) VALUES 
@@ -44,8 +44,8 @@ INSERT INTO employees (id, employee_id, first_name, last_name, primary_location,
 (3, 'E-103', 'Charlie', 'Wagner', 'Remote', 2, 5, 40, 0, 'charlie@frauas.de'),
 (4, 'E-104', 'Diana', 'Prince', 'Berlin', 2, 9, 40, 40, 'diana@frauas.de'),
 (5, 'E-105', 'Eve', 'Curie', 'Berlin', 1, 3, 40, 40, 'eve@frauas.de'),
-(6, 'E-106', 'Frank', 'Castle', 'Frankfurt', 1, 1, 40, 10, 'frank@frauas.de'),
-(7, 'E-107', 'Grace', 'Hopper', 'Remote', 1, 2, 35, 15, 'hopper.it@frauas.de'),
+(6, 'E-106', 'Frank', 'Castle', 'Frankfurt', 1, 5, 40, 10, 'frank@frauas.de'),
+(7, 'E-107', 'Grace', 'Hopper', 'Remote', 1, 9, 35, 15, 'hopper.it@frauas.de'),
 -- The 12 Dept Heads
 (8, 'E-108', 'Marcus', 'Wagner', 'Frankfurt', 4, 1, 40, 40, 'wagner.it@frauas.de'), 
 (9, 'E-109', 'Elena', 'Fischer', 'Frankfurt', 4, 2, 40, 40, 'fischer.rd@frauas.de'), 
@@ -113,27 +113,52 @@ INSERT INTO staffing_requests (
     experience_years, availability_hours_per_week,
     work_location, project_start_date, project_end_date
 ) VALUES 
--- Batch 1: 
-(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'PENDING_APPROVAL', 1, 39.50, '["Java", "AWS"]', 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31'),
-(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'PENDING_APPROVAL', 1, 35.00, '["React", "TypeScript"]', 2, 20, 'Berlin', '2026-03-15', '2026-09-15'),
-(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PENDING_APPROVAL', 1, 40.00, '["AWS", "Terraform"]', 8, 40, 'Frankfurt', '2026-02-01', '2026-11-30'),
-(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'PENDING_APPROVAL', 1, 32.00, '["Python", "Excel"]', 1, 40, 'Berlin', '2026-04-01', '2026-10-01'),
-(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'APPROVED', 1, 38.00, '["API Integration", "HRIS"]', 4, 35, 'Munich', '2026-01-10', '2026-06-30'),
+--------------------------------------------------------------------------------
+-- BATCH 1: INFORMATION TECHNOLOGY (Bob & Eve)
+-- 5 Approved, 5 Pending Approval
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- BATCH 1: INFORMATION TECHNOLOGY (Bob & Eve)
+--------------------------------------------------------------------------------
+(1, 'Backend Java Expert', 'Cloud Migration help.', 1, 1, 1, 'APPROVED', 1, 39.50, '["Java", "AWS"]', 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31'),
+(2, 'IT Support Specialist', 'General infrastructure setup.', 1, 1, 1, 'APPROVED', 1, 30.25, '["Networking", "Linux"]', 3, 40, 'Frankfurt', '2026-02-01', '2026-06-01'),
+(3, 'Cloud Architect', 'AWS Migration lead.', 1, 2, 8, 'APPROVED', 1, 55.50, '["AWS", "Terraform"]', 8, 40, 'Frankfurt', '2026-03-01', '2026-12-31'),
+(4, 'DevOps Specialist', 'CI/CD pipeline automation.', 1, 2, 3, 'APPROVED', 1, 45.75, '["Jenkins", "Docker"]', 4, 40, 'Frankfurt', '2026-03-01', '2026-12-31'),
+(5, 'Network Security Eng', 'Firewall configuration.', 3, 3, 7, 'APPROVED', 1, 48.00, '["Cisco", "Security"]', 5, 40, 'Frankfurt', '2026-01-15', '2026-08-15'),
+(6, 'Database Admin', 'Legacy ERP data migration.', 3, 3, 1, 'PENDING_APPROVAL', 1, 42.50, '["PostgreSQL", "SQL"]', 6, 40, 'Frankfurt', '2026-04-01', '2026-12-01'),
+(7, 'Junior IT Analyst', 'Help desk tier 1 support.', 4, 4, 1, 'PENDING_APPROVAL', 1, 25.00, '["Troubleshooting"]', 1, 40, 'Berlin', '2026-05-01', '2026-12-01'),
+(8, 'Frontend React Help', 'Portal UI support.', 2, 1, 1, 'PENDING_APPROVAL', 1, 35.80, '["React", "TypeScript"]', 2, 20, 'Berlin', '2026-03-15', '2026-09-15'),
+(9, 'IT Project Coordinator', 'Managing hardware rollout.', 4, 4, 2, 'PENDING_APPROVAL', 1, 38.00, '["Agile", "Planning"]', 3, 40, 'Berlin', '2026-05-01', '2026-12-01'),
+(10, 'Systems Integrator', 'Middleware connectivity.', 2, 2, 1, 'PENDING_APPROVAL', 1, 40.20, '["API", "JSON"]', 4, 40, 'Remote', '2026-03-01', '2026-10-01'),
 
--- Batch 2: 
-(6, 'Data Engineer', 'Building ETL pipelines for Project 1.', 1, 2, 5, 'PENDING_APPROVAL', 1, 38.00, '["Python", "Spark"]', 4, 40, 'Frankfurt', '2026-02-10', '2026-12-10'),
-(7, 'Frontend Lead', 'Architecting the new React dashboard.', 2, 3, 1, 'PENDING_APPROVAL', 1, 40.00, '["React", "Redux"]', 7, 35, 'Berlin', '2026-03-20', '2026-11-20'),
-(8, 'Cybersecurity Lead', 'Security hardening for database.', 3, 4, 6, 'PENDING_APPROVAL', 1, 40.00, '["Penetration Testing", "ISO27001"]', 8, 40, 'Wiesbaden', '2026-06-01', '2026-12-31'),
-(9, 'Site Reliability Eng', 'Uptime monitoring for cloud portal.', 4, 2, 2, 'PENDING_APPROVAL', 1, 39.00, '["Prometheus", "Grafana"]', 5, 40, 'Munich', '2026-01-15', '2026-10-15'),
-(10, 'Machine Learning Eng', 'Training models for AI support.', 1, 3, 5, 'PENDING_APPROVAL', 1, 40.00, '["PyTorch", "NLP"]', 4, 40, 'Frankfurt', '2026-04-01', '2026-12-31'),
+--------------------------------------------------------------------------------
+-- BATCH 2: RESEARCH & DEVELOPMENT (Charlie & Frank)
+--------------------------------------------------------------------------------
+(11, 'AI Model Trainer', 'Fine-tuning LLMs.', 2, 5, 5, 'APPROVED', 1, 50.50, '["Python", "PyTorch"]', 3, 40, 'Frankfurt', '2026-04-01', '2026-10-31'),
+(12, 'Quantum Research Lead', 'Long-term crypto research.', 1, 5, 1, 'APPROVED', 1, 65.00, '["Quantum Computing"]', 10, 20, 'Frankfurt', '2026-06-01', '2026-12-31'),
+(13, 'Data Scientist', 'AI Portal predictive analytics.', 2, 6, 5, 'APPROVED', 1, 52.25, '["R", "SQL", "Math"]', 5, 40, 'Remote', '2026-03-15', '2026-12-15'),
+(14, 'NLP Specialist', 'Natural language processing.', 2, 6, 5, 'APPROVED', 1, 58.00, '["NLP", "Transformers"]', 4, 40, 'Remote', '2026-03-15', '2026-12-15'),
+(15, 'Hardware Architect', 'New server prototype design.', 3, 7, 1, 'APPROVED', 1, 60.50, '["VHDL", "FPGA"]', 7, 40, 'Frankfurt', '2026-05-01', '2026-12-01'),
+(16, 'R&D Lab Assistant', 'Setting up test environments.', 3, 7, 4, 'PENDING_APPROVAL', 1, 28.00, '["Lab Safety", "Testing"]', 2, 40, 'Frankfurt', '2026-05-01', '2026-12-01'),
+(17, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 8, 3, 'PENDING_APPROVAL', 1, 45.40, '["Metal", "OpenGL"]', 4, 40, 'Munich', '2026-02-01', '2026-11-01'),
+(18, 'Algorithm Engineer', 'Search algorithm optimization.', 4, 8, 1, 'PENDING_APPROVAL', 1, 48.00, '["Algorithms", "C++"]', 5, 40, 'Munich', '2026-03-01', '2026-12-01'),
+(19, 'Machine Learning Eng', 'Training computer vision models.', 1, 5, 5, 'PENDING_APPROVAL', 1, 55.60, '["PyTorch", "OpenCV"]', 4, 40, 'Frankfurt', '2026-04-01', '2026-12-31'),
+(20, 'Senior Statistician', 'Data validation for R&D.', 2, 6, 5, 'PENDING_APPROVAL', 1, 47.00, '["Statistics", "SAS"]', 6, 40, 'Remote', '2026-04-01', '2026-12-01'),
 
--- Batch 3: 
-(11, 'AI Model Trainer', 'Fine-tuning LLMs for customer support.', 1, 5, 5, 'PENDING_APPROVAL', 1, 39.00, '["Python", "PyTorch"]', 3, 40, 'Frankfurt', '2026-04-01', '2026-10-31'),
-(12, 'R&D Lead', 'Overseeing AI Portal innovations.', 2, 6, 1, 'PENDING_APPROVAL', 1, 40.00, '["Management", "AI Ethics"]', 10, 35, 'Berlin', '2026-03-15', '2026-12-15'),
-(13, 'Data Scientist', 'Analyzing legacy ERP data patterns.', 3, 7, 5, 'PENDING_APPROVAL', 1, 38.00, '["R", "SQL"]', 5, 40, 'Wiesbaden', '2026-05-01', '2026-12-01'),
-(14, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 8, 3, 'PENDING_APPROVAL', 1, 37.00, '["Metal", "OpenGL"]', 4, 40, 'Munich', '2026-02-01', '2026-11-01'),
-(15, 'Quantum Research Assistant', 'Long-term infrastructure research.', 1, 5, 1, 'APPROVED', 1, 32.00, '["Quantum Computing"]', 2, 20, 'Frankfurt', '2026-06-01', '2026-12-31');
-
+--------------------------------------------------------------------------------
+-- BATCH 3: HUMAN RESOURCE (Diana & Grace)
+--------------------------------------------------------------------------------
+(21, 'HR System Specialist', 'Payroll API integration.', 4, 9, 1, 'APPROVED', 1, 38.50, '["API Integration", "HRIS"]', 4, 35, 'Munich', '2026-01-10', '2026-06-30'),
+(22, 'Recruitment Lead', 'Tech hiring drive 2026.', 1, 9, 1, 'APPROVED', 1, 35.00, '["Recruiting", "Sourcing"]', 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31'),
+(23, 'Employee Relations', 'Conflict resolution for remote staff.', 2, 10, 1, 'APPROVED', 1, 32.40, '["Mediation", "Law"]', 4, 40, 'Berlin', '2026-03-15', '2026-09-15'),
+(24, 'Training Coordinator', 'Upskilling for Cloud team.', 1, 10, 1, 'APPROVED', 1, 30.00, '["LMS", "Teaching"]', 3, 40, 'Frankfurt', '2026-03-01', '2026-12-31'),
+(25, 'Compensation Analyst', 'Salary benchmarking project.', 3, 11, 5, 'APPROVED', 1, 40.50, '["Excel", "Data Analysis"]', 4, 40, 'Wiesbaden', '2026-05-01', '2026-12-01'),
+(26, 'Benefits Specialist', 'New health insurance rollout.', 3, 11, 1, 'PENDING_APPROVAL', 1, 34.00, '["Benefits", "Insurance"]', 3, 40, 'Wiesbaden', '2026-06-01', '2026-12-31'),
+(27, 'HR Generalist', 'Administrative support for Mobile.', 4, 12, 1, 'PENDING_APPROVAL', 1, 26.50, '["Admin", "Filing"]', 1, 40, 'Munich', '2026-02-01', '2026-11-01'),
+(28, 'Diversity & Inclusion', 'Internal D&I workshop lead.', 2, 12, 1, 'PENDING_APPROVAL', 1, 40.00, '["Strategy", "Workshops"]', 6, 20, 'Berlin', '2026-04-01', '2026-10-01'),
+(29, 'HR Data Privacy Officer', 'GDPR compliance audit.', 3, 10, 7, 'PENDING_APPROVAL', 1, 50.75, '["GDPR", "Privacy"]', 5, 40, 'Frankfurt', '2026-04-01', '2026-12-31'),
+(30, 'Talent Acquisition', 'Sourcing UI/UX designers.', 2, 9, 1, 'PENDING_APPROVAL', 1, 33.00, '["Sourcing", "LinkedIn"]', 2, 40, 'Berlin', '2026-03-15', '2026-12-15')
+ON CONFLICT (request_id) DO NOTHING;
 --------------------------------------------------
 -- 6) EXTERNAL EMPLOYEES & USERS
 --------------------------------------------------
@@ -147,9 +172,9 @@ VALUES (50, 'john.doe@freelance.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymG
 --------------------------------------------------
 -- 7) APPLICATIONS & ASSIGNMENTS
 --------------------------------------------------
-INSERT INTO employee_applications (employee_id, staffing_request_id, status, comment) 
-VALUES (14, 1, 'APPLIED', 'I have extensive Kubernetes experience.') 
-ON CONFLICT DO NOTHING;
+-- INSERT INTO employee_applications (employee_id, staffing_request_id, status, comment) 
+-- VALUES (14, 1, 'APPLIED', 'I have extensive Kubernetes experience.') 
+-- ON CONFLICT DO NOTHING;
 
 INSERT INTO assignments (employee_id, project_id, status, period_start, period_end) 
 VALUES (3, 1, 'ACTIVE', '2026-01-01', '2026-06-01'),
