@@ -110,40 +110,29 @@ ON CONFLICT DO NOTHING;
 INSERT INTO staffing_requests (
     request_id, title, description, project_id, department_id, job_role_id,
     status, created_by_employee_id, wage_per_hour, required_skills, 
-    experience_years, availability_hours_per_week
+    experience_years, availability_hours_per_week,
+    project_location, project_start_date, project_end_date
 ) VALUES 
-(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'PENDING_APPROVAL', 1, 95.00, '["Java", "AWS"]', 5, 40),
-(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'PENDING_APPROVAL', 1, 80.00, '["React", "TypeScript"]', 2, 20),
-(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PENDING_APPROVAL', 1, 125.00, '["AWS", "Terraform"]', 8, 40),
-(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'PENDING_APPROVAL', 1, 45.00, '["Python", "Excel"]', 1, 40),
-(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'APPROVED', 1, 75.00, '["API Integration", "HRIS"]', 4, 35),
-(6, 'Network Security Audit', 'Final audit for ERP shutdown.', 3, 1, 7, 'APPROVED', 1, 110.00, '["Security", "Audit"]', 6, 40),
-(7, 'DevOps Engineer', 'CI/CD pipeline optimization.', 1, 2, 2, 'PENDING_APPROVAL', 1, 90.00, '["Docker", "Jenkins"]', 4, 40),
-(8, 'Mobile Developer', 'Android version bug fixes.', 2, 4, 4, 'PENDING_APPROVAL', 1, 85.00, '["Kotlin", "Android SDK"]', 3, 40),
-(9, 'Database Admin', 'PostgreSQL performance tuning.', 3, 3, 6, 'PENDING_APPROVAL', 1, 95.00, '["SQL", "Query Tuning"]', 6, 20),
-(10, 'System Administrator', 'Server migration task.', 4, 2, 7, 'PENDING_APPROVAL', 1, 65.00, '["Linux", "Bash"]', 3, 40),
-(11, 'Security Analyst', 'Firewall configuration and audit.', 1, 3, 6, 'PENDING_APPROVAL', 1, 105.00, '["Cybersecurity", "Networking"]', 5, 30),
-(12, 'UI/UX Designer', 'Mobile app redesign phase.', 2, 3, 3, 'APPROVED', 1, 70.00, '["Figma", "CSS"]', 3, 30),
-(13, 'Fullstack Developer', 'Internal dashboard expansion.', 1, 2, 1, 'APPROVED', 1, 88.00, '["Node.js", "React"]', 5, 40),
-(14, 'QA Automation Lead', 'Setting up Selenium framework.', 4, 4, 5, 'APPROVED', 1, 78.00, '["Java", "Selenium"]', 4, 40),
-(15, 'Business Analyst', 'Requirement gathering for ERP.', 3, 3, 8, 'APPROVED', 1, 82.00, '["Jira", "Agile"]', 5, 35),
-(16, 'Technical Writer', 'Documentation for API migration.', 2, 4, 1, 'APPROVED', 1, 55.00, '["Markdown", "Swagger"]', 2, 20),
-(17, 'Data Engineer', 'Building ETL pipelines for Project 1.', 1, 2, 5, 'PENDING_APPROVAL', 1, 92.00, '["Python", "Spark"]', 4, 40),
-(18, 'Frontend Lead', 'Architecting the new React dashboard.', 2, 3, 1, 'PENDING_APPROVAL', 1, 115.00, '["React", "Redux"]', 7, 35),
-(19, 'Cybersecurity Lead', 'Security hardening for database.', 3, 4, 6, 'PENDING_APPROVAL', 1, 130.00, '["Penetration Testing", "ISO27001"]', 8, 40),
-(20, 'Site Reliability Eng', 'Uptime monitoring for cloud portal.', 4, 2, 2, 'PENDING_APPROVAL', 1, 98.00, '["Prometheus", "Grafana"]', 5, 40),
-(21, 'Machine Learning Eng', 'Training models for AI support.', 1, 3, 5, 'PENDING_APPROVAL', 1, 140.00, '["PyTorch", "NLP"]', 4, 40),
-(22, 'Mobile Architect', 'iOS Swift migration.', 2, 4, 4, 'PENDING_APPROVAL', 1, 120.00, '["Swift", "SwiftUI"]', 6, 40),
-(23, 'SOC Analyst', '24/7 Monitoring setup.', 3, 2, 7, 'PENDING_APPROVAL', 1, 85.00, '["SIEM", "Splunk"]', 3, 20),
-(24, 'Scrum Master', 'Facilitating Agile for Project 4.', 4, 3, 8, 'APPROVED', 1, 80.00, '["Agile", "Kanban"]', 5, 40),
-(25, 'Python Developer', 'Backend scripts for data processing.', 1, 4, 1, 'APPROVED', 1, 75.00, '["Python", "Django"]', 3, 40),
-(26, 'Product Owner', 'Defining roadmap for AI Portal.', 2, 2, 8, 'APPROVED', 1, 110.00, '["Product Management", "Roadmapping"]', 6, 40),
-(27, 'Network Architect', 'Designing VPC for AWS.', 1, 3, 7, 'APPROVED', 1, 125.00, '["VPC", "Networking"]', 7, 40),
-(28, 'Manual QA Tester', 'Regression testing for ERP.', 3, 4, 5, 'APPROVED', 1, 50.00, '["Test Cases", "Regression"]', 2, 40),
-(29, 'DevSecOps Specialist', 'Integrating security in CI/CD.', 4, 2, 2, 'APPROVED', 1, 105.00, '["SonarQube", "Snyk"]', 4, 30),
-(30, 'Documentation Specialist', 'Writing user manuals for payroll.', 4, 3, 8, 'APPROVED', 1, 60.00, '["Technical Writing", "Loom"]', 3, 25)
+-- Batch 1: 
+(1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'PENDING_APPROVAL', 1, 39.50, '["Java", "AWS"]', 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31'),
+(2, 'Frontend React Help', 'Support for AI Portal UI.', 2, 2, 1, 'PENDING_APPROVAL', 1, 35.00, '["React", "TypeScript"]', 2, 20, 'Berlin', '2026-03-15', '2026-09-15'),
+(3, 'Cloud Infrastructure Architect', 'Senior role for AWS Migration.', 1, 1, 8, 'PENDING_APPROVAL', 1, 40.00, '["AWS", "Terraform"]', 8, 40, 'Frankfurt', '2026-02-01', '2026-11-30'),
+(4, 'Junior Data Analyst', 'Help with LLM data sets.', 2, 2, 5, 'PENDING_APPROVAL', 1, 32.00, '["Python", "Excel"]', 1, 40, 'Berlin', '2026-04-01', '2026-10-01'),
+(5, 'HR System Specialist', 'Integration of new payroll API.', 4, 3, 1, 'APPROVED', 1, 38.00, '["API Integration", "HRIS"]', 4, 35, 'Munich', '2026-01-10', '2026-06-30'),
 
-ON CONFLICT (request_id) DO NOTHING;
+-- Batch 2: 
+(6, 'Data Engineer', 'Building ETL pipelines for Project 1.', 1, 2, 5, 'PENDING_APPROVAL', 1, 38.00, '["Python", "Spark"]', 4, 40, 'Frankfurt', '2026-02-10', '2026-12-10'),
+(7, 'Frontend Lead', 'Architecting the new React dashboard.', 2, 3, 1, 'PENDING_APPROVAL', 1, 40.00, '["React", "Redux"]', 7, 35, 'Berlin', '2026-03-20', '2026-11-20'),
+(8, 'Cybersecurity Lead', 'Security hardening for database.', 3, 4, 6, 'PENDING_APPROVAL', 1, 40.00, '["Penetration Testing", "ISO27001"]', 8, 40, 'Wiesbaden', '2026-06-01', '2026-12-31'),
+(9, 'Site Reliability Eng', 'Uptime monitoring for cloud portal.', 4, 2, 2, 'PENDING_APPROVAL', 1, 39.00, '["Prometheus", "Grafana"]', 5, 40, 'Munich', '2026-01-15', '2026-10-15'),
+(10, 'Machine Learning Eng', 'Training models for AI support.', 1, 3, 5, 'PENDING_APPROVAL', 1, 40.00, '["PyTorch", "NLP"]', 4, 40, 'Frankfurt', '2026-04-01', '2026-12-31'),
+
+-- Batch 3: 
+(11, 'AI Model Trainer', 'Fine-tuning LLMs for customer support.', 1, 5, 5, 'PENDING_APPROVAL', 1, 39.00, '["Python", "PyTorch"]', 3, 40, 'Frankfurt', '2026-04-01', '2026-10-31'),
+(12, 'R&D Lead', 'Overseeing AI Portal innovations.', 2, 6, 1, 'PENDING_APPROVAL', 1, 40.00, '["Management", "AI Ethics"]', 10, 35, 'Berlin', '2026-03-15', '2026-12-15'),
+(13, 'Data Scientist', 'Analyzing legacy ERP data patterns.', 3, 7, 5, 'PENDING_APPROVAL', 1, 38.00, '["R", "SQL"]', 5, 40, 'Wiesbaden', '2026-05-01', '2026-12-01'),
+(14, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 8, 3, 'PENDING_APPROVAL', 1, 37.00, '["Metal", "OpenGL"]', 4, 40, 'Munich', '2026-02-01', '2026-11-01'),
+(15, 'Quantum Research Assistant', 'Long-term infrastructure research.', 1, 5, 1, 'APPROVED', 1, 32.00, '["Quantum Computing"]', 2, 20, 'Frankfurt', '2026-06-01', '2026-12-31');
 
 --------------------------------------------------
 -- 6) EXTERNAL EMPLOYEES & USERS
