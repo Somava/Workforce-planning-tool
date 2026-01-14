@@ -41,8 +41,8 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO employees (id, employee_id, first_name, last_name, primary_location, job_role_id, department_id, total_hours_per_week, remaining_hours_per_week, email) VALUES 
 (1, 'E-101', 'Alice', 'Schmidt', 'Frankfurt', 3, 1, 40, 40, 'alice@frauas.de'),
 (2, 'E-102', 'Bob', 'Müller', 'Frankfurt', 2, 1, 40, 40, 'bob@frauas.de'),
-(3, 'E-103', 'Charlie', 'Wagner', 'Remote', 2, 1, 40, 0, 'charlie@frauas.de'),
-(4, 'E-104', 'Diana', 'Prince', 'Berlin', 2, 2, 40, 40, 'diana@frauas.de'),
+(3, 'E-103', 'Charlie', 'Wagner', 'Remote', 2, 5, 40, 0, 'charlie@frauas.de'),
+(4, 'E-104', 'Diana', 'Prince', 'Berlin', 2, 9, 40, 40, 'diana@frauas.de'),
 (5, 'E-105', 'Eve', 'Curie', 'Berlin', 1, 3, 40, 40, 'eve@frauas.de'),
 (6, 'E-106', 'Frank', 'Castle', 'Frankfurt', 1, 1, 40, 10, 'frank@frauas.de'),
 (7, 'E-107', 'Grace', 'Hopper', 'Remote', 1, 2, 35, 15, 'hopper.it@frauas.de'),
@@ -111,7 +111,7 @@ INSERT INTO staffing_requests (
     request_id, title, description, project_id, department_id, job_role_id,
     status, created_by_employee_id, wage_per_hour, required_skills, 
     experience_years, availability_hours_per_week,
-    project_location, project_start_date, project_end_date
+    work_location, project_start_date, project_end_date
 ) VALUES 
 -- Batch 1: 
 (1, 'Backend Java Expert', 'Urgent need for Cloud Migration.', 1, 1, 1, 'PENDING_APPROVAL', 1, 39.50, '["Java", "AWS"]', 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31'),
