@@ -75,6 +75,10 @@ public class Employee {
     @Column(name = "remaining_hours_per_week")
     private Integer remainingHoursPerWeek;
 
+    @Column(name = "performance_rating")
+    private Double performanceRating;
+
+
     @Column(name = "emergency_contact", length = 255)
     private String emergencyContact;
 

@@ -89,6 +89,7 @@ CREATE TABLE employees (
     skills                   JSONB,
     total_hours_per_week     INTEGER,
     remaining_hours_per_week INTEGER,
+    performance_rating DOUBLE PRECISION, 
     project_preferences      TEXT,
     interests                TEXT,
     CONSTRAINT fk_employee_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),

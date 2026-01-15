@@ -1,6 +1,7 @@
 package com.frauas.workforce_planning.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record MatchedEmployeeDTO(
         Long employeeDbId,
@@ -13,5 +14,8 @@ public record MatchedEmployeeDTO(
         BigDecimal wagePerHour,
         Integer experienceYears,
         double score,
-        boolean applied
+        boolean applied,
+        String seniorityLevel, 
+        String performanceGrade,
+        List<String> certifications
 ) {}

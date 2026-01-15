@@ -2,13 +2,17 @@ package com.frauas.workforce_planning.services;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
+import com.frauas.workforce_planning.model.entity.Certification;
 import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.model.entity.EmployeeApplication;
+import com.frauas.workforce_planning.model.entity.EmployeeCertification;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.MatchingAvailability;
 import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,17 +26,21 @@ public class MatchingService {
     private final EmployeeApplicationRepository employeeApplicationRepository;
     private final StaffingRequestRepository staffingRequestRepository;
     private final MatchingScoringService scoringService;
+    private final UserRepository userRepository;
+    
 
     public MatchingService(
             EmployeeRepository employeeRepository,
             EmployeeApplicationRepository employeeApplicationRepository,
             StaffingRequestRepository staffingRequestRepository,
-            MatchingScoringService scoringService
+            MatchingScoringService scoringService,
+            UserRepository userRepository     
     ) {
         this.employeeRepository = employeeRepository;
         this.employeeApplicationRepository = employeeApplicationRepository;
         this.staffingRequestRepository = staffingRequestRepository;
         this.scoringService = scoringService;
+        this.userRepository = userRepository; 
     }
 
     public List<MatchedEmployeeDTO> matchEmployees(Long requestId, int topN) {
@@ -40,7 +48,14 @@ public class MatchingService {
         StaffingRequest request = staffingRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("StaffingRequest not found: " + requestId));
 
-       
+       //logs
+       System.out.println("DEBUG: requestId = " + requestId);
+      System.out.println("DEBUG: requestStatus = " + request.getStatus());
+      System.out.println("DEBUG: requestExp = " + request.getExperienceYears());
+      System.out.println("DEBUG: requestWage = " + request.getWagePerHour());
+     System.out.println("DEBUG: requestWorkLoc = " + request.getWorkLocation());
+     System.out.println("DEBUG: requestProjectLoc = " + request.getProjectLocation());
+
 
         // ✅ Add the status check RIGHT HERE
     if (request.getStatus() != RequestStatus.APPROVED) {
@@ -50,6 +65,10 @@ public class MatchingService {
     }
 
     int requiredHours = safeInt(request.getAvailabilityHoursPerWeek(), 0);
+
+    //logs added
+    System.out.println("DEBUG: requiredHours = " + requiredHours);
+
 
         // 1) Get all "applied" employees for this request (subset of internal employees)
         Set<Long> appliedEmployeeDbIds = employeeApplicationRepository
@@ -61,19 +80,60 @@ public class MatchingService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+    //logs
+    System.out.println("DEBUG: appliedEmployeeDbIds size = " + appliedEmployeeDbIds.size());
+
+
         // 2) Candidate pool from DB: start with strongest DB filter first (availability + capacity)
         List<Employee> candidates = employeeRepository
-                .findByMatchingAvailabilityAndRemainingHoursPerWeekGreaterThanEqual(
-                        MatchingAvailability.AVAILABLE,
-                        requiredHours
-                );
+    .findByMatchingAvailability(MatchingAvailability.AVAILABLE);
+        // TEMP DISABLED: capacity check will be enabled after hours subtraction logic
+        //List<Employee> candidates = employeeRepository
+                //.findByMatchingAvailabilityAndRemainingHoursPerWeekGreaterThanEqual(
+                       // MatchingAvailability.AVAILABLE,
+                       // requiredHours
+                //);
 
-        // 3) Hard filters (NO scoring here)
-        List<Employee> filtered = candidates.stream()
-                .filter(e -> passesExperience(e, request))
-                .filter(e -> passesWage(e, request))
-                .filter(e -> passesLocation(e, request))
-                .toList();
+    //logs
+    System.out.println("DEBUG: candidates size (after DB query) = " + candidates.size());
+    // NEW logs: how many pass each hard filter
+long expPass = candidates.stream().filter(e -> passesExperience(e, request)).count();
+long wagePass = candidates.stream().filter(e -> passesWage(e, request)).count();
+long locPass  = candidates.stream().filter(e -> passesLocation(e, request)).count();
+
+System.out.println("DEBUG: expPass = " + expPass);
+System.out.println("DEBUG: wagePass = " + wagePass);
+System.out.println("DEBUG: locPass = " + locPass);
+
+// NEW log: show first few employees and why they fail
+for (int i = 0; i < Math.min(5, candidates.size()); i++) {
+    Employee e = candidates.get(i);
+    System.out.println("DEBUG EMP[" + i + "] id=" + e.getEmployeeId()
+            + " hours=" + e.getRemainingHoursPerWeek()
+            + " exp=" + e.getExperienceYears()
+            + " wage=" + e.getWagePerHour()
+            + " loc=" + e.getPrimaryLocation()
+            + " | expOk=" + passesExperience(e, request)
+            + " wageOk=" + passesWage(e, request)
+            + " locOk=" + passesLocation(e, request));
+}
+
+
+
+// 2.5) Exclude leadership employees
+Set<Long> leadershipEmployeeIds = userRepository.findLeadershipEmployeeIds();
+
+// 3) Hard filters (NO scoring here)
+List<Employee> filtered = candidates.stream()
+        .filter(e -> !leadershipEmployeeIds.contains(e.getId())) // 🚫 exclude managers / heads / planners
+        .filter(e -> passesExperience(e, request))
+        .filter(e -> passesWage(e, request))
+        .filter(e -> passesLocation(e, request))
+        .toList();
+
+        //logs
+        System.out.println("DEBUG: filtered size (after hard filters) = " + filtered.size());
+
 
         // 4) Score + map to DTO
         List<MatchedEmployeeDTO> scored = filtered.stream()
@@ -135,21 +195,46 @@ public class MatchingService {
 
     // ---------------- DTO mapping ----------------
 
-    private MatchedEmployeeDTO toDto(Employee e, double score, boolean applied) {
-        return new MatchedEmployeeDTO(
-                e.getId(),
-                e.getEmployeeId(),
-                e.getFirstName(),
-                e.getLastName(),
-                e.getEmail(),
-                e.getPrimaryLocation(),
-                e.getRemainingHoursPerWeek(),
-                e.getWagePerHour(),
-                e.getExperienceYears(),
-                score,
-                applied
-        );
+  // ---------------- DTO mapping ----------------
+private MatchedEmployeeDTO toDto(Employee e, double score, boolean applied) {
+    String seniority = seniorityFromExperience(e.getExperienceYears());
+    Double performanceRating = e.getPerformanceRating();
+    String performanceGrade = (performanceRating != null) ? String.format(java.util.Locale.US, "%.2f/5", performanceRating) : "N/A";
+
+    List<String> certifications = e.getCertifications().stream()
+            .map(ec -> ec.getCertification().getName())
+            .distinct()
+            .toList();
+
+    double scorePercent = Math.round(score * 10000.0) / 100.0;
+
+    return new MatchedEmployeeDTO(
+            e.getId(),
+            e.getEmployeeId(),
+            e.getFirstName(),
+            e.getLastName(),
+            e.getEmail(),
+            e.getPrimaryLocation(),
+            e.getRemainingHoursPerWeek(),
+            e.getWagePerHour(),
+            e.getExperienceYears(),
+            scorePercent,
+            applied,
+            seniority,
+            performanceGrade,
+            certifications
+    );
+}
+
+ // ---------------- Merit helpers ----------------
+
+    private String seniorityFromExperience(Integer years) {
+        if (years == null) return "Unknown";
+        if (years <= 2) return "Junior";
+        if (years <= 5) return "Mid-Level";
+        return "Senior";
     }
+
 
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
