@@ -18,6 +18,8 @@ import com.frauas.workforce_planning.repository.DepartmentRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
+import java.util.stream.Collectors;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,9 @@ public class StaffingRequestService {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private EmployeeApplicationRepository applicationRepository;
 
     @Autowired
     private ZeebeClient zeebeClient;
@@ -97,11 +102,26 @@ public class StaffingRequestService {
         }
     }
 
-    public List<WorkforceRequestDTO> getApprovedRequestsForEmployees() {
-        // Changed from findByStatusAndProject_PublishedTrue to findByStatus
-        List<StaffingRequest> entities = repository.findByStatus(RequestStatus.APPROVED);
-        return entities.stream().map(this::convertToDTO).toList();
+    // This is now the ONLY method for employees to see open jobs
+    public List<WorkforceRequestDTO> getOpenPositionsForEmployee(String email) {
+        // 1. Get all APPROVED requests
+        List<StaffingRequest> approvedRequests = repository.findByStatus(RequestStatus.APPROVED);
+
+        // 2. Get IDs already applied for by this specific email
+        List<Long> appliedIds = applicationRepository.findRequestIdsByEmployeeEmail(email);
+
+        // 3. Filter: Only show what has NOT been applied for
+        return approvedRequests.stream()
+            .filter(req -> !appliedIds.contains(req.getRequestId()))
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
     }
+
+    // public List<WorkforceRequestDTO> getApprovedRequestsForEmployees() {
+    //     // Changed from findByStatusAndProject_PublishedTrue to findByStatus
+    //     List<StaffingRequest> entities = repository.findByStatus(RequestStatus.APPROVED);
+    //     return entities.stream().map(this::convertToDTO).toList();
+    // }
 
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
