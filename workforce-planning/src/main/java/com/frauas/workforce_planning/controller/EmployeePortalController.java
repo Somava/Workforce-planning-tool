@@ -25,12 +25,14 @@ public class EmployeePortalController {
     @Autowired
     private EmployeeApplicationService applicationService;
 
-    // 1. View Open Positions
+    
+    // 1. View Open Positions (Filtered for the specific employee)
     @GetMapping("/open-positions")
-    public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions() {
-        List<WorkforceRequestDTO> positions = staffingRequestService.getApprovedRequestsForEmployees();
-        return positions.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(positions);
-    }
+     public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions(@RequestParam String email) {
+    // We pass the email so the service can filter out what THIS employee already applied for
+    List<WorkforceRequestDTO> positions = staffingRequestService.getOpenPositionsForEmployee(email);
+    return positions.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(positions);
+}
 
     // 2. Apply: No IDs in URL. Uses email and requestId as params.
     @PostMapping("/apply")
