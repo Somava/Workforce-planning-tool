@@ -9,6 +9,7 @@ import java.util.List;
  * Field names must match the JSON keys exactly for Spring to map them.
  */
 public record WorkforceRequestDTO(
+    Long requestId,
     String title,
     String description,
     Long projectId,
