@@ -31,43 +31,48 @@ public class EmployeeApplicationService {
     @Autowired 
     private EmployeeRepository employeeRepository;
 
-   @Transactional
-public void apply(Long requestId, String email) {
-    Employee emp = employeeRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Employee not found"));
+  @Transactional
+    public void apply(Long requestId, String email) {
+        // 1. Resolve Employee
+        Employee emp = employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-    // 1. Look for ANY existing application (including withdrawn ones)
-    Optional<EmployeeApplication> existingApp = applicationRepository
-            .findByEmployee_Id(emp.getId()).stream()
-            .filter(app -> app.getStaffingRequest().getRequestId().equals(requestId))
-            .findFirst();
+        // 2. Resolve Request
+        StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
+                .orElseThrow(() -> new RuntimeException("Position not found or not approved."));
 
-    if (existingApp.isPresent()) {
-        EmployeeApplication app = existingApp.get();
-        
-        // 2. If it's already active, block it
-        if (app.getStatus() != ApplicationStatus.WITHDRAWN) {
-            throw new RuntimeException("You have an active application for this position!");
+        // 3. --- CAPACITY CHECK ---
+        if (req.getAvailabilityHoursPerWeek() > emp.getTotalHoursPerWeek()) {
+            throw new RuntimeException("Application denied: This is a " + req.getAvailabilityHoursPerWeek() + 
+                "h position, but your contract is for " + emp.getTotalHoursPerWeek() + "h.");
         }
-        
-        // 3. If it was withdrawn, RE-ACTIVATE it instead of creating a new one
-        app.setStatus(ApplicationStatus.APPLIED);
-        app.setAppliedAt(OffsetDateTime.now());
-        applicationRepository.save(app);
-        return; // Exit here
-    }
 
-    // 4. If no record exists at all, create a new one (your existing logic)
-    StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
-            .orElseThrow(() -> new RuntimeException("Position not found or approved."));
+        // 4. Check for existing application (including withdrawn)
+        Optional<EmployeeApplication> existingApp = applicationRepository.findByEmployee_Id(emp.getId())
+                .stream()
+                .filter(app -> app.getStaffingRequest().getRequestId().equals(requestId))
+                .findFirst();
 
-    EmployeeApplication newApp = new EmployeeApplication();
-    newApp.setStaffingRequest(req);
-    newApp.setEmployee(emp);
-    newApp.setStatus(ApplicationStatus.APPLIED);
-    newApp.setAppliedAt(OffsetDateTime.now());
-    applicationRepository.save(newApp);
-}
+        if (existingApp.isPresent()) {
+            EmployeeApplication app = existingApp.get();
+            if (app.getStatus() != ApplicationStatus.WITHDRAWN) {
+                throw new RuntimeException("You already have an active application!");
+            }
+            // Re-activate
+            app.setStatus(ApplicationStatus.APPLIED);
+            app.setAppliedAt(OffsetDateTime.now());
+            applicationRepository.save(app);
+            return;
+        }
+
+        // 5. Standard new application creation
+        EmployeeApplication newApp = new EmployeeApplication();
+        newApp.setStaffingRequest(req);
+        newApp.setEmployee(emp);
+        newApp.setStatus(ApplicationStatus.APPLIED);
+        newApp.setAppliedAt(OffsetDateTime.now());
+        applicationRepository.save(newApp);
+    } 
 
     @Transactional(readOnly = true)
     public List<EmployeeApplicationDTO> getApplicationsForEmployee(String email) { // Changed parameter to String email
