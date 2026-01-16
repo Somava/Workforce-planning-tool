@@ -125,6 +125,7 @@ public class StaffingRequestService {
 
     private WorkforceRequestDTO convertToDTO(StaffingRequest entity) {
         return new WorkforceRequestDTO(
+            entity.getRequestId(),
             entity.getTitle(), entity.getDescription(),
             entity.getProject() != null ? entity.getProject().getId() : null,
             entity.getDepartment() != null ? entity.getDepartment().getId() : null,

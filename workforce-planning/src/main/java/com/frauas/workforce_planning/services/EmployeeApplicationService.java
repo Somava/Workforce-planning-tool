@@ -10,6 +10,7 @@ import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,33 +32,42 @@ public class EmployeeApplicationService {
     private EmployeeRepository employeeRepository;
 
    @Transactional
-    public void apply(Long requestId, String email) { // Changed parameter to String email
-        // 0. Resolve Employee by Email
-        Employee emp = employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Employee not found with email: " + email));
+public void apply(Long requestId, String email) {
+    Employee emp = employeeRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        // 1. Check for duplicate application, ignoring withdrawn ones
-        boolean alreadyApplied = applicationRepository.findByEmployee_Id(emp.getId()).stream()
-                .anyMatch(app -> app.getStaffingRequest().getRequestId().equals(requestId) 
-                          && app.getStatus() != ApplicationStatus.WITHDRAWN);
+    // 1. Look for ANY existing application (including withdrawn ones)
+    Optional<EmployeeApplication> existingApp = applicationRepository
+            .findByEmployee_Id(emp.getId()).stream()
+            .filter(app -> app.getStaffingRequest().getRequestId().equals(requestId))
+            .findFirst();
 
-        if (alreadyApplied) {
+    if (existingApp.isPresent()) {
+        EmployeeApplication app = existingApp.get();
+        
+        // 2. If it's already active, block it
+        if (app.getStatus() != ApplicationStatus.WITHDRAWN) {
             throw new RuntimeException("You have an active application for this position!");
         }
-
-        // 2. Fetch Logic (Only APPROVED requests)
-        StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
-                .orElseThrow(() -> new RuntimeException("Access Denied: Position not approved."));
-
-        // 4. Save Application
-        EmployeeApplication app = new EmployeeApplication();
-        app.setStaffingRequest(req);
-        app.setEmployee(emp);
+        
+        // 3. If it was withdrawn, RE-ACTIVATE it instead of creating a new one
         app.setStatus(ApplicationStatus.APPLIED);
         app.setAppliedAt(OffsetDateTime.now());
-
         applicationRepository.save(app);
+        return; // Exit here
     }
+
+    // 4. If no record exists at all, create a new one (your existing logic)
+    StaffingRequest req = requestRepository.findByRequestIdAndStatus(requestId, RequestStatus.APPROVED)
+            .orElseThrow(() -> new RuntimeException("Position not found or approved."));
+
+    EmployeeApplication newApp = new EmployeeApplication();
+    newApp.setStaffingRequest(req);
+    newApp.setEmployee(emp);
+    newApp.setStatus(ApplicationStatus.APPLIED);
+    newApp.setAppliedAt(OffsetDateTime.now());
+    applicationRepository.save(newApp);
+}
 
     @Transactional(readOnly = true)
     public List<EmployeeApplicationDTO> getApplicationsForEmployee(String email) { // Changed parameter to String email
