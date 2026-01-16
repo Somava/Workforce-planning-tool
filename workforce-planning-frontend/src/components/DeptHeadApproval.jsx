@@ -3,21 +3,37 @@ import React, { useState, useEffect, useCallback } from 'react';
 const ApprovalDashboard = () => {
     const [activeTab, setActiveTab] = useState('pending');
     const [deptTasks, setDeptTasks] = useState([]);
+    const [departmentName, setDepartmentName] = useState("Loading..."); 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
     const [expandedInfo, setExpandedInfo] = useState(null); 
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
 
-    const userEmail = localStorage.getItem("email") || "bob@frauas.de";
+    const userEmail = localStorage.getItem("email") || "charlie@frauas.de";
     
     const fetchStaffingRequests = useCallback(async () => {
         setIsRefreshing(true);
         try {
             const response = await fetch(`http://localhost:8080/api/tasks/dept-head?email=${userEmail}`);
             const data = await response.json();
+            
             const applicationsList = Array.isArray(data) ? data : (data.applications || []);
-            setDeptTasks(applicationsList.filter(t => t.status === 'PENDING_APPROVAL'));
+            const pendingTasks = applicationsList.filter(t => t.status === 'PENDING_APPROVAL');
+            
+            setDeptTasks(pendingTasks);
+
+            if (pendingTasks.length > 0 && pendingTasks[0].department) {
+                setDepartmentName(pendingTasks[0].department.name);
+            } else {
+                switch (userEmail) {
+                    case "charlie@frauas.de": setDepartmentName("Research & Development"); break;
+                    case "bob@frauas.de": setDepartmentName("Information Technology"); break;
+                    case "diana@frauas.de": setDepartmentName("Human Resources"); break;
+                    default: setDepartmentName("Department");
+                }
+            }
+
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
             setMessage({ text: "Error connecting to API.", type: 'error' });
@@ -53,7 +69,6 @@ const ApprovalDashboard = () => {
             });
 
             if (response.ok) {
-                // FIXED: Changed type to 'action' for rejections to avoid green styling
                 setMessage({ 
                     text: `Request #${requestId} ${isApproved ? 'Approved' : 'Rejected'}.`, 
                     type: isApproved ? 'success' : 'action' 
@@ -74,20 +89,12 @@ const ApprovalDashboard = () => {
     return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
             <main style={styles.container}>
-                {/* Status Message Overlay with Dynamic Colors */}
                 {message.text && (
                     <div style={{
                         ...styles.statusMessage, 
-                        backgroundColor: 
-                            message.type === 'error' ? '#fee2e2' : 
-                            message.type === 'action' ? '#f1f5f9' : '#dcfce7',
-                        color: 
-                            message.type === 'error' ? '#991b1b' : 
-                            message.type === 'action' ? '#475569' : '#166534',
-                        border: `1px solid ${
-                            message.type === 'error' ? '#fecaca' : 
-                            message.type === 'action' ? '#e2e8f0' : '#bbf7d0'
-                        }`
+                        backgroundColor: message.type === 'error' ? '#fee2e2' : message.type === 'action' ? '#f1f5f9' : '#dcfce7',
+                        color: message.type === 'error' ? '#991b1b' : message.type === 'action' ? '#475569' : '#166534',
+                        border: `1px solid ${message.type === 'error' ? '#fecaca' : message.type === 'action' ? '#e2e8f0' : '#bbf7d0'}`
                     }}>
                         {message.text}
                     </div>
@@ -96,7 +103,7 @@ const ApprovalDashboard = () => {
                 <div style={styles.titleRow}>
                     <div style={styles.titleGroup}>
                         <h1 style={styles.mainTitle}>Career Portal</h1>
-                        <p style={styles.subTitle}>Viewing <strong>Information Technology</strong> applications</p>
+                        <p style={styles.subTitle}>Viewing <strong>{departmentName}</strong> applications</p>
                     </div>
                     <div style={styles.syncGroup}>
                         <span style={styles.syncText}>Last synced: {lastSynced}</span>
@@ -175,18 +182,22 @@ const ApprovalDashboard = () => {
                                         </div>
                                     </div>
 
+                                    {/* Updated Meta Grid: Includes all previous fields plus Work Location, Request Dates, and Available Hours */}
                                     <div style={styles.metaGrid}>
                                         <div style={styles.metaCol}>
-                                            <div style={styles.metaItem}><strong>Req ID:</strong> {item.requestId}</div>
-                                            <div style={styles.metaItem}><strong>Location:</strong> {item.project?.location}</div>
+                                            <div style={styles.metaItem}><strong>Request ID:</strong> {item.requestId}</div>
+                                            <div style={styles.metaItem}><strong>Work Location:</strong> {item.workLocation}</div>
+                                            <div style={styles.metaItem}><strong>Project Location:</strong> {item.project?.location}</div>
                                         </div>
                                         <div style={styles.metaCol}>
-                                            <div style={styles.metaItem}><strong>Exp:</strong> {item.experienceYears} year(s)</div>
-                                            <div style={styles.metaItem}><strong>Start:</strong> {item.project?.startDate}</div>
+                                            <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} yr(s)</div>
+                                            <div style={styles.metaItem}><strong>Assignment Start:</strong> {item.projectStartDate}</div>
+                                            <div style={styles.metaItem}><strong>Project Start:</strong> {item.project?.startDate}</div>
                                         </div>
                                         <div style={styles.metaCol}>
                                             <div style={styles.metaItem}><strong>Load:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                            <div style={styles.metaItem}><strong>End:</strong> {item.project?.endDate}</div>
+                                            <div style={styles.metaItem}><strong>Assignment End:</strong> {item.projectEndDate}</div>
+                                            <div style={styles.metaItem}><strong>Project End:</strong> {item.project?.endDate}</div>
                                         </div>
                                     </div>
 
@@ -214,7 +225,7 @@ const ApprovalDashboard = () => {
                                         style={styles.btnAccept}
                                         disabled={pendingAction !== null}
                                     >
-                                        {pendingAction === `true-${item.requestId}` ? "Processing..." : "Accept"}
+                                        {pendingAction === `true-${item.requestId}` ? "..." : "Accept"}
                                     </button>
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); handleDecision(item.requestId, false); }} 
@@ -262,9 +273,9 @@ const styles = {
     floatingGrid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' },
     floatText: { fontSize: '12px', color: '#475569', margin: '4px 0' },
     panelTitle: { fontSize: '13px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' },
-    metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '25px', background: '#f8fafc', padding: '25px', borderRadius: '12px' },
+    metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '25px', background: '#f8fafc', padding: '25px', borderRadius: '12px' },
     metaCol: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    metaItem: { fontSize: '14px', color: '#475569' },
+    metaItem: { fontSize: '13px', color: '#475569' },
     descriptionRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '25px' },
     descCol: { display: 'flex', flexDirection: 'column', gap: '6px' },
     smallLabel: { fontSize: '14px', fontWeight: '700', color: '#1e293b' },

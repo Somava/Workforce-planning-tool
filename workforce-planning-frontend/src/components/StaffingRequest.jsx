@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, Clock, AlertCircle, Send, MapPin, List, FileText, CheckCircle } from 'lucide-react';
+import { Briefcase, Calendar, Clock, AlertCircle, Send, MapPin, List, CheckCircle } from 'lucide-react';
 
 const StaffingRequest = () => {
     const [projects, setProjects] = useState([]);
@@ -14,9 +14,8 @@ const StaffingRequest = () => {
         projectStartDate: '',
         projectEndDate: '',
         departmentId: '',
-        wagePerHour: '',
+        wagePerHour: '', // Managed as a string for input, parsed on submit
         requiredSkills: '', 
-        projectContext: '',
         projectLocation: '', 
         workLocation: ''    
     });
@@ -59,14 +58,11 @@ const StaffingRequest = () => {
                 const deptRes = await fetch(`http://localhost:8080/api/departments/project/${id}`);
                 if (deptRes.ok) {
                     const deptData = await deptRes.json();
-                    
-                    // Logic to ensure only UNIQUE department names appear in dropdown
                     const uniqueDepts = deptData.reduce((acc, current) => {
                         const exists = acc.find(item => item.name === current.name);
                         if (!exists) return acc.concat([current]);
                         return acc;
                     }, []);
-                    
                     setDepartments(uniqueDepts);
                 }
             } catch (err) {
@@ -80,16 +76,37 @@ const StaffingRequest = () => {
     };
 
     const validateForm = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); 
+        
         const start = new Date(formData.projectStartDate);
         const end = new Date(formData.projectEndDate);
+        
+        // --- Wage Specific Validation ---
         const wage = parseFloat(formData.wagePerHour);
+        
         const experience = parseInt(formData.experienceYears);
         const hours = parseInt(formData.availabilityHoursPerWeek);
 
         if (!formData.projectId || !formData.departmentId) return "Project and Department are required.";
+        
+        if (start < today) return "Start date cannot be in the past.";
         if (end < start) return "End date cannot be before start date.";
+
+        const diffInMs = end - start;
+        const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+        if (diffInDays < 60) return "Project duration must be at least 2 months (60 days).";
+        
+        const maxSpanMs = 5 * 365.25 * 24 * 60 * 60 * 1000; 
+        if (diffInMs > maxSpanMs) return "Project span cannot exceed 5 years.";
+        
+        if (isNaN(experience) || experience < 1 || experience > 25) return "Experience must be between 1 and 25 years.";
+        
+        // --- Wage Range Validation ---
+        if (isNaN(wage) || wage <= 0) return "Wage per hour must be greater than zero.";
         if (wage > 40) return "Max wage allowed is 40.00 €.";
-        if (experience > 25) return "Max experience allowed is 25 years.";
+        
+        if (isNaN(hours) || hours <= 0) return "Hours per week must be greater than zero.";
         if (hours > 40) return "Availability cannot exceed 40 hours per week.";
         
         return null;
@@ -112,7 +129,10 @@ const StaffingRequest = () => {
             ...formData,
             experienceYears: parseInt(formData.experienceYears),
             availabilityHoursPerWeek: parseInt(formData.availabilityHoursPerWeek),
+            
+            // --- Final Wage Formatting for Payload ---
             wagePerHour: parseFloat(formData.wagePerHour),
+            
             requiredSkills: formData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== ""),
             projectId: parseInt(formData.projectId),
             departmentId: parseInt(formData.departmentId)
@@ -182,7 +202,7 @@ const StaffingRequest = () => {
 
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Job Description</label>
-                        <textarea name="description" style={{...styles.input, ...styles.textarea}} onChange={handleChange} required />
+                        <textarea name="description" style={{...styles.input, ...styles.textarea}} placeholder="Brief Description of the required position" onChange={handleChange} required />
                     </div>
 
                     <div style={styles.row}>
@@ -204,34 +224,52 @@ const StaffingRequest = () => {
 
                     <div style={styles.row}>
                         <div style={styles.flexItem}>
-                            <label style={styles.label}><MapPin size={14}/> Project Location</label>
-                            <input name="projectLocation" value={formData.projectLocation} style={{...styles.input, background: '#f9fafb'}} readOnly />
+                            <label style={styles.label}><MapPin size={14}/> Project Location (Auto)</label>
+                            <input name="projectLocation" value={formData.projectLocation} style={{...styles.input, background: '#f3f4f6', cursor: 'not-allowed'}} readOnly />
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}><MapPin size={14}/> Work Location</label>
-                            <input name="workLocation" value={formData.workLocation} style={{...styles.input, background: '#f9fafb'}} readOnly />
+                            <input 
+                                name="workLocation"  
+                                style={styles.input} 
+                                placeholder="Preferred Office Location"
+                                onChange={handleChange} 
+                                required 
+                            />
                         </div>
                     </div>
 
                     <div style={styles.row}>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Experience (Years)</label>
-                            <input name="experienceYears" type="number" style={styles.input} onChange={handleChange} required />
+                            <input 
+                                name="experienceYears" 
+                                type="text" 
+                                value={formData.experienceYears}
+                                style={styles.input} 
+                                onChange={(e) => {
+                                    if (/^\d*$/.test(e.target.value)) handleChange(e);
+                                }} 
+                                required 
+                            />
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Wage / Hour (€)</label>
-                            <input name="wagePerHour" type="number" step="0.01" style={styles.input} onChange={handleChange} required />
+                            {/* Input: Allowing decimals but keeping it numeric */}
+                            <input 
+                                name="wagePerHour" 
+                                type="number" 
+                                step="0.01" 
+                                style={styles.input} 
+                                onChange={handleChange} 
+                                required 
+                            />
                         </div>
                     </div>
 
                     <div style={styles.inputGroup}>
-                        <label style={styles.label}><List size={14}/> Required Skills (comma separated)</label>
+                        <label style={styles.label}><List size={14}/> Required Skills </label>
                         <input name="requiredSkills" placeholder="React, Spring Boot, SQL" style={styles.input} onChange={handleChange} required />
-                    </div>
-
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}><FileText size={14}/> Project Context</label>
-                        <textarea name="projectContext" style={{...styles.input, ...styles.textarea}} onChange={handleChange} />
                     </div>
 
                     <div style={styles.row}>
@@ -245,7 +283,16 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Hrs/Week</label>
-                            <input name="availabilityHoursPerWeek" type="number" style={styles.input} onChange={handleChange} required />
+                            <input 
+                                name="availabilityHoursPerWeek" 
+                                type="text" 
+                                value={formData.availabilityHoursPerWeek}
+                                style={styles.input} 
+                                onChange={(e) => {
+                                    if (/^\d*$/.test(e.target.value)) handleChange(e);
+                                }} 
+                                required 
+                            />
                         </div>
                     </div>
 
