@@ -4,8 +4,6 @@ import axios from 'axios';
 
 // --- Visual Mapping for Statuses ---
 const STATUS_CONFIG = {
-    'DRAFT': { color: '#e5e7eb', textColor: '#374151', label: 'Draft' },
-    'SUBMITTED': { color: '#fef3c7', textColor: '#92400e', label: 'Correction Required' },
     'PENDING_APPROVAL': { color: '#dbeafe', textColor: '#1e40af', label: 'Pending Approval' },
     'APPROVED': { color: '#d1fae5', textColor: '#065f46', label: 'Approved/Open' },
     'REJECTED': { color: '#fee2e2', textColor: '#991b1b', label: 'Rejected' },
@@ -25,7 +23,6 @@ const ManagerHome = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
 
-    // --- Fetch Logic (Reflects Camunda/Backend updates) ---
     const fetchRequests = useCallback(async () => {
         if (!userEmail) return;
         setIsRefreshing(true);
@@ -42,7 +39,7 @@ const ManagerHome = () => {
 
     useEffect(() => {
         fetchRequests();
-        const interval = setInterval(fetchRequests, 30000); // Polling for real-time updates
+        const interval = setInterval(fetchRequests, 30000);
         return () => clearInterval(interval);
     }, [fetchRequests]);
 
@@ -59,19 +56,16 @@ const ManagerHome = () => {
                     </button>
                 </div>
 
-                {/* Table Section with the Icon-Refresh Style */}
+                {/* Table Section */}
                 <div style={styles.listSection}>
                     <div style={styles.listHeader}>
                         <h2 style={{ margin: 0, fontSize: '18px' }}>Your Recent Requests</h2>
-                        
-                        {/* THE REFRESH UI: Sync time + Icon */}
                         <div style={styles.syncContainer}>
                             <span style={styles.syncText}>Last synced: {lastSynced}</span>
                             <button 
                                 onClick={fetchRequests} 
                                 style={isRefreshing ? styles.refreshBtnSpin : styles.refreshBtn}
                                 disabled={isRefreshing}
-                                title="Sync with Camunda"
                             >
                                 ↻
                             </button>
@@ -89,29 +83,19 @@ const ManagerHome = () => {
                         </thead>
                         <tbody>
                             {requests.map((req) => (
-                                <tr key={req.id} style={styles.tableRow}>
+                                <tr key={req.requestId} style={styles.tableRow}>
                                     <td style={styles.td}><strong>{req.title}</strong></td>
                                     <td style={styles.td}>{req.project?.name || 'N/A'}</td>
                                     <td style={styles.td}>
                                         <StatusBadge status={req.status} />
                                     </td>
                                     <td style={styles.td}>
-                                        {/* Logic: SUBMITTED shows Manage, Others show ⓘ */}
-                                        {req.status === 'SUBMITTED' ? (
-                                            <button 
-                                                onClick={() => navigate(`/correct-request/${req.id}`)} 
-                                                style={styles.manageBtn}
-                                            >
-                                                Manage
-                                            </button>
-                                        ) : (
-                                            <button 
-                                                onClick={() => setSelectedRequest(req)} 
-                                                style={styles.infoBtn}
-                                            >
-                                                ⓘ
-                                            </button>
-                                        )}
+                                        <button 
+                                            onClick={() => setSelectedRequest(req)} 
+                                            style={styles.infoBtn}
+                                        >
+                                            ⓘ
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -120,7 +104,7 @@ const ManagerHome = () => {
                 </div>
             </div>
 
-            {/* --- Detail Modal (The Meaningful Data from API) --- */}
+            {/* --- Refined Detail Modal --- */}
             {selectedRequest && (
                 <div style={styles.modalOverlay} onClick={() => setSelectedRequest(null)}>
                     <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -129,17 +113,30 @@ const ManagerHome = () => {
                             <button onClick={() => setSelectedRequest(null)} style={styles.closeBtn}>×</button>
                         </div>
                         <div style={styles.modalBody}>
-                            <DetailRow label="ID" value={`#${selectedRequest.id}`} />
+                            <DetailRow label="Request ID" value={`${selectedRequest.requestId}`} />
                             <DetailRow label="Title" value={selectedRequest.title} />
                             <DetailRow label="Project" value={selectedRequest.project?.name} />
-                            <DetailRow label="Location" value={selectedRequest.workLocation} />
+                            <DetailRow label="Work Location" value={selectedRequest.workLocation || 'N/A'} />
+                            <DetailRow label="Project Location" value={selectedRequest.projectLocation || 'N/A'} />
+
                             <hr style={styles.hr} />
-                            <DetailRow label="Wage" value={`${selectedRequest.wagePerHour} €/h`} />
+                            
                             <DetailRow label="Experience" value={`${selectedRequest.experienceYears} Years`} />
-                            <DetailRow label="Skills" value={selectedRequest.requiredSkills?.join(", ")} />
+                            
+                            {/* Logic Change: Number().toFixed(2) ensures 24 becomes 24.00 for the UI */}
+                            <DetailRow 
+                                label="Wage Budget" 
+                                value={selectedRequest.wagePerHour ? `${Number(selectedRequest.wagePerHour).toFixed(2)} €/h` : 'N/A'} 
+                            />
+                            
+                            <DetailRow label="Available Hours" value={`${selectedRequest.availabilityHoursPerWeek} Hrs/Week`} />
+                            <DetailRow label="Required Skills" value={selectedRequest.requiredSkills?.join(", ")} />
+                            
                             <hr style={styles.hr} />
+                            
+                            <DetailRow label="Start Date" value={selectedRequest.projectStartDate} />
+                            <DetailRow label="End Date" value={selectedRequest.projectEndDate} />
                             <DetailRow label="Dept Head" value={selectedRequest.department?.departmentHead?.email} />
-                            <DetailRow label="Process ID" value={selectedRequest.processInstanceKey} />
                         </div>
                     </div>
                 </div>
@@ -150,7 +147,7 @@ const ManagerHome = () => {
 
 // --- Helpers ---
 const StatusBadge = ({ status }) => {
-    const config = STATUS_CONFIG[status] || { color: '#f3f4f6', textColor: '#1f2937', label: status };
+    const config = STATUS_CONFIG[status] || { color: '#f3f4f6', textColor: '#1f2937', label: status.replace('_', ' ') };
     return <span style={{ ...styles.badge, backgroundColor: config.color, color: config.textColor }}>{config.label}</span>;
 };
 
@@ -161,7 +158,6 @@ const DetailRow = ({ label, value }) => (
     </div>
 );
 
-// --- Styles ---
 const styles = {
     container: { padding: '50px 20px', backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', justifyContent: 'center' },
     contentWrapper: { maxWidth: '950px', width: '100%' },
@@ -169,22 +165,16 @@ const styles = {
     createBtn: { background: '#4f46e5', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
     listSection: { background: 'white', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px rgba(0,0,0,0.03)' },
     listHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-    
-    // Refresh UI
     syncContainer: { display: 'flex', alignItems: 'center', gap: '10px' },
     syncText: { fontSize: '12px', color: '#9ca3af' },
     refreshBtn: { background: 'none', border: 'none', color: '#4f46e5', fontSize: '20px', cursor: 'pointer', lineHeight: '1' },
     refreshBtnSpin: { background: 'none', border: 'none', color: '#9ca3af', fontSize: '20px', cursor: 'wait', lineHeight: '1', animation: 'spin 1s linear infinite' },
-
     table: { width: '100%', borderCollapse: 'collapse' },
     tableHeader: { borderBottom: '1px solid #f3f4f6', textAlign: 'left' },
     th: { padding: '12px', color: '#9ca3af', fontSize: '12px', textTransform: 'uppercase', fontWeight: '600' },
     td: { padding: '16px 12px', fontSize: '14px', borderBottom: '1px solid #f9fafb' },
     badge: { padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' },
-    manageBtn: { color: '#4f46e5', background: '#eef2ff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
     infoBtn: { color: '#9ca3af', border: '1px solid #e5e7eb', background: 'none', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer' },
-
-    // Modal
     modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     modalContent: { background: 'white', width: '420px', borderRadius: '16px', padding: '25px', boxShadow: '0 20px 25px rgba(0,0,0,0.1)' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' },
