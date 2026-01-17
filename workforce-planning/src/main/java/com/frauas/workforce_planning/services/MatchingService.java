@@ -1,23 +1,23 @@
 package com.frauas.workforce_planning.services;
-import com.frauas.workforce_planning.model.enums.RequestStatus;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
 
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
-import com.frauas.workforce_planning.model.entity.Certification;
 import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.model.entity.EmployeeApplication;
-import com.frauas.workforce_planning.model.entity.EmployeeCertification;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.MatchingAvailability;
+import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
-
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class MatchingService {

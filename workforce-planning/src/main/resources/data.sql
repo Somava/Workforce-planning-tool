@@ -44,67 +44,67 @@ INSERT INTO employees (
     experience_years, wage_per_hour, emergency_contact, 
     availability_start, availability_end, matching_availability, 
     job_role_id, department_id, default_role_id, 
-    skills, total_hours_per_week, remaining_hours_per_week, 
+    skills, total_hours_per_week, 
     performance_rating, project_preferences, interests
 ) VALUES 
 -- 1. Manager for all projects
-(1, 'alice@frauas.de', 'E-101', 'Alice', 'Schmidt', NULL, 'Frankfurt', 'FULL_TIME', 15, 39.90, '+49 111 0001', '2026-01-01', '2030-12-31', 'AVAILABLE', 3, 1, 3, 
-'["Project Management", "Leadership"]'::jsonb, 40, 40, 4.6, 'All Projects', 'Leadership'),
+(1, 'alice@frauas.de', 'E-101', 'Alice', 'Schmidt', NULL, 'Frankfurt', 'FULL_TIME', 15, 39.90, '+49-15510440423', '2026-01-01', '2030-12-31', 'AVAILABLE', 3, 1, 3, 
+'["Project Management", "Leadership"]'::jsonb, 40, 4.6, 'All Projects', 'Leadership'),
 
 -- 2. Department Heads
-(2, 'bob@frauas.de', 'E-102', 'Bob', 'Müller', 1, 'Frankfurt', 'FULL_TIME', 12, 39.50, '+49 111 0002', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 1, 2, 
-'["IT Strategy", "Network Security"]'::jsonb, 40, 40, 4.2, 'IT Infrastructure', 'Tech'),
-(3, 'charlie@frauas.de', 'E-103', 'Charlie', 'Wagner', 1, 'Remote', 'FULL_TIME', 14, 39.50, '+49 111 0003', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 5, 2, 
-'["Product R&D", "Agile"]'::jsonb, 40, 0, 3.9, 'R&D Innovation', 'Research'),
-(4, 'diana@frauas.de', 'E-104', 'Diana', 'Prince', 1, 'Berlin', 'FULL_TIME', 10, 39.00, '+49 111 0004', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 9, 2, 
-'["HR Strategy", "Conflict Resolution"]'::jsonb, 40, 40, 4.1, 'HR Strategy', 'People'),
+(2, 'bob@frauas.de', 'E-102', 'Bob', 'Müller', 1, 'Frankfurt', 'FULL_TIME', 12, 39.50, '+49-15510440428', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 1, 2, 
+'["IT Strategy", "Network Security"]'::jsonb, 40, 4.2, 'IT Infrastructure', 'Tech'),
+(3, 'charlie@frauas.de', 'E-103', 'Charlie', 'Wagner', 1, 'Munich', 'FULL_TIME', 14, 39.50, '+49-15510440476', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 5, 2, 
+'["Product R&D", "Agile"]'::jsonb, 40, 3.9, 'R&D Innovation', 'Research'),
+(4, 'diana@frauas.de', 'E-104', 'Diana', 'Prince', 1, 'Berlin', 'FULL_TIME', 10, 32.00, '+49-15510440873', '2026-01-01', '2030-12-31', 'AVAILABLE', 2, 9, 2, 
+'["HR Strategy", "Conflict Resolution"]'::jsonb, 40, 4.1, 'HR Strategy', 'People'),
 
 -- 3. Resource Planners
-(5, 'eve@frauas.de', 'E-105', 'Eve', 'Curie', 1, 'Berlin', 'FULL_TIME', 8, 35.00, '+49 111 0005', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 3, 1, 
-'["Resource Allocation", "Capacity Planning"]'::jsonb, 40, 40, 3.7, 'IT Planning', 'Organization'),
-(6, 'frank@frauas.de', 'E-106', 'Frank', 'Castle', 1, 'Frankfurt', 'FULL_TIME', 9, 36.00, '+49 111 0006', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 5, 1, 
-'["Strategic Planning", "Operations"]'::jsonb, 40, 10, 4.4, 'R&D Scheduling', 'Defense'),
-(7, 'hopper.it@frauas.de', 'E-107', 'Grace', 'Hopper', 1, 'Remote', 'FULL_TIME', 20, 38.50, '+49 111 0007', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 9, 1, 
-'["Systems Programming", "COBOL"]'::jsonb, 35, 15, 3.8, 'HR Logistics', 'Coding'),
+(5, 'eve@frauas.de', 'E-105', 'Eve', 'Curie', 1, 'Berlin', 'FULL_TIME', 8, 29.00, '+49-15510440142', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 3, 1, 
+'["Resource Allocation", "Capacity Planning"]'::jsonb, 40, 3.7, 'IT Planning', 'Organization'),
+(6, 'frank@frauas.de', 'E-106', 'Frank', 'Castle', 1, 'Frankfurt', 'FULL_TIME', 9, 36.00, '+49-15510440408', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 5, 1, 
+'["Strategic Planning", "Operations"]'::jsonb, 40, 4.4, 'R&D Scheduling', 'Defense'),
+(7, 'hopper.it@frauas.de', 'E-107', 'Grace', 'Hopper', 1, 'Darmstadt', 'FULL_TIME', 20, 38.50, '+49-15510440919', '2026-01-01', '2030-12-31', 'AVAILABLE', 1, 9, 1, 
+'["Systems Programming", "COBOL"]'::jsonb, 40, 3.8, 'HR Logistics', 'Coding'),
 
 -- 8-11: IT Specialists
-(8, 'wagner.it@frauas.de', 'E-108', 'Marcus', 'Wagner', 1, 'Frankfurt', 'FULL_TIME', 10, 38.00, '+49 111 0008', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4, 
-'["Java", "Spring Boot", "AWS"]'::jsonb, 40, 40, 4.0, 'Cloud Migration', 'Gaming'), -- FULL TIME
+(8, 'wagner.it@frauas.de', 'E-108', 'Marcus', 'Wagner', 1, 'Frankfurt', 'FULL_TIME', 10, 38.00, '+49-15510440409', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4, 
+'["Java", "Spring Boot", "AWS"]'::jsonb, 40, 4.0, 'Cloud Migration', 'Gaming'), -- FULL TIME
 
-(9, 'fischer.rd@frauas.de', 'E-109', 'Elena', 'Fischer', 1, 'Frankfurt', 'PART_TIME', 7, 34.00, '+49 111 0009', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4, 
-'["React", "TypeScript", "CSS"]'::jsonb, 20, 20, 3.6, 'Frontend UI', 'Art'), -- PART TIME
+(9, 'fischer.rd@frauas.de', 'E-109', 'Elena', 'Fischer', 1, 'Frankfurt', 'PART_TIME', 7, 27.00, '+49-15510440451', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4, 
+'["React", "TypeScript", "CSS"]'::jsonb, 20, 3.6, 'Frontend UI', 'Art'), -- PART TIME
 
-(10, 'weber.hr@frauas.de', 'E-110', 'Thomas', 'Weber', 1, 'Frankfurt', 'FULL_TIME', 8, 37.00, '+49 111 0010', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 3, 4, 
-'["Docker", "Kubernetes", "AWS"]'::jsonb, 40, 40, 4.3, 'DevOps', 'Cycling'), -- FULL TIME
+(10, 'weber.hr@frauas.de', 'E-110', 'Thomas', 'Weber', 1, 'Frankfurt', 'FULL_TIME', 8, 29.00, '+49-15510440003', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 3, 4, 
+'["Docker", "Kubernetes", "AWS"]'::jsonb, 40, 4.3, 'DevOps', 'Cycling'), -- FULL TIME
 
-(11, 'becker.it@frauas.de', 'E-111', 'Sarah', 'Becker', 1, 'Remote', 'PART_TIME', 5, 29.00, '+49 111 0011', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 4, 4, 
-'["Selenium", "QA Testing", "Automation"]'::jsonb, 20, 20, 3.5, 'QA Automation', 'Swimming'), -- PART TIME
+(11, 'becker.it@frauas.de', 'E-111', 'Sarah', 'Becker', 1, 'Berlin', 'PART_TIME', 5, 26.00, '+49-15510440411', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 4, 4, 
+'["Selenium", "QA Testing", "Automation"]'::jsonb, 20, 3.5, 'QA Automation', 'Swimming'), -- PART TIME
 
 -- 12-15: R&D Specialists
-(12, 'hoffmann.rd@frauas.de', 'E-112', 'Lukas', 'Hoffmann', 1, 'Remote', 'FULL_TIME', 6, 39.00, '+49 111 0012', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 5, 4, 
-'["Python", "Machine Learning", "PyTorch"]'::jsonb, 40, 40, 4.1, 'AI Models', 'Chess'),
+(12, 'hoffmann.rd@frauas.de', 'E-112', 'Lukas', 'Hoffmann', 1, 'Darmstadt', 'FULL_TIME', 6, 29.00, '+49-15510443654', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 5, 4, 
+'["Python", "Machine Learning", "PyTorch"]'::jsonb, 40, 4.1, 'AI Models', 'Chess'),
 
-(13, 'schulz.hr@frauas.de', 'E-113', 'Miriam', 'Schulz', 1, 'Remote', 'PART_TIME', 4, 32.00, '+49 111 0013', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
-'["Data Analytics", "SQL", "PostgreSQL"]'::jsonb, 20, 20, 3.9, 'Data Analysis', 'Reading'),
+(13, 'schulz.hr@frauas.de', 'E-113', 'Miriam', 'Schulz', 1, 'Frankfurt', 'PART_TIME', 4, 32.00, '+49-15510440467', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
+'["Data Analytics", "SQL", "PostgreSQL"]'::jsonb, 20, 3.9, 'Data Analysis', 'Reading'),
 
-(14, 'koch.it@frauas.de', 'E-114', 'Julian', 'Koch', 1, 'Frankfurt', 'FULL_TIME', 5, 36.00, '+49 111 0014', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 7, 4, 
-'["Cybersecurity", "GDPR", "Risk Analysis"]'::jsonb, 40, 40, 4.5, 'Privacy Compliance', 'Running'),
+(14, 'koch.it@frauas.de', 'E-114', 'Julian', 'Koch', 1, 'Munich', 'FULL_TIME', 5, 36.00, '+49-15510440711', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 7, 4, 
+'["Cybersecurity", "GDPR", "Risk Analysis"]'::jsonb, 40, 4.5, 'Privacy Compliance', 'Running'),
 
-(15, 'bauer.rd@frauas.de', 'E-115', 'Sophia', 'Bauer', 1, 'Frankfurt', 'PART_TIME', 6, 35.50, '+49 111 0015', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 8, 4, 
-'["C++", "Embedded Systems", "Linux"]'::jsonb, 20, 20, 3.4, 'Core Logic', 'Hiking'),
+(15, 'bauer.rd@frauas.de', 'E-115', 'Sophia', 'Bauer', 1, 'Frankfurt', 'PART_TIME', 6, 35.50, '+49-15510440486', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 8, 4, 
+'["C++", "Embedded Systems", "Linux"]'::jsonb, 20, 3.4, 'Core Logic', 'Hiking'),
 
 -- 16-19: HR Specialists
-(16, 'richter.hr@frauas.de', 'E-116', 'David', 'Richter', 1, 'Frankfurt', 'FULL_TIME', 3, 31.00, '+49 111 0016', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4, 
-'["Recruiting", "Sourcing", "TypeScript"]'::jsonb, 40, 40, 4.0, 'Talent Acquisition', 'Cooking'),
+(16, 'richter.hr@frauas.de', 'E-116', 'David', 'Richter', 1, 'Frankfurt', 'FULL_TIME', 3, 21.00, '+49-15510440216', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4, 
+'["Recruiting", "Sourcing", "TypeScript"]'::jsonb, 40, 4.0, 'Talent Acquisition', 'Cooking'),
 
-(17, 'wolf.it@frauas.de', 'E-117', 'Hannah', 'Wolf', 1, 'Berlin', 'PART_TIME', 2, 28.00, '+49 111 0017', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 10, 4, 
-'["Technical Support", "Linux", "Troubleshooting"]'::jsonb, 20, 20, 3.8, 'IT Support', 'Music'),
+(17, 'wolf.it@frauas.de', 'E-117', 'Hannah', 'Wolf', 1, 'Berlin', 'PART_TIME', 2, 28.00, '+49-15510440931', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 10, 4, 
+'["Technical Support", "Linux", "Troubleshooting"]'::jsonb, 20, 3.8, 'IT Support', 'Music'),
 
-(18, 'klein.rd@frauas.de', 'E-118', 'Simon', 'Klein', 1, 'Berlin', 'FULL_TIME', 4, 33.00, '+49 111 0018', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 11, 4, 
-'["Market Research", "Excel", "Algorithms"]'::jsonb, 40, 40, 4.2, 'Benchmarking', 'Gardening'),
+(18, 'klein.rd@frauas.de', 'E-118', 'Simon', 'Klein', 1, 'Berlin', 'FULL_TIME', 4, 33.00, '+49-15510440721', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 11, 4, 
+'["Market Research", "Excel", "Algorithms"]'::jsonb, 40, 4.2, 'Benchmarking', 'Gardening'),
 
-(19, 'neumann.hr@frauas.de', 'E-119', 'Laura', 'Neumann', 1, 'Berlin', 'PART_TIME', 3, 34.00, '+49 111 0019', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 12, 4, 
-'["Employee Relations", "Payroll", "HRIS"]'::jsonb, 20, 20, 3.6, 'HR Operations', 'Yoga')
+(19, 'neumann.hr@frauas.de', 'E-119', 'Laura', 'Neumann', 1, 'Darmstadt', 'PART_TIME', 3, 34.00, '+49-15510440240', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 12, 4, 
+'["Employee Relations", "Payroll", "HRIS"]'::jsonb, 20, 3.6, 'HR Operations', 'Yoga')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE employees SET supervisor_id = 1 WHERE id IN (2, 3, 4, 5, 6, 7);
@@ -161,42 +161,42 @@ INSERT INTO staffing_requests (
 --------------------------------------------------------------------------------
 (1, 'Backend Java Expert', 'Cloud Migration help.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 39.50, '["Java", "AWS"]'::jsonb, 5, 20, 'Onsite', '2026-02-01', '2026-12-31', 'Migration of core banking services'),
 (2, 'IT Support Specialist', 'General infrastructure setup.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 30.25, '["Networking", "Linux"]'::jsonb, 3, 40, 'Remote', '2026-02-01', '2026-06-01', 'Internal infra support'),
-(3, 'Cloud Architect', 'AWS Migration lead.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 8, 'APPROVED', 1, 55.50, '["AWS", "Terraform"]'::jsonb, 8, 40, 'Onsite', '2026-03-01', '2026-12-31', 'Architecture design'),
-(4, 'DevOps Specialist', 'CI/CD pipeline automation.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 3, 'APPROVED', 1, 45.75, '["Jenkins", "Docker"]'::jsonb, 4, 20, 'Remote', '2026-03-01', '2026-12-31', 'Automated deployment workflows'),
-(5, 'Network Security Eng', 'Firewall configuration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 7, 'APPROVED', 1, 48.00, '["Cisco", "Security"]'::jsonb, 5, 40, 'Remote', '2026-01-15', '2026-08-15', 'Security hardening'),
-(6, 'Database Admin', 'Legacy ERP data migration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 1, 'PENDING_APPROVAL', 1, 42.50, '["PostgreSQL", "SQL"]'::jsonb, 6, 40, 'Onsite', '2026-04-01', '2026-12-01', 'Data archiving project'),
+(3, 'Cloud Architect', 'AWS Migration lead.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 8, 'APPROVED', 1, 35.50, '["AWS", "Terraform"]'::jsonb, 8, 40, 'Onsite', '2026-03-01', '2026-12-31', 'Architecture design'),
+(4, 'DevOps Specialist', 'CI/CD pipeline automation.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 3, 'APPROVED', 1, 25.75, '["Jenkins", "Docker"]'::jsonb, 4, 20, 'Remote', '2026-03-01', '2026-12-31', 'Automated deployment workflows'),
+(5, 'Network Security Eng', 'Firewall configuration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 7, 'APPROVED', 1, 38.00, '["Cisco", "Security"]'::jsonb, 5, 40, 'Remote', '2026-01-15', '2026-08-15', 'Security hardening'),
+(6, 'Database Admin', 'Legacy ERP data migration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 1, 'PENDING_APPROVAL', 1, 32.50, '["PostgreSQL", "SQL"]'::jsonb, 6, 40, 'Onsite', '2026-04-01', '2026-12-01', 'Data archiving project'),
 (7, 'Junior IT Analyst', 'Help desk tier 1 support.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 1, 'PENDING_APPROVAL', 1, 25.00, '["Troubleshooting"]'::jsonb, 1, 20, 'Onsite', '2026-05-01', '2026-12-01', 'Employee portal rollout'),
-(8, 'Frontend React Help', 'Portal UI support.', 2, 'NeuralCare: AI Support Portal', 'Remote', 1, 1, 'PENDING_APPROVAL', 1, 35.80, '["React", "TypeScript"]'::jsonb, 2, 20, 'Remote', '2026-03-15', '2026-09-15', 'AI Interface development'),
+(8, 'Frontend React Help', 'Portal UI support.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 1, 1, 'PENDING_APPROVAL', 1, 35.80, '["React", "TypeScript"]'::jsonb, 2, 20, 'Remote', '2026-03-15', '2026-09-15', 'AI Interface development'),
 (9, 'IT Project Coordinator', 'Managing hardware rollout.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 2, 'PENDING_APPROVAL', 1, 38.00, '["Agile", "Planning"]'::jsonb, 3, 40, 'Remote', '2026-05-01', '2026-12-01', 'Mobile device management'),
-(10, 'Systems Integrator', 'Middleware connectivity.', 2, 'NeuralCare: AI Support Portal', 'Remote', 2, 1, 'PENDING_APPROVAL', 1, 40.20, '["API", "JSON"]'::jsonb, 4, 40, 'Remote', '2026-03-01', '2026-10-01', 'System communication bridge'),
+(10, 'Systems Integrator', 'Middleware connectivity.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 2, 1, 'PENDING_APPROVAL', 1, 40.00, '["API", "JSON"]'::jsonb, 4, 40, 'Remote', '2026-03-01', '2026-10-01', 'System communication bridge'),
 
 --------------------------------------------------------------------------------
 -- BATCH 2: RESEARCH & DEVELOPMENT
 --------------------------------------------------------------------------------
-(11, 'AI Model Trainer', 'Fine-tuning LLMs.', 2, 'NeuralCare: AI Support Portal', 'Remote', 5, 5, 'APPROVED', 1, 50.50, '["Python", "PyTorch"]'::jsonb, 3, 40, 'Onsite', '2026-04-01', '2026-10-31', 'Generative AI training'),
-(12, 'Quantum Research Lead', 'Long-term crypto research.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 1, 'APPROVED', 1, 65.00, '["Quantum Computing"]'::jsonb, 10, 20, 'Onsite', '2026-06-01', '2026-12-31', 'Advanced security research'),
-(13, 'Data Scientist', 'AI Portal predictive analytics.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'APPROVED', 1, 52.25, '["R", "SQL", "Math"]'::jsonb, 5, 40, 'Onsite', '2026-03-15', '2026-12-15', 'Predictive modeling'),
-(14, 'NLP Specialist', 'Natural language processing.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'APPROVED', 1, 58.00, '["NLP", "Transformers"]'::jsonb, 4, 20, 'Remote', '2026-03-15', '2026-12-15', 'Text processing module'),
-(15, 'Hardware Architect', 'New server prototype design.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 1, 'APPROVED', 1, 60.50, '["VHDL", "FPGA"]'::jsonb, 7, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Server decommissioning hardware analysis'),
+(11, 'AI Model Trainer', 'Fine-tuning LLMs.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 5, 5, 'APPROVED', 1, 20.50, '["Python", "PyTorch"]'::jsonb, 3, 40, 'Onsite', '2026-04-01', '2026-10-31', 'Generative AI training'),
+(12, 'Quantum Research Lead', 'Long-term crypto research.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 1, 'APPROVED', 1, 25.00, '["Quantum Computing"]'::jsonb, 10, 20, 'Onsite', '2026-06-01', '2026-12-31', 'Advanced security research'),
+(13, 'Data Scientist', 'AI Portal predictive analytics.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 6, 5, 'APPROVED', 1, 22.25, '["R", "SQL", "Math"]'::jsonb, 5, 40, 'Onsite', '2026-03-15', '2026-12-15', 'Predictive modeling'),
+(14, 'NLP Specialist', 'Natural language processing.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 6, 5, 'APPROVED', 1, 28.00, '["NLP", "Transformers"]'::jsonb, 4, 20, 'Remote', '2026-03-15', '2026-12-15', 'Text processing module'),
+(15, 'Hardware Architect', 'New server prototype design.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 1, 'APPROVED', 1, 30.50, '["VHDL", "FPGA"]'::jsonb, 7, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Server decommissioning hardware analysis'),
 (16, 'R&D Lab Assistant', 'Setting up test environments.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 4, 'PENDING_APPROVAL', 1, 28.00, '["Lab Safety", "Testing"]'::jsonb, 2, 40, 'Remote', '2026-05-01', '2026-12-01', 'Physical environment setup'),
-(17, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 3, 'PENDING_APPROVAL', 1, 45.40, '["Metal", "OpenGL"]'::jsonb, 4, 40, 'Onsite', '2026-02-01', '2026-11-01', 'Mobile rendering engine'),
-(18, 'Algorithm Engineer', 'Search algorithm optimization.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 1, 'PENDING_APPROVAL', 1, 48.00, '["Algorithms", "C++"]'::jsonb, 5, 40, 'Onsite', '2026-03-01', '2026-12-01', 'Core search logic'),
-(19, 'Machine Learning Eng', 'Training computer vision models.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 5, 'PENDING_APPROVAL', 1, 55.60, '["PyTorch", "OpenCV"]'::jsonb, 4, 20, 'Onsite', '2026-04-01', '2026-12-31', 'Vision-based security'),
-(20, 'Senior Statistician', 'Data validation for R&D.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'PENDING_APPROVAL', 1, 47.00, '["Statistics", "SAS"]'::jsonb, 6, 40, 'Remote', '2026-04-01', '2026-12-01', 'Data integrity audit'),
+(17, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 3, 'PENDING_APPROVAL', 1, 35.40, '["Metal", "OpenGL"]'::jsonb, 4, 40, 'Onsite', '2026-02-01', '2026-11-01', 'Mobile rendering engine'),
+(18, 'Algorithm Engineer', 'Search algorithm optimization.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 1, 'PENDING_APPROVAL', 1, 38.00, '["Algorithms", "C++"]'::jsonb, 5, 40, 'Onsite', '2026-03-01', '2026-12-01', 'Core search logic'),
+(19, 'Machine Learning Eng', 'Training computer vision models.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 5, 'PENDING_APPROVAL', 1, 35.60, '["PyTorch", "OpenCV"]'::jsonb, 4, 20, 'Onsite', '2026-04-01', '2026-12-31', 'Vision-based security'),
+(20, 'Senior Statistician', 'Data validation for R&D.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 6, 5, 'PENDING_APPROVAL', 1, 27.00, '["Statistics", "SAS"]'::jsonb, 6, 40, 'Remote', '2026-04-01', '2026-12-01', 'Data integrity audit'),
 
 --------------------------------------------------------------------------------
 -- BATCH 3: HUMAN RESOURCE
 --------------------------------------------------------------------------------
 (21, 'HR System Specialist', 'Payroll API integration.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 9, 1, 'APPROVED', 1, 38.50, '["API Integration", "HRIS"]'::jsonb, 4, 40, 'Remote', '2026-01-10', '2026-06-30', 'Internal payroll sync'),
 (22, 'Recruitment Lead', 'Tech hiring drive 2026.', 1, 'Project Skyfall: AWS Migration', 'Munich', 9, 1, 'APPROVED', 1, 35.00, '["Recruiting", "Sourcing"]'::jsonb, 5, 40, 'Remote', '2026-02-01', '2026-12-31', 'Cloud team expansion'),
-(23, 'Employee Relations', 'Conflict resolution for remote staff.', 2, 'NeuralCare: AI Support Portal', 'Remote', 10, 1, 'APPROVED', 1, 32.40, '["Mediation", "Law"]'::jsonb, 4, 40, 'Onsite', '2026-03-15', '2026-09-15', 'Remote workforce culture'),
+(23, 'Employee Relations', 'Conflict resolution for remote staff.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 10, 1, 'APPROVED', 1, 32.40, '["Mediation", "Law"]'::jsonb, 4, 40, 'Onsite', '2026-03-15', '2026-09-15', 'Remote workforce culture'),
 (24, 'Training Coordinator', 'Upskilling for Cloud team.', 1, 'Project Skyfall: AWS Migration', 'Munich', 10, 1, 'APPROVED', 1, 30.00, '["LMS", "Teaching"]'::jsonb, 3, 40, 'Onsite', '2026-03-01', '2026-12-31', 'Staff training initiative'),
-(25, 'Compensation Analyst', 'Salary benchmarking project.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 5, 'APPROVED', 1, 40.50, '["Excel", "Data Analysis"]'::jsonb, 4, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Budget sunset analysis'),
+(25, 'Compensation Analyst', 'Salary benchmarking project.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 5, 'APPROVED', 1, 20.50, '["Excel", "Data Analysis"]'::jsonb, 4, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Budget sunset analysis'),
 (26, 'Benefits Specialist', 'New health insurance rollout.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 1, 'PENDING_APPROVAL', 1, 34.00, '["Benefits", "Insurance"]'::jsonb, 3, 40, 'Remote', '2026-06-01', '2026-12-31', 'Contract migration'),
 (27, 'HR Generalist', 'Administrative support for Mobile.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 12, 1, 'PENDING_APPROVAL', 1, 26.50, '["Admin", "Filing"]'::jsonb, 1, 40, 'Remote', '2026-02-01', '2026-11-01', 'Administrative support'),
-(28, 'Diversity & Inclusion', 'Internal D&I workshop lead.', 2, 'NeuralCare: AI Support Portal', 'Remote', 12, 1, 'PENDING_APPROVAL', 1, 40.00, '["Strategy", "Workshops"]'::jsonb, 6, 20, 'Onsite', '2026-04-01', '2026-10-01', 'Company-wide workshops'),
-(29, 'HR Data Privacy Officer', 'GDPR compliance audit.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 10, 7, 'PENDING_APPROVAL', 1, 50.75, '["GDPR", "Privacy"]'::jsonb, 5, 40, 'Onsite', '2026-04-01', '2026-12-31', 'Compliance and data safety'),
-(30, 'Talent Acquisition', 'Sourcing UI/UX designers.', 2, 'NeuralCare: AI Support Portal', 'Remote', 9, 1, 'PENDING_APPROVAL', 1, 33.00, '["Sourcing", "LinkedIn"]'::jsonb, 2, 40, 'Onsite', '2026-03-15', '2026-12-15', 'UI/UX team hiring')
+(28, 'Diversity & Inclusion', 'Internal D&I workshop lead.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 12, 1, 'PENDING_APPROVAL', 1, 40.00, '["Strategy", "Workshops"]'::jsonb, 6, 20, 'Onsite', '2026-04-01', '2026-10-01', 'Company-wide workshops'),
+(29, 'HR Data Privacy Officer', 'GDPR compliance audit.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 10, 7, 'PENDING_APPROVAL', 1, 20.75, '["GDPR", "Privacy"]'::jsonb, 5, 40, 'Onsite', '2026-04-01', '2026-12-31', 'Compliance and data safety'),
+(30, 'Talent Acquisition', 'Sourcing UI/UX designers.', 2, 'NeuralCare: AI Support Portal', 'Darmstadt', 9, 1, 'PENDING_APPROVAL', 1, 33.00, '["Sourcing", "LinkedIn"]'::jsonb, 2, 40, 'Onsite', '2026-03-15', '2026-12-15', 'UI/UX team hiring')
 
 ON CONFLICT (request_id) DO NOTHING;
 --------------------------------------------------
