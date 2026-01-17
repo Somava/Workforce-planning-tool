@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record MatchedEmployeeDTO(
+        Long requestId,
         Long employeeDbId,
         String employeeId,
         String firstName,

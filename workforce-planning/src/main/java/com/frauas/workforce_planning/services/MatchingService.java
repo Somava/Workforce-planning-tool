@@ -134,13 +134,12 @@ List<Employee> filtered = candidates.stream()
         //logs
         System.out.println("DEBUG: filtered size (after hard filters) = " + filtered.size());
 
-
         // 4) Score + map to DTO
         List<MatchedEmployeeDTO> scored = filtered.stream()
                 .map(e -> {
                     boolean applied = appliedEmployeeDbIds.contains(e.getId());
                     double score = scoringService.score(e, request, applied);
-                    return toDto(e, score, applied);
+                    return toDto(requestId, e, score, applied);
                 })
                 .sorted(Comparator.comparingDouble(MatchedEmployeeDTO::score).reversed())
                 .limit(Math.max(topN, 0))
@@ -196,7 +195,7 @@ List<Employee> filtered = candidates.stream()
     // ---------------- DTO mapping ----------------
 
   // ---------------- DTO mapping ----------------
-private MatchedEmployeeDTO toDto(Employee e, double score, boolean applied) {
+private MatchedEmployeeDTO toDto(Long requestId, Employee e, double score, boolean applied) {
     String seniority = seniorityFromExperience(e.getExperienceYears());
     Double performanceRating = e.getPerformanceRating();
     String performanceGrade = (performanceRating != null) ? String.format(java.util.Locale.US, "%.2f/5", performanceRating) : "N/A";
@@ -209,6 +208,7 @@ private MatchedEmployeeDTO toDto(Employee e, double score, boolean applied) {
     double scorePercent = Math.round(score * 10000.0) / 100.0;
 
     return new MatchedEmployeeDTO(
+            requestId,
             e.getId(),
             e.getEmployeeId(),
             e.getFirstName(),
