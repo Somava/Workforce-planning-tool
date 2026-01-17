@@ -188,6 +188,35 @@ public class StaffingRequestService {
         
     }
 
+    @Transactional
+    public void markInternalEmployeeApproved(Long requestId) {
+        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
+        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED);
+        repository.save(request);
+
+        zeebeClient.newPublishMessageCommand()
+            .messageName("InternalEmployeeDecision") // must match BPMN
+            .correlationKey(requestId.toString())
+            .variables(Map.of("intEmployeeApproved", true))
+            .send()
+            .join();
+    }
+
+    @Transactional
+    public void markInternalEmployeeRejected(Long requestId) {
+        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
+        request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED);
+        repository.save(request);
+
+        zeebeClient.newPublishMessageCommand()
+            .messageName("InternalEmployeeDecision") // must match BPMN
+            .correlationKey(requestId.toString())
+            .variables(Map.of("intEmployeeApproved", false))
+            .send()
+            .join();
+    }
+
+
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
         entity.setDescription(dto.description());
