@@ -4,6 +4,7 @@ public enum RequestStatus {
     DRAFT, //Wrong Data
     //PUBLISHED,
     PENDING_APPROVAL,
+    REQUEST_REJECTED,
     SUBMITTED, //WrongData , manager needs to correct
     REJECTED, //rejected by Department head
     APPROVED, //request approved, open for emeployee application

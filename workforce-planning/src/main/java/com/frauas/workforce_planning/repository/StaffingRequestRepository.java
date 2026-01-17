@@ -57,5 +57,18 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
     // Navigation: Employee (createdBy) -> User (user) -> Email (email)
     List<StaffingRequest> findByCreatedBy_User_Email(String email);
 
+    @Query("""
+    SELECT sr
+    FROM StaffingRequest sr
+    JOIN sr.department d
+    WHERE sr.status = :status
+      AND d.resourcePlannerUserId = :userId
+    """)
+    List<StaffingRequest> findApprovedForResourcePlanner(
+        @Param("status") RequestStatus status,
+        @Param("userId") Long userId
+    );
+
+
     
 }

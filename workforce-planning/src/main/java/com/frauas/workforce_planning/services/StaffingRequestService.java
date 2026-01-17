@@ -152,7 +152,7 @@ public class StaffingRequestService {
                 .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
         
         // 2. Update Database (The "Pull" part for the Manager's Dashboard)
-        request.setStatus(RequestStatus.REJECTED);
+        request.setStatus(RequestStatus.REQUEST_REJECTED);
         request.setRejectionReason(reason); // This maps directly to your entity field
         repository.save(request);
 

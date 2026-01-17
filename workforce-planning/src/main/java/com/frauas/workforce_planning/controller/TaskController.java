@@ -94,4 +94,22 @@ public class TaskController {
         String action = approved ? "approved" : "rejected";
         return ResponseEntity.ok("Request " + requestId + " has been " + action + " by " + email);
     }
+
+     /**
+     * Gets all requests approved by Dept Head that are waiting for this Resource Planner to assign.
+     * Input: userId (resource planner's user id)
+     */
+    @GetMapping("/resource-planner")
+    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam Long userId) {
+        log.info("Fetching approved requests for resource planner userId: {}", userId);
+
+        List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(
+            RequestStatus.APPROVED,
+            userId
+        );
+
+        return ResponseEntity.ok(pending);
+    }
+
+
 }
