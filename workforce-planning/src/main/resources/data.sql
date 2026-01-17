@@ -22,7 +22,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO projects (id, name, description, status, start_date, end_date, location, published, manager_user_id) VALUES 
 (1, 'Project Skyfall: AWS Migration', 'Migrating core on-premise banking services to a multi-region AWS architecture for high availability.', 'Planned', '2026-01-01', '2032-12-31', 'Munich', true, NULL),
-(2, 'NeuralCare: AI Support Portal', 'Development of a Generative AI-driven customer service interface to automate Tier-1 technical support.', 'Planned', '2026-03-01', '2033-02-28', 'Remote', true, NULL),
+(2, 'NeuralCare: AI Support Portal', 'Development of a Generative AI-driven customer service interface to automate Tier-1 technical support.', 'Planned', '2026-03-01', '2033-02-28', 'Darmstadt', true, NULL),
 (3, 'Legacy ERP Sunset Phase 1', 'Final data archiving and decommissioning of the SAP R/3 legacy environment and physical server hardware.', 'Completed', '2025-01-01', '2034-11-30', 'Frankfurt', true, NULL),
 (4, 'WorkForce Go: Mobile Alpha', 'Internal testing and rollout of the React Native employee portal for mobile expense and shift management.', 'Planned', '2026-05-01', '2032-12-01', 'Berlin', false, Null)
 ON CONFLICT (id) DO NOTHING;
@@ -159,44 +159,44 @@ INSERT INTO staffing_requests (
 --------------------------------------------------------------------------------
 -- BATCH 1: INFORMATION TECHNOLOGY
 --------------------------------------------------------------------------------
-(1, 'Backend Java Expert', 'Cloud Migration help.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 39.50, '["Java", "AWS"]'::jsonb, 5, 20, 'Frankfurt', '2026-02-01', '2026-12-31', 'Migration of core banking services'),
-(2, 'IT Support Specialist', 'General infrastructure setup.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 30.25, '["Networking", "Linux"]'::jsonb, 3, 40, 'Frankfurt', '2026-02-01', '2026-06-01', 'Internal infra support'),
-(3, 'Cloud Architect', 'AWS Migration lead.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 8, 'APPROVED', 1, 55.50, '["AWS", "Terraform"]'::jsonb, 8, 40, 'Frankfurt', '2026-03-01', '2026-12-31', 'Architecture design'),
-(4, 'DevOps Specialist', 'CI/CD pipeline automation.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 3, 'APPROVED', 1, 45.75, '["Jenkins", "Docker"]'::jsonb, 4, 20, 'Frankfurt', '2026-03-01', '2026-12-31', 'Automated deployment workflows'),
-(5, 'Network Security Eng', 'Firewall configuration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 7, 'APPROVED', 1, 48.00, '["Cisco", "Security"]'::jsonb, 5, 40, 'Frankfurt', '2026-01-15', '2026-08-15', 'Security hardening'),
-(6, 'Database Admin', 'Legacy ERP data migration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 1, 'PENDING_APPROVAL', 1, 42.50, '["PostgreSQL", "SQL"]'::jsonb, 6, 40, 'Frankfurt', '2026-04-01', '2026-12-01', 'Data archiving project'),
-(7, 'Junior IT Analyst', 'Help desk tier 1 support.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 1, 'PENDING_APPROVAL', 1, 25.00, '["Troubleshooting"]'::jsonb, 1, 20, 'Berlin', '2026-05-01', '2026-12-01', 'Employee portal rollout'),
-(8, 'Frontend React Help', 'Portal UI support.', 2, 'NeuralCare: AI Support Portal', 'Remote', 1, 1, 'PENDING_APPROVAL', 1, 35.80, '["React", "TypeScript"]'::jsonb, 2, 20, 'Berlin', '2026-03-15', '2026-09-15', 'AI Interface development'),
-(9, 'IT Project Coordinator', 'Managing hardware rollout.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 2, 'PENDING_APPROVAL', 1, 38.00, '["Agile", "Planning"]'::jsonb, 3, 40, 'Berlin', '2026-05-01', '2026-12-01', 'Mobile device management'),
+(1, 'Backend Java Expert', 'Cloud Migration help.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 39.50, '["Java", "AWS"]'::jsonb, 5, 20, 'Onsite', '2026-02-01', '2026-12-31', 'Migration of core banking services'),
+(2, 'IT Support Specialist', 'General infrastructure setup.', 1, 'Project Skyfall: AWS Migration', 'Munich', 1, 1, 'APPROVED', 1, 30.25, '["Networking", "Linux"]'::jsonb, 3, 40, 'Remote', '2026-02-01', '2026-06-01', 'Internal infra support'),
+(3, 'Cloud Architect', 'AWS Migration lead.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 8, 'APPROVED', 1, 55.50, '["AWS", "Terraform"]'::jsonb, 8, 40, 'Onsite', '2026-03-01', '2026-12-31', 'Architecture design'),
+(4, 'DevOps Specialist', 'CI/CD pipeline automation.', 1, 'Project Skyfall: AWS Migration', 'Munich', 2, 3, 'APPROVED', 1, 45.75, '["Jenkins", "Docker"]'::jsonb, 4, 20, 'Remote', '2026-03-01', '2026-12-31', 'Automated deployment workflows'),
+(5, 'Network Security Eng', 'Firewall configuration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 7, 'APPROVED', 1, 48.00, '["Cisco", "Security"]'::jsonb, 5, 40, 'Remote', '2026-01-15', '2026-08-15', 'Security hardening'),
+(6, 'Database Admin', 'Legacy ERP data migration.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 3, 1, 'PENDING_APPROVAL', 1, 42.50, '["PostgreSQL", "SQL"]'::jsonb, 6, 40, 'Onsite', '2026-04-01', '2026-12-01', 'Data archiving project'),
+(7, 'Junior IT Analyst', 'Help desk tier 1 support.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 1, 'PENDING_APPROVAL', 1, 25.00, '["Troubleshooting"]'::jsonb, 1, 20, 'Onsite', '2026-05-01', '2026-12-01', 'Employee portal rollout'),
+(8, 'Frontend React Help', 'Portal UI support.', 2, 'NeuralCare: AI Support Portal', 'Remote', 1, 1, 'PENDING_APPROVAL', 1, 35.80, '["React", "TypeScript"]'::jsonb, 2, 20, 'Remote', '2026-03-15', '2026-09-15', 'AI Interface development'),
+(9, 'IT Project Coordinator', 'Managing hardware rollout.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 4, 2, 'PENDING_APPROVAL', 1, 38.00, '["Agile", "Planning"]'::jsonb, 3, 40, 'Remote', '2026-05-01', '2026-12-01', 'Mobile device management'),
 (10, 'Systems Integrator', 'Middleware connectivity.', 2, 'NeuralCare: AI Support Portal', 'Remote', 2, 1, 'PENDING_APPROVAL', 1, 40.20, '["API", "JSON"]'::jsonb, 4, 40, 'Remote', '2026-03-01', '2026-10-01', 'System communication bridge'),
 
 --------------------------------------------------------------------------------
 -- BATCH 2: RESEARCH & DEVELOPMENT
 --------------------------------------------------------------------------------
-(11, 'AI Model Trainer', 'Fine-tuning LLMs.', 2, 'NeuralCare: AI Support Portal', 'Remote', 5, 5, 'APPROVED', 1, 50.50, '["Python", "PyTorch"]'::jsonb, 3, 40, 'Frankfurt', '2026-04-01', '2026-10-31', 'Generative AI training'),
-(12, 'Quantum Research Lead', 'Long-term crypto research.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 1, 'APPROVED', 1, 65.00, '["Quantum Computing"]'::jsonb, 10, 20, 'Frankfurt', '2026-06-01', '2026-12-31', 'Advanced security research'),
-(13, 'Data Scientist', 'AI Portal predictive analytics.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'APPROVED', 1, 52.25, '["R", "SQL", "Math"]'::jsonb, 5, 40, 'Remote', '2026-03-15', '2026-12-15', 'Predictive modeling'),
+(11, 'AI Model Trainer', 'Fine-tuning LLMs.', 2, 'NeuralCare: AI Support Portal', 'Remote', 5, 5, 'APPROVED', 1, 50.50, '["Python", "PyTorch"]'::jsonb, 3, 40, 'Onsite', '2026-04-01', '2026-10-31', 'Generative AI training'),
+(12, 'Quantum Research Lead', 'Long-term crypto research.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 1, 'APPROVED', 1, 65.00, '["Quantum Computing"]'::jsonb, 10, 20, 'Onsite', '2026-06-01', '2026-12-31', 'Advanced security research'),
+(13, 'Data Scientist', 'AI Portal predictive analytics.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'APPROVED', 1, 52.25, '["R", "SQL", "Math"]'::jsonb, 5, 40, 'Onsite', '2026-03-15', '2026-12-15', 'Predictive modeling'),
 (14, 'NLP Specialist', 'Natural language processing.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'APPROVED', 1, 58.00, '["NLP", "Transformers"]'::jsonb, 4, 20, 'Remote', '2026-03-15', '2026-12-15', 'Text processing module'),
-(15, 'Hardware Architect', 'New server prototype design.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 1, 'APPROVED', 1, 60.50, '["VHDL", "FPGA"]'::jsonb, 7, 40, 'Frankfurt', '2026-05-01', '2026-12-01', 'Server decommissioning hardware analysis'),
-(16, 'R&D Lab Assistant', 'Setting up test environments.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 4, 'PENDING_APPROVAL', 1, 28.00, '["Lab Safety", "Testing"]'::jsonb, 2, 40, 'Frankfurt', '2026-05-01', '2026-12-01', 'Physical environment setup'),
-(17, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 3, 'PENDING_APPROVAL', 1, 45.40, '["Metal", "OpenGL"]'::jsonb, 4, 40, 'Munich', '2026-02-01', '2026-11-01', 'Mobile rendering engine'),
-(18, 'Algorithm Engineer', 'Search algorithm optimization.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 1, 'PENDING_APPROVAL', 1, 48.00, '["Algorithms", "C++"]'::jsonb, 5, 40, 'Munich', '2026-03-01', '2026-12-01', 'Core search logic'),
-(19, 'Machine Learning Eng', 'Training computer vision models.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 5, 'PENDING_APPROVAL', 1, 55.60, '["PyTorch", "OpenCV"]'::jsonb, 4, 20, 'Frankfurt', '2026-04-01', '2026-12-31', 'Vision-based security'),
+(15, 'Hardware Architect', 'New server prototype design.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 1, 'APPROVED', 1, 60.50, '["VHDL", "FPGA"]'::jsonb, 7, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Server decommissioning hardware analysis'),
+(16, 'R&D Lab Assistant', 'Setting up test environments.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 7, 4, 'PENDING_APPROVAL', 1, 28.00, '["Lab Safety", "Testing"]'::jsonb, 2, 40, 'Remote', '2026-05-01', '2026-12-01', 'Physical environment setup'),
+(17, 'Graphics Engineer', 'UI optimization for Mobile Alpha.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 3, 'PENDING_APPROVAL', 1, 45.40, '["Metal", "OpenGL"]'::jsonb, 4, 40, 'Onsite', '2026-02-01', '2026-11-01', 'Mobile rendering engine'),
+(18, 'Algorithm Engineer', 'Search algorithm optimization.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 8, 1, 'PENDING_APPROVAL', 1, 48.00, '["Algorithms", "C++"]'::jsonb, 5, 40, 'Onsite', '2026-03-01', '2026-12-01', 'Core search logic'),
+(19, 'Machine Learning Eng', 'Training computer vision models.', 1, 'Project Skyfall: AWS Migration', 'Munich', 5, 5, 'PENDING_APPROVAL', 1, 55.60, '["PyTorch", "OpenCV"]'::jsonb, 4, 20, 'Onsite', '2026-04-01', '2026-12-31', 'Vision-based security'),
 (20, 'Senior Statistician', 'Data validation for R&D.', 2, 'NeuralCare: AI Support Portal', 'Remote', 6, 5, 'PENDING_APPROVAL', 1, 47.00, '["Statistics", "SAS"]'::jsonb, 6, 40, 'Remote', '2026-04-01', '2026-12-01', 'Data integrity audit'),
 
 --------------------------------------------------------------------------------
 -- BATCH 3: HUMAN RESOURCE
 --------------------------------------------------------------------------------
-(21, 'HR System Specialist', 'Payroll API integration.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 9, 1, 'APPROVED', 1, 38.50, '["API Integration", "HRIS"]'::jsonb, 4, 40, 'Munich', '2026-01-10', '2026-06-30', 'Internal payroll sync'),
-(22, 'Recruitment Lead', 'Tech hiring drive 2026.', 1, 'Project Skyfall: AWS Migration', 'Munich', 9, 1, 'APPROVED', 1, 35.00, '["Recruiting", "Sourcing"]'::jsonb, 5, 40, 'Frankfurt', '2026-02-01', '2026-12-31', 'Cloud team expansion'),
-(23, 'Employee Relations', 'Conflict resolution for remote staff.', 2, 'NeuralCare: AI Support Portal', 'Remote', 10, 1, 'APPROVED', 1, 32.40, '["Mediation", "Law"]'::jsonb, 4, 40, 'Berlin', '2026-03-15', '2026-09-15', 'Remote workforce culture'),
-(24, 'Training Coordinator', 'Upskilling for Cloud team.', 1, 'Project Skyfall: AWS Migration', 'Munich', 10, 1, 'APPROVED', 1, 30.00, '["LMS", "Teaching"]'::jsonb, 3, 40, 'Frankfurt', '2026-03-01', '2026-12-31', 'Staff training initiative'),
-(25, 'Compensation Analyst', 'Salary benchmarking project.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 5, 'APPROVED', 1, 40.50, '["Excel", "Data Analysis"]'::jsonb, 4, 40, 'Wiesbaden', '2026-05-01', '2026-12-01', 'Budget sunset analysis'),
-(26, 'Benefits Specialist', 'New health insurance rollout.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 1, 'PENDING_APPROVAL', 1, 34.00, '["Benefits", "Insurance"]'::jsonb, 3, 40, 'Wiesbaden', '2026-06-01', '2026-12-31', 'Contract migration'),
-(27, 'HR Generalist', 'Administrative support for Mobile.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 12, 1, 'PENDING_APPROVAL', 1, 26.50, '["Admin", "Filing"]'::jsonb, 1, 40, 'Munich', '2026-02-01', '2026-11-01', 'Administrative support'),
-(28, 'Diversity & Inclusion', 'Internal D&I workshop lead.', 2, 'NeuralCare: AI Support Portal', 'Remote', 12, 1, 'PENDING_APPROVAL', 1, 40.00, '["Strategy", "Workshops"]'::jsonb, 6, 20, 'Berlin', '2026-04-01', '2026-10-01', 'Company-wide workshops'),
-(29, 'HR Data Privacy Officer', 'GDPR compliance audit.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 10, 7, 'PENDING_APPROVAL', 1, 50.75, '["GDPR", "Privacy"]'::jsonb, 5, 40, 'Frankfurt', '2026-04-01', '2026-12-31', 'Compliance and data safety'),
-(30, 'Talent Acquisition', 'Sourcing UI/UX designers.', 2, 'NeuralCare: AI Support Portal', 'Remote', 9, 1, 'PENDING_APPROVAL', 1, 33.00, '["Sourcing", "LinkedIn"]'::jsonb, 2, 40, 'Berlin', '2026-03-15', '2026-12-15', 'UI/UX team hiring')
+(21, 'HR System Specialist', 'Payroll API integration.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 9, 1, 'APPROVED', 1, 38.50, '["API Integration", "HRIS"]'::jsonb, 4, 40, 'Remote', '2026-01-10', '2026-06-30', 'Internal payroll sync'),
+(22, 'Recruitment Lead', 'Tech hiring drive 2026.', 1, 'Project Skyfall: AWS Migration', 'Munich', 9, 1, 'APPROVED', 1, 35.00, '["Recruiting", "Sourcing"]'::jsonb, 5, 40, 'Remote', '2026-02-01', '2026-12-31', 'Cloud team expansion'),
+(23, 'Employee Relations', 'Conflict resolution for remote staff.', 2, 'NeuralCare: AI Support Portal', 'Remote', 10, 1, 'APPROVED', 1, 32.40, '["Mediation", "Law"]'::jsonb, 4, 40, 'Onsite', '2026-03-15', '2026-09-15', 'Remote workforce culture'),
+(24, 'Training Coordinator', 'Upskilling for Cloud team.', 1, 'Project Skyfall: AWS Migration', 'Munich', 10, 1, 'APPROVED', 1, 30.00, '["LMS", "Teaching"]'::jsonb, 3, 40, 'Onsite', '2026-03-01', '2026-12-31', 'Staff training initiative'),
+(25, 'Compensation Analyst', 'Salary benchmarking project.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 5, 'APPROVED', 1, 40.50, '["Excel", "Data Analysis"]'::jsonb, 4, 40, 'Onsite', '2026-05-01', '2026-12-01', 'Budget sunset analysis'),
+(26, 'Benefits Specialist', 'New health insurance rollout.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 11, 1, 'PENDING_APPROVAL', 1, 34.00, '["Benefits", "Insurance"]'::jsonb, 3, 40, 'Remote', '2026-06-01', '2026-12-31', 'Contract migration'),
+(27, 'HR Generalist', 'Administrative support for Mobile.', 4, 'WorkForce Go: Mobile Alpha', 'Berlin', 12, 1, 'PENDING_APPROVAL', 1, 26.50, '["Admin", "Filing"]'::jsonb, 1, 40, 'Remote', '2026-02-01', '2026-11-01', 'Administrative support'),
+(28, 'Diversity & Inclusion', 'Internal D&I workshop lead.', 2, 'NeuralCare: AI Support Portal', 'Remote', 12, 1, 'PENDING_APPROVAL', 1, 40.00, '["Strategy", "Workshops"]'::jsonb, 6, 20, 'Onsite', '2026-04-01', '2026-10-01', 'Company-wide workshops'),
+(29, 'HR Data Privacy Officer', 'GDPR compliance audit.', 3, 'Legacy ERP Sunset Phase 1', 'Frankfurt', 10, 7, 'PENDING_APPROVAL', 1, 50.75, '["GDPR", "Privacy"]'::jsonb, 5, 40, 'Onsite', '2026-04-01', '2026-12-31', 'Compliance and data safety'),
+(30, 'Talent Acquisition', 'Sourcing UI/UX designers.', 2, 'NeuralCare: AI Support Portal', 'Remote', 9, 1, 'PENDING_APPROVAL', 1, 33.00, '["Sourcing", "LinkedIn"]'::jsonb, 2, 40, 'Onsite', '2026-03-15', '2026-12-15', 'UI/UX team hiring')
 
 ON CONFLICT (request_id) DO NOTHING;
 --------------------------------------------------
