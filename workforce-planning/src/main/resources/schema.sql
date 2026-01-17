@@ -88,7 +88,6 @@ CREATE TABLE employees (
     default_role_id          BIGINT NULL,
     skills                   JSONB,
     total_hours_per_week     INTEGER,
-    remaining_hours_per_week INTEGER,
     performance_rating DOUBLE PRECISION, 
     project_preferences      TEXT,
     interests                TEXT,
