@@ -215,7 +215,7 @@ public class StaffingRequestService {
         employeeRepository.save(employee);
 
         // Update request status
-        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED); // use your exact enum value
+        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED_BY_DH); // use your exact enum value
         repository.save(request);
 
         // Signal Camunda
@@ -249,7 +249,7 @@ public class StaffingRequestService {
         employeeRepository.save(employee);
 
         // Update request status
-        request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED);
+        request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
         repository.save(request);
 
         zeebeClient.newPublishMessageCommand()
@@ -280,8 +280,104 @@ public class StaffingRequestService {
     }
     
     public List<StaffingRequest> getRequestsByManagerEmail(String email) {
-    // Calling the repository method that performs the triple-table join
-    return repository.findByCreatedBy_User_Email(email);
-}   
+        // Calling the repository method that performs the triple-table join
+        return repository.findByCreatedBy_User_Email(email);
+    }   
+
+    @Transactional
+    public void resubmitRequestByProjectManager(Long requestId) {
+    StaffingRequest request = repository.findByRequestId(requestId)
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.NOT_FOUND, "Request not found: " + requestId
+        ));
+
+    // Update DB status (use your actual enum value)
+    request.setStatus(RequestStatus.PM_RESUBMITTED);
+    repository.save(request);
+
+    // Signal Camunda (must match BPMN)
+    zeebeClient.newPublishMessageCommand()
+        .messageName("Review Request Failure") // <-- match BPMN exactly
+        .correlationKey(requestId.toString())
+        .variables(Map.of("externalDecision", "resubmit"))
+        .send()
+        .join();
+
+    log.info("PM resubmitted request {} and signaled Camunda.", requestId);
+}
+
+    @Transactional
+    public void cancelRequestByProjectManager(Long requestId) {
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));
+
+        // Update DB status (use your actual enum value)
+        request.setStatus(RequestStatus.PM_CANCELLED);
+        repository.save(request);
+
+        // Signal Camunda (must match BPMN)
+        zeebeClient.newPublishMessageCommand()
+            .messageName("Review Request Failure") // <-- same receive task, decision differs by variable
+            .correlationKey(requestId.toString())
+            .variables(Map.of("externalDecision", "cancel"))
+            .send()
+            .join();
+
+        log.info("PM cancelled request {} and signaled Camunda.", requestId);
+    }
+    @Transactional
+    public void confirmAssignmentByEmployee(Long requestId) {
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));   
+
+        Employee employee = request.getAssignedUser().getEmployee();
+        employee.setMatchingAvailability(MatchingAvailability.ASSIGNED);
+        employeeRepository.save(employee);
+
+        request.setStatus(RequestStatus.INT_EMPLOYEE_ASSIGNED);
+        repository.save(request);
+
+        zeebeClient.newPublishMessageCommand()
+            .messageName("Employee_Confirmation") // MUST match BPMN exactly
+            .correlationKey(requestId.toString())
+            .variables(Map.of("confirm", true))
+            .send()
+            .join();
+    }
+
+    @Transactional
+    public void rejectAssignmentByEmployee(Long requestId) {
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));
+
+        if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Assigned internal employee missing for request: " + requestId
+            );
+        }
+
+        Employee employee = request.getAssignedUser().getEmployee();
+        employee.setMatchingAvailability(MatchingAvailability.AVAILABLE);
+        employeeRepository.save(employee);
+
+        request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_EMP);
+        repository.save(request);
+
+        zeebeClient.newPublishMessageCommand()
+            .messageName("Employee_Confirmation") // MUST match BPMN exactly
+            .correlationKey(requestId.toString())
+            .variables(Map.of("confirm", false))
+            .send()
+            .join();
+    }
+
+
 
 }

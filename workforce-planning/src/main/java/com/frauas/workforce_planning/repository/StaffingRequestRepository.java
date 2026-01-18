@@ -69,5 +69,17 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         @Param("status") RequestStatus status,
         @Param("email") String email
     );
+
+    @Query("""
+    SELECT sr
+    FROM StaffingRequest sr
+    WHERE sr.status = :status
+    AND sr.assignedUser.id = :userId
+    """)
+    List<StaffingRequest> findAssignedToEmployeeByStatus(
+        @Param("status") RequestStatus status,
+        @Param("userId") Long userId
+    );
+
     
 }
