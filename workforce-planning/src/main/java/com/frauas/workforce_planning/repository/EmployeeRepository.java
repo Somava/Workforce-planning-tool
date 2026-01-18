@@ -13,6 +13,16 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    
+@Query(value = """
+    select l.name as name, el.proficiency_level as proficiency
+    from employee_languages el
+    join languages l on l.id = el.language_id
+    where el.employee_id = :employeeId
+    order by l.id
+""", nativeQuery = true)
+List<Object[]> findLanguagesWithProficiency(@Param("employeeId") Long employeeId);
+
 
     // 🔹 Find by the company HR ID
     Optional<Employee> findByEmployeeId(String employeeId);
@@ -28,7 +38,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     List<Employee> findByRemainingHoursPerWeekGreaterThanEqual(Integer hours);
 
     // 🔹 Find by Email for the Employee Portal lookups
-Optional<Employee> findByEmail(String email);
+   Optional<Employee> findByEmail(String email);
 
     // 🔹 PostgreSQL Native Query to search within the JSONB skills column
     // The '@>' operator checks if the JSON on the left contains the JSON on the right
@@ -37,6 +47,7 @@ Optional<Employee> findByEmail(String email);
         WHERE skills @> CAST(:skillsJson AS jsonb)
         """, nativeQuery = true)
     List<Employee> findBySkills(@Param("skillsJson") String skillsJson);
+
     
     // 🔹 Search for employees with specific job roles
     List<Employee> findByJobRole_Id(Long jobRoleId);

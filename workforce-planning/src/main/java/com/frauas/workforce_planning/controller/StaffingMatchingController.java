@@ -9,6 +9,8 @@ import com.frauas.workforce_planning.dto.CandidateActionRequest;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
 import com.frauas.workforce_planning.services.MatchingService;
 import com.frauas.workforce_planning.services.StaffingDecisionService;
+import com.frauas.workforce_planning.dto.MatchResponseDTO;
+
 
 @RestController
 @RequestMapping("/api")
@@ -23,11 +25,22 @@ public class StaffingMatchingController {
     this.decisionService = decisionService;
   }
 
-  @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
-  public List<MatchedEmployeeDTO> getMatches(@PathVariable Long requestId,
-                                             @RequestParam(defaultValue = "10") int topN) {
-    return matchingService.matchEmployees(requestId, topN);
+ @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
+public MatchResponseDTO getMatches(@PathVariable Long requestId,
+                                   @RequestParam(defaultValue = "10") int topN) {
+
+  List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
+
+  if (matches.isEmpty()) {
+    return new MatchResponseDTO(
+        "Unable to get employees for this role in our organisation",
+        matches
+    );
   }
+
+  return new MatchResponseDTO("OK", matches);
+}
+
 
   @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
   public ResponseEntity<Void> reserve(@PathVariable Long requestId,

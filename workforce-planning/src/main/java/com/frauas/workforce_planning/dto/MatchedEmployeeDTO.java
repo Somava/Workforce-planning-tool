@@ -11,12 +11,15 @@ public record MatchedEmployeeDTO(
         String lastName,
         String email,
         String location,
-        Integer remainingHoursPerWeek,
+        Integer availableHoursPerWeek,  
         BigDecimal wagePerHour,
         Integer experienceYears,
         double score,
         boolean applied,
-        String seniorityLevel, 
+        String seniorityLevel,
         String performanceGrade,
-        List<String> certifications
+        String emergencyContact,           
+        List<String> skills,               
+       List<EmployeeLanguageDTO> languages
+         
 ) {}

@@ -108,6 +108,65 @@ INSERT INTO employees (
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE employees SET supervisor_id = 1 WHERE id IN (2, 3, 4, 5, 6, 7);
+--------------------------------------------------
+-- EMPLOYEE LANGUAGES (employee_languages join table)
+--------------------------------------------------
+
+-- Everyone knows English
+INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VALUES
+(1, 1, 'C2'),
+(2, 1, 'C1'),
+(3, 1, 'C1'),
+(4, 1, 'C1'),
+(5, 1, 'C1'),
+(6, 1, 'C1'),
+(7, 1, 'C1'),
+(8, 1, 'C1'),
+(9, 1, 'B2'),
+(10, 1, 'C1'),
+(11, 1, 'B2'),
+(12, 1, 'C1'),
+(13, 1, 'B2'),
+(14, 1, 'C1'),
+(15, 1, 'B2'),
+(16, 1, 'C1'),
+(17, 1, 'B2'),
+(18, 1, 'C1'),
+(19, 1, 'B2')
+ON CONFLICT DO NOTHING;
+
+-- Many employees also know German
+INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VALUES
+(1, 2, 'C2'),
+(2, 2, 'C2'),
+(3, 2, 'B2'),
+(4, 2, 'B2'),
+(5, 2, 'B2'),
+(6, 2, 'C1'),
+(7, 2, 'B2'),
+(8, 2, 'B2'),
+(9, 2, 'B1'),
+(10, 2, 'B2'),
+(11, 2, 'B1'),
+(12, 2, 'B2'),
+(13, 2, 'B1'),
+(14, 2, 'B2'),
+(15, 2, 'B1'),
+(16, 2, 'B2'),
+(17, 2, 'B1'),
+(18, 2, 'B2'),
+(19, 2, 'B1')
+ON CONFLICT DO NOTHING;
+
+-- Some employees also know Spanish
+INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VALUES
+(3, 3, 'B1'),
+(9, 3, 'A2'),
+(12, 3, 'B1'),
+(18, 3, 'A2')
+ON CONFLICT DO NOTHING;
+
+
 
 INSERT INTO users (id, email, password_hash, employee_id) VALUES 
 (1, 'alice@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 1),

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.frauas.workforce_planning.dto.EmployeeLanguageDTO;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
 import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.model.entity.EmployeeApplication;
@@ -27,6 +28,8 @@ public class MatchingService {
     private final StaffingRequestRepository staffingRequestRepository;
     private final MatchingScoringService scoringService;
     private final UserRepository userRepository;
+   
+
     
 
     public MatchingService(
@@ -95,24 +98,33 @@ public class MatchingService {
                 //);
 
     //logs
+
+
     System.out.println("DEBUG: candidates size (after DB query) = " + candidates.size());
+
+
     // NEW logs: how many pass each hard filter
 long expPass = candidates.stream().filter(e -> passesExperience(e, request)).count();
 long wagePass = candidates.stream().filter(e -> passesWage(e, request)).count();
 long locPass  = candidates.stream().filter(e -> passesLocation(e, request)).count();
+long hoursPass = candidates.stream().filter(e -> passesContractHours(e, request)).count();
+System.out.println("DEBUG: hoursPass = " + hoursPass);
+
 
 System.out.println("DEBUG: expPass = " + expPass);
 System.out.println("DEBUG: wagePass = " + wagePass);
+System.out.println("DEBUG: locPass = " + locPass);
 System.out.println("DEBUG: locPass = " + locPass);
 
 // NEW log: show first few employees and why they fail
 for (int i = 0; i < Math.min(5, candidates.size()); i++) {
     Employee e = candidates.get(i);
     System.out.println("DEBUG EMP[" + i + "] id=" + e.getEmployeeId()
-            + " hours=" + e.getRemainingHoursPerWeek()
+            + " totalHours=" + e.getTotalHoursPerWeek()
             + " exp=" + e.getExperienceYears()
             + " wage=" + e.getWagePerHour()
             + " loc=" + e.getPrimaryLocation()
+            + " | hoursOk=" + passesContractHours(e, request)
             + " | expOk=" + passesExperience(e, request)
             + " wageOk=" + passesWage(e, request)
             + " locOk=" + passesLocation(e, request));
@@ -125,7 +137,8 @@ Set<Long> leadershipEmployeeIds = userRepository.findLeadershipEmployeeIds();
 
 // 3) Hard filters (NO scoring here)
 List<Employee> filtered = candidates.stream()
-        .filter(e -> !leadershipEmployeeIds.contains(e.getId())) // 🚫 exclude managers / heads / planners
+        .filter(e -> !leadershipEmployeeIds.contains(e.getId())) //  exclude managers / heads / planners
+        .filter(e -> passesContractHours(e, request))   
         .filter(e -> passesExperience(e, request))
         .filter(e -> passesWage(e, request))
         .filter(e -> passesLocation(e, request))
@@ -172,40 +185,62 @@ List<Employee> filtered = candidates.stream()
     }
 
     private boolean passesLocation(Employee e, StaffingRequest r) {
-        String reqLoc = pickRequestLocation(r);
-        if (isBlank(reqLoc)) return true; // not specified => don't filter
 
-        String empLoc = e.getPrimaryLocation();
-        if (isBlank(empLoc)) return false;
-
-        String rl = reqLoc.trim().toLowerCase();
-        String el = empLoc.trim().toLowerCase();
-
-        // If request is remote, allow remote + non-remote (scoring will rank)
-        if (rl.equals("remote")) return true;
-
-        return el.equals(rl);
+    // 1) If staffing request is Remote => allow employees from ANY city
+    String workLocMode = r.getWorkLocation(); // expected: "Remote" or "Onsite"
+    if (!isBlank(workLocMode) && workLocMode.trim().equalsIgnoreCase("Remote")) {
+        return true;
     }
 
-    private String pickRequestLocation(StaffingRequest r) {
-        if (!isBlank(r.getWorkLocation())) return r.getWorkLocation();
-        return r.getProjectLocation();
-    }
+    // 2) If not Remote, match employee primary location with request's project location (city)
+    String reqCity = r.getProjectLocation(); // expected: "Berlin", "Frankfurt", etc.
+    if (isBlank(reqCity)) return true; // no city specified => don't filter
 
-    // ---------------- DTO mapping ----------------
+    String empCity = e.getPrimaryLocation();
+    if (isBlank(empCity)) return false;
+
+    return empCity.trim().equalsIgnoreCase(reqCity.trim());
+}
+
+
+    private boolean passesContractHours(Employee e, StaffingRequest r) {
+    Integer reqHours = r.getAvailabilityHoursPerWeek(); // 20 or 40
+    if (reqHours == null) return true;
+
+    Integer empTotal = e.getTotalHoursPerWeek(); // employee total hours = 20 or 40
+    if (empTotal == null) return false;
+
+    return empTotal.equals(reqHours);
+}
 
   // ---------------- DTO mapping ----------------
 private MatchedEmployeeDTO toDto(Long requestId, Employee e, double score, boolean applied) {
     String seniority = seniorityFromExperience(e.getExperienceYears());
-    Double performanceRating = e.getPerformanceRating();
-    String performanceGrade = (performanceRating != null) ? String.format(java.util.Locale.US, "%.2f/5", performanceRating) : "N/A";
 
-    List<String> certifications = e.getCertifications().stream()
-            .map(ec -> ec.getCertification().getName())
-            .distinct()
-            .toList();
+    Double performanceRating = e.getPerformanceRating();
+    String performanceGrade = (performanceRating != null)
+            ? String.format(java.util.Locale.US, "%.2f/5", performanceRating)
+            : "N/A";
+
+    String emergencyContact = e.getEmergencyContact();
+
+    List<String> skills = (e.getSkills() != null) ? e.getSkills() : List.of();
+
+    
 
     double scorePercent = Math.round(score * 10000.0) / 100.0;
+    List<EmployeeLanguageDTO> languages =
+        employeeRepository.findLanguagesWithProficiency(e.getId())
+                .stream()
+                .map(row -> new EmployeeLanguageDTO(
+                        (String) row[0], // language name
+                        (String) row[1]  // proficiency
+                ))
+                .toList();
+
+System.out.println(
+    "Employee " + e.getEmployeeId() + " languages = " + languages
+);
 
     return new MatchedEmployeeDTO(
             requestId,
@@ -215,16 +250,23 @@ private MatchedEmployeeDTO toDto(Long requestId, Employee e, double score, boole
             e.getLastName(),
             e.getEmail(),
             e.getPrimaryLocation(),
-            e.getRemainingHoursPerWeek(),
+
+            e.getTotalHoursPerWeek(),  
             e.getWagePerHour(),
             e.getExperienceYears(),
+
             scorePercent,
             applied,
+
             seniority,
             performanceGrade,
-            certifications
+
+            emergencyContact,
+            skills,
+            languages
     );
 }
+
 
  // ---------------- Merit helpers ----------------
 
