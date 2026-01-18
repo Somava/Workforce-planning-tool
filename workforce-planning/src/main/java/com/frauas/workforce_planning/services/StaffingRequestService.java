@@ -7,12 +7,16 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
 
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.Department;
 import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.model.entity.Project;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
+import com.frauas.workforce_planning.model.enums.MatchingAvailability;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.DepartmentRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
@@ -190,10 +194,31 @@ public class StaffingRequestService {
 
     @Transactional
     public void markInternalEmployeeApproved(Long requestId) {
-        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
-        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED);
+    
+        StaffingRequest request = repository.findByRequestId(requestId)
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.NOT_FOUND, "Request not found: " + requestId
+        ));
+
+        // Safety: must have someone reserved/assigned
+        if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "No internal employee is linked to this request (assignedUser missing): " + requestId
+            );
+        }
+
+        Employee employee = request.getAssignedUser().getEmployee();
+
+        // Employee accepted -> lock them in
+        employee.setMatchingAvailability(MatchingAvailability.ASSIGNED);
+        employeeRepository.save(employee);
+
+        // Update request status
+        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED); // use your exact enum value
         repository.save(request);
 
+        // Signal Camunda
         zeebeClient.newPublishMessageCommand()
             .messageName("InternalEmployeeDecision") // must match BPMN
             .correlationKey(requestId.toString())
@@ -204,7 +229,26 @@ public class StaffingRequestService {
 
     @Transactional
     public void markInternalEmployeeRejected(Long requestId) {
-        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));
+
+        // Safety: must have someone reserved/assigned
+        if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "No internal employee is linked to this request (assignedUser missing): " + requestId
+            );
+        }
+
+        Employee employee = request.getAssignedUser().getEmployee();
+
+        // Employee rejected -> free them
+        employee.setMatchingAvailability(MatchingAvailability.AVAILABLE);
+        employeeRepository.save(employee);
+
+        // Update request status
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED);
         repository.save(request);
 
