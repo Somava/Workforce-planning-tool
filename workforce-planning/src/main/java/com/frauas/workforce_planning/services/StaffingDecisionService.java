@@ -66,7 +66,7 @@ public class StaffingDecisionService {
             .variables(Map.of(
                 "suitableResourceFound", true,
                 "reservedEmployeeId", employeeDbId,
-                "intOrExt", "internal" // optional but very useful downstream
+                "isExternalCandidate", false 
             ))
             .send()
             .join();
@@ -79,8 +79,7 @@ public class StaffingDecisionService {
             .messageName("ResourcePlannerSelection")
             .correlationKey(requestId.toString())
             .variables(Map.of(
-                "suitableResourceFound", false,
-                "intOrExt", "internal" // optional but very useful downstream
+                "suitableResourceFound", false
             ))
             .send()
             .join();        
