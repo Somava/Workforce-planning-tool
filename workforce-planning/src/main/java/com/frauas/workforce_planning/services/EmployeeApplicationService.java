@@ -42,10 +42,16 @@ public class EmployeeApplicationService {
                 .orElseThrow(() -> new RuntimeException("Position not found or not approved."));
 
         // 3. --- CAPACITY CHECK ---
-        if (req.getAvailabilityHoursPerWeek() > emp.getTotalHoursPerWeek()) {
-            throw new RuntimeException("Application denied: This is a " + req.getAvailabilityHoursPerWeek() + 
-                "h position, but your contract is for " + emp.getTotalHoursPerWeek() + "h.");
-        }
+        // Ensures Full-Time stays with Full-Time and Part-Time stays with Part-Time
+if (!req.getAvailabilityHoursPerWeek().equals(emp.getTotalHoursPerWeek())) {
+    String errorMsg = String.format(
+        "Application denied: This is a %dh position, but your contract is for %dh. " +
+        "You can only apply for roles matching your contract hours.", 
+        req.getAvailabilityHoursPerWeek(), 
+        emp.getTotalHoursPerWeek()
+    );
+    throw new RuntimeException(errorMsg);
+}
 
         // 4. Check for existing application (including withdrawn)
         Optional<EmployeeApplication> existingApp = applicationRepository.findByEmployee_Id(emp.getId())
