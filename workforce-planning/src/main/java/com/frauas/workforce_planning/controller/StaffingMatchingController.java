@@ -30,10 +30,11 @@ public class StaffingMatchingController {
   }
 
   @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
-  public ResponseEntity<Void> reserve(@PathVariable Long requestId,
-                                      @RequestBody CandidateActionRequest body) {
-    decisionService.reserve(requestId, body.employeeDbId());
-    return ResponseEntity.ok().build();
+  public ResponseEntity<String> reserve(@RequestParam Long requestId,
+                                        @RequestParam boolean internalFound,
+                                        @RequestBody CandidateActionRequest body) {
+    decisionService.reserve(requestId, internalFound, body.employeeDbId());
+    return ResponseEntity.ok("Request " + requestId + " has been processed");
   }
 
   @PostMapping("/department-head/staffing-requests/{requestId}/assign")

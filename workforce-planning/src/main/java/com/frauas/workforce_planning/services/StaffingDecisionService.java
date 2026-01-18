@@ -34,7 +34,7 @@ public class StaffingDecisionService {
   }
 
   @Transactional
-  public void reserve(Long requestId, Long employeeDbId) {
+  public void reserve(Long requestId, boolean internalFound, Long employeeDbId) {
 
     // Load request
     StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
@@ -42,32 +42,47 @@ public class StaffingDecisionService {
             HttpStatus.NOT_FOUND, "StaffingRequest not found: " + requestId
         ));
 
-    // Load employee
-    Employee employee = employeeRepository.findById(employeeDbId)
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.NOT_FOUND, "Employee not found: " + employeeDbId
-        ));
+    if(internalFound){
+        // Load employee
+        Employee employee = employeeRepository.findById(employeeDbId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Employee not found: " + employeeDbId
+            ));
 
-    employee.setMatchingAvailability(MatchingAvailability.RESERVED);
-    employeeRepository.save(employee);
+        employee.setMatchingAvailability(MatchingAvailability.RESERVED);
+        employeeRepository.save(employee);
 
-    request.setStatus(RequestStatus.EMPLOYEE_RESERVED); 
+        request.setStatus(RequestStatus.EMPLOYEE_RESERVED); 
 
-    if (employee.getUser() != null) {
-        request.setAssignedUser(employee.getUser());
+        if (employee.getUser() != null) {
+            request.setAssignedUser(employee.getUser());
+        }
+
+        staffingRequestRepository.save(request);
+
+        zeebeClient.newPublishMessageCommand()
+            .messageName("ResourcePlannerSelection")
+            .correlationKey(requestId.toString())
+            .variables(Map.of(
+                "suitableResourceFound", true,
+                "reservedEmployeeId", employeeDbId // optional but very useful downstream
+            ))
+            .send()
+            .join();
+
     }
-
-    staffingRequestRepository.save(request);
-
-    zeebeClient.newPublishMessageCommand()
-        .messageName("ResourcePlannerSelection")
-        .correlationKey(requestId.toString())
-        .variables(Map.of(
-            "suitableResourceFound", true,
-            "reservedEmployeeId", employeeDbId // optional but very useful downstream
-        ))
-        .send()
-        .join();
+    else if (internalFound==false) {
+        request.setStatus(RequestStatus.EXTERNAL_SEARCH_TRIGGERED); 
+        staffingRequestRepository.save(request);
+        zeebeClient.newPublishMessageCommand()
+            .messageName("ResourcePlannerSelection")
+            .correlationKey(requestId.toString())
+            .variables(Map.of(
+                "suitableResourceFound", false
+            ))
+            .send()
+            .join();        
+    }    
 
   }
 

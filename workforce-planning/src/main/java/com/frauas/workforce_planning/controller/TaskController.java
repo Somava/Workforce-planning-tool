@@ -173,12 +173,12 @@ public class TaskController {
      * Input: userId (resource planner's user id)
      */
     @GetMapping("/resource-planner")
-    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam Long userId) {
-        log.info("Fetching approved requests for resource planner userId: {}", userId);
+    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam String email) {
+        log.info("Fetching approved requests for resource planner email: {}", email);
 
         List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(
             RequestStatus.APPROVED,
-            userId
+            email
         );
 
         return ResponseEntity.ok(pending);

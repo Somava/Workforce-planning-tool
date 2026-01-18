@@ -7,6 +7,7 @@ public enum RequestStatus {
     REQUEST_REJECTED,
     APPROVED, //request approved, open for emeployee application
     EMPLOYEE_RESERVED,
+    EXTERNAL_SEARCH_TRIGGERED,
     INT_EMPLOYEE_APPROVED,
     INT_EMPLOYEE_REJECTED,
     SUBMITTED, //WrongData , manager needs to correct

@@ -61,14 +61,13 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
     SELECT sr
     FROM StaffingRequest sr
     JOIN sr.department d
+    JOIN d.resourcePlanner u
     WHERE sr.status = :status
-      AND d.resourcePlannerUserId = :userId
+    AND u.email = :email
     """)
     List<StaffingRequest> findApprovedForResourcePlanner(
         @Param("status") RequestStatus status,
-        @Param("userId") Long userId
+        @Param("email") String email
     );
-
-
     
 }
