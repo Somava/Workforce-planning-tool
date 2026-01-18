@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.util.HashSet;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "languages")
@@ -23,6 +24,7 @@ public class Language {
     private String name;
 
     @OneToMany(mappedBy = "language", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<EmployeeLanguage> employeeLanguages = new HashSet<>();
 
     @Override
