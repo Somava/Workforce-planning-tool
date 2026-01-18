@@ -14,6 +14,9 @@ import com.frauas.workforce_planning.dto.EmployeeApplicationDTO;
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.services.EmployeeApplicationService;
 import com.frauas.workforce_planning.services.StaffingRequestService;
+import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.services.EmployeeService;
+import com.frauas.workforce_planning.dto.EmployeeProfileDTO;
 
 @RestController
 @RequestMapping("/api/employee-portal")
@@ -24,6 +27,9 @@ public class EmployeePortalController {
 
     @Autowired
     private EmployeeApplicationService applicationService;
+
+    @Autowired
+    private EmployeeService employeeService;
 
     
     // 1. View Open Positions (Filtered for the specific employee)
@@ -66,4 +72,15 @@ public class EmployeePortalController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // 5. Profile Details: View all employee details for the dashboard
+    @GetMapping("/my-profile")
+public ResponseEntity<EmployeeProfileDTO> getMyProfile(@RequestParam String email) {
+    try {
+        EmployeeProfileDTO profile = employeeService.getProfile(email);
+        return ResponseEntity.ok(profile);
+    } catch (RuntimeException e) {
+        return ResponseEntity.badRequest().body(null);
+    }
+}
 }
