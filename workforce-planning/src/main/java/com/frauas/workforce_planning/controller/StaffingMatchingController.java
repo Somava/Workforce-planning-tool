@@ -2,8 +2,10 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.frauas.workforce_planning.dto.CandidateActionRequest;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
@@ -32,8 +34,15 @@ public class StaffingMatchingController {
   @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
   public ResponseEntity<String> reserve(@RequestParam Long requestId,
                                         @RequestParam boolean internalFound,
-                                        @RequestBody CandidateActionRequest body) {
-    decisionService.reserve(requestId, internalFound, body.employeeDbId());
+                                        @RequestBody(required = false) CandidateActionRequest body) {
+    if (internalFound && body == null) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "employeeDbId is required when internalFound=true"
+        );
+    }
+    Long employeeDbId = body != null ? body.employeeDbId() : null;    
+    decisionService.reserve(requestId, internalFound, employeeDbId);
     return ResponseEntity.ok("Request " + requestId + " has been processed");
   }
 
