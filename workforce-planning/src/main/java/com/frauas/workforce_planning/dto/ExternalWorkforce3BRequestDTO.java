@@ -2,13 +2,16 @@ package com.frauas.workforce_planning.dto;
 
 public record ExternalWorkforce3BRequestDTO(
     Long internalRequestId,
+    Long projectId,
+    String projectName,
     String jobTitle,
-    String project,
-    String managerName,
-    String skills,
+    String description,
+    Integer availabilityHoursPerWeek,
+    Double wagePerHour,
+    java.util.List<String> skills,
     Integer experienceYears,
-    Double budgetLimit,
-    String startDate,
-    String endDate,
-    String location
+    String location,
+    String projectContext,  // optional
+    String startDate,       // YYYY-MM-DD
+    String endDate          // YYYY-MM-DD
 ) {}

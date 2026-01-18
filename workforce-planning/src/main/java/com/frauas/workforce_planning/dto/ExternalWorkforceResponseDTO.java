@@ -1,14 +1,14 @@
 package com.frauas.workforce_planning.dto;
 
 public record ExternalWorkforceResponseDTO(
-    Long internalRequestId,   // from us (Echo)
-    String status,            // e.g. "EXTERNAL_HIRED"
-    ExpertDetails expertDetails
-) {
-  public record ExpertDetails(
-      String name,
-      String supplier,
-      Double dailyRate
-      // optionally later: String externalEmployeeId (if 3B/4B provides it)
-  ) {}
-}
+    String externalEmployeeId,
+    String provider,
+    String firstName,
+    String lastName,
+    String email,
+    Double wagePerHour,
+    java.util.List<String> skills,
+    Long internalRequestId,   // this should match your internalRequestId (or they will map it)
+    Double experienceYears,
+    Long projectId
+) {}

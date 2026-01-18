@@ -22,32 +22,36 @@ public class ExternalResponseController {
   public ResponseEntity<Map<String, Object>> receiveExternalResponse(
       @RequestBody ExternalWorkforceResponseDTO dto
   ) {
-    // 1) validate mandatory fields from 3B
+    // 1) Validate mandatory fields (based on your latest contract)
     if (dto.internalRequestId() == null) {
       return ResponseEntity.badRequest().body(Map.of("error", "internalRequestId is mandatory"));
     }
-    if (dto.status() == null || dto.status().isBlank()) {
-      return ResponseEntity.badRequest().body(Map.of("error", "status is mandatory"));
-    }
 
-    boolean hired = "EXTERNAL_HIRED".equalsIgnoreCase(dto.status())
-        && dto.expertDetails() != null;
+    // "found" if externalEmployeeId exists (you can make this stricter if you want)
+    boolean found = dto.externalEmployeeId() != null && !dto.externalEmployeeId().isBlank();
 
     // 2) Variables to continue BPMN
     Map<String, Object> vars = new HashMap<>();
-    vars.put("requestId", String.valueOf(dto.internalRequestId())); // must match BPMN correlation key variable
-    vars.put("externalResourceFound", hired);
+    vars.put("internalRequestId", dto.internalRequestId());   // keep for traceability
+    vars.put("externalResourceFound", found);
 
-    if (hired) {
-      vars.put("externalExpertName", dto.expertDetails().name());
-      vars.put("externalExpertSupplier", dto.expertDetails().supplier());
-      vars.put("externalExpertDailyRate", dto.expertDetails().dailyRate());
+    // If found, pass the external employee details into the process
+    if (found) {
+      vars.put("externalEmployeeId", dto.externalEmployeeId());
+      vars.put("externalProvider", dto.provider());
+      vars.put("externalFirstName", dto.firstName());
+      vars.put("externalLastName", dto.lastName());
+      vars.put("externalEmail", dto.email());
+      vars.put("externalWagePerHour", dto.wagePerHour());
+      vars.put("externalSkills", dto.skills());
+      vars.put("externalExperienceYears", dto.experienceYears());
+      vars.put("externalProjectId", dto.projectId());
     }
 
     // 3) Publish message to release "Await External Response"
     zeebeClient.newPublishMessageCommand()
-        .messageName("ExternalResourceResponse")               // must match BPMN message name
-        .correlationKey(String.valueOf(dto.internalRequestId())) // must match requestId value in process
+        .messageName("ExternalResourceResponse") // must match BPMN
+        .correlationKey(String.valueOf(dto.internalRequestId())) // must match BPMN correlation key variable value
         .variables(vars)
         .send()
         .join();
@@ -55,7 +59,7 @@ public class ExternalResponseController {
     return ResponseEntity.ok(Map.of(
         "status", "PUBLISHED_TO_CAMUNDA",
         "internalRequestId", dto.internalRequestId(),
-        "externalResourceFound", hired
+        "externalResourceFound", found
     ));
   }
 }
