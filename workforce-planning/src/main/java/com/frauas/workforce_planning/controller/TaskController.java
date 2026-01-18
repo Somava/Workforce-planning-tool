@@ -176,13 +176,190 @@ public class TaskController {
     public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam String email) {
         log.info("Fetching approved requests for resource planner email: {}", email);
 
+        
         List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(
             RequestStatus.APPROVED,
             email
         );
 
+        if (pending.isEmpty()) {
+            return ResponseEntity.ok()
+                .header("X-Info", "No approved staffing requests found")
+                .body(List.of());
+        }
+
         return ResponseEntity.ok(pending);
     }
 
+    /**
+     * Gets all staffing requests where internal employee rejected by department head.
+     */
+    @GetMapping("/project-manager/int-employee-rejected")
+    public ResponseEntity<List<StaffingRequest>> getAllIntEmployeeRejectedRequests(@RequestParam String email) {
+
+        User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.NOT_FOUND, "User not found for email: " + email
+        ));
+
+        boolean isProjectManager = user.getEmployee() != null
+            && user.getEmployee().getDefaultRole() != null
+            && "ROLE_MANAGER".equals(
+                user.getEmployee().getDefaultRole().getName()
+            );
+
+        if (!isProjectManager) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to view this resource"
+            );
+        }
+        List<StaffingRequest> rejected =
+            staffingRequestRepository.findByStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
+        
+            if (rejected.isEmpty()) {
+                return ResponseEntity.ok()
+                    .header("X-Info", "No rejected staffing requests found")
+                    .body(List.of());
+            }
+
+        return ResponseEntity.ok(rejected);
+    }
+
+    /**
+     * Gets all staffing requests assigned to this employee
+     * that are in INTERNAL EMPLOYEE APPROVED state.
+     */
+    @GetMapping("/employee/assigned-requests")
+    public ResponseEntity<List<StaffingRequest>> getAssignedRequestsForEmployee(
+            @RequestParam String email) {
+
+        log.info("Fetching assigned requests for employee email: {}", email);
+
+        // 1. Resolve user by email
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "User not found for email: " + email
+            ));
+
+        // 2. Ensure this user is linked to an employee
+        if (user.getEmployee() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "User is not linked to an internal employee"
+            );
+        }
+
+        Long employeeUserId = user.getId();
+
+        // 3. Fetch assigned requests
+        List<StaffingRequest> assignedRequests =
+            staffingRequestRepository.findAssignedToEmployeeByStatus(
+                RequestStatus.INT_EMPLOYEE_APPROVED_BY_DH,
+                employeeUserId
+            );
+
+        if (assignedRequests.isEmpty()) {
+            return ResponseEntity.ok()
+                .header("X-Info", "No assigned staffing requests found")
+                .body(List.of());
+        }
+
+        return ResponseEntity.ok(assignedRequests);
+    }
+
+    /**
+     * Employee confirms or rejects an assignment for a staffing request.
+     * Signals the Camunda Receive Task via service layer.
+     */
+    @PostMapping("/employee/assignment-decision")
+    public ResponseEntity<String> handleEmployeeAssignmentDecision(
+            @RequestParam Long requestId,
+            @RequestParam String email,
+            @RequestParam boolean approved) {
+
+        // 1) Find user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "User not found with email: " + email
+                ));
+
+        // 2) Fetch request
+        StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Request not found: " + requestId
+                ));
+
+        // 3) Must have assigned user
+        if (request.getAssignedUser() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "No assigned user for request: " + requestId
+            );
+        }
+
+        // 4) Authorization: this employee must be the assigned user
+        if (!request.getAssignedUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("User " + email + " is not authorized to decide for request " + requestId);
+        }
+
+        // 5) Delegate: service updates DB + signals Camunda
+        if (approved) {
+            staffingRequestService.confirmAssignmentByEmployee(requestId);
+            log.info("Employee {} CONFIRMED assignment for request {}", email, requestId);
+        } else {
+            staffingRequestService.rejectAssignmentByEmployee(requestId);
+            log.info("Employee {} REJECTED assignment for request {}", email, requestId);
+        }
+
+        String action = approved ? "confirmed" : "rejected";
+        return ResponseEntity.ok("Assignment for request " + requestId + " has been " + action + " by " + email);
+    }
+
+
+    /**
+     * Project Manager decides whether to resubmit a request after internal employee rejection.
+     * Signals Camunda in the service layer.
+     */
+    @PostMapping("/project-manager/resubmit-decision")
+    public ResponseEntity<String> handleProjectManagerResubmitDecision(
+            @RequestParam Long requestId,
+            @RequestParam String email,
+            @RequestParam boolean resubmit) {
+
+        // 1) Find user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        // 2) Role check: must be project manager
+        boolean isProjectManager =
+                user.getEmployee() != null
+                && user.getEmployee().getDefaultRole() != null
+                && "ROLE_MANAGER".equals(user.getEmployee().getDefaultRole().getName());
+
+        if (!isProjectManager) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("User with email " + email + " is not authorized (not a Project Manager).");
+        }
+
+        // 3) Fetch request
+        StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+        
+
+        // 4) Delegate to service: DB updates + Camunda message
+        if (resubmit) {
+            staffingRequestService.resubmitRequestByProjectManager(requestId);
+            log.info("Request {} RESUBMITTED by PM email: {}", requestId, email);
+        } else {
+            staffingRequestService.cancelRequestByProjectManager(requestId);
+            log.info("Request {} NOT resubmitted (cancelled/closed) by PM email: {}", requestId, email);
+        }
+
+        String action = resubmit ? "resubmitted" : "not resubmitted";
+        return ResponseEntity.ok("Request " + requestId + " has been " + action + " by " + email);
+    }
 
 }

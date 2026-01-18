@@ -8,8 +8,12 @@ public enum RequestStatus {
     APPROVED, //request approved, open for emeployee application
     EMPLOYEE_RESERVED,
     EXTERNAL_SEARCH_TRIGGERED,
-    INT_EMPLOYEE_APPROVED,
-    INT_EMPLOYEE_REJECTED,
+    INT_EMPLOYEE_APPROVED_BY_DH,
+    INT_EMPLOYEE_REJECTED_BY_DH,
+    INT_EMPLOYEE_REJECTED_BY_EMP,
+    INT_EMPLOYEE_ASSIGNED,
+    PM_RESUBMITTED,
+    PM_CANCELLED,
     SUBMITTED, //WrongData , manager needs to correct
     REJECTED, //rejected by Department head
 
