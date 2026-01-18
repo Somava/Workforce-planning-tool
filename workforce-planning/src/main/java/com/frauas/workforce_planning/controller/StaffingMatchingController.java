@@ -2,13 +2,15 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
+//import org.springframework.http.HttpStatus;
+//import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+//import org.springframework.web.server.ResponseStatusException;
 
-import com.frauas.workforce_planning.dto.CandidateActionRequest;
+//import com.frauas.workforce_planning.dto.CandidateActionRequest;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
 import com.frauas.workforce_planning.services.MatchingService;
-import com.frauas.workforce_planning.services.StaffingDecisionService;
+//import com.frauas.workforce_planning.services.StaffingDecisionService;
 import com.frauas.workforce_planning.dto.MatchResponseDTO;
 
 
@@ -17,12 +19,12 @@ import com.frauas.workforce_planning.dto.MatchResponseDTO;
 public class StaffingMatchingController {
 
   private final MatchingService matchingService;
-  private final StaffingDecisionService decisionService;
+  //private final StaffingDecisionService decisionService;
 
-  public StaffingMatchingController(MatchingService matchingService,
-                                    StaffingDecisionService decisionService) {
+  public StaffingMatchingController(MatchingService matchingService){
+                                    //StaffingDecisionService decisionService) {
     this.matchingService = matchingService;
-    this.decisionService = decisionService;
+    //this.decisionService = decisionService;
   }
 
  @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
@@ -42,17 +44,17 @@ public MatchResponseDTO getMatches(@PathVariable Long requestId,
 }
 
 
-  @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
-  public ResponseEntity<Void> reserve(@PathVariable Long requestId,
-                                      @RequestBody CandidateActionRequest body) {
-    decisionService.reserve(requestId, body.employeeDbId());
-    return ResponseEntity.ok().build();
-  }
+  //@PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
+  //public ResponseEntity<Void> reserve(@PathVariable Long requestId,
+                           //           @RequestBody CandidateActionRequest body) {
+   // decisionService.reserve(requestId, body.employeeDbId());
+  //  return ResponseEntity.ok().build();
+  //}
 
-  @PostMapping("/department-head/staffing-requests/{requestId}/assign")
-  public ResponseEntity<Void> assign(@PathVariable Long requestId,
-                                     @RequestBody CandidateActionRequest body) {
-    decisionService.assign(requestId, body.employeeDbId());
-    return ResponseEntity.ok().build();
-  }
+  //@PostMapping("/department-head/staffing-requests/assign")
+  //public ResponseEntity<Void> assign(@RequestParam Long requestId,
+                                   //  @RequestBody CandidateActionRequest body) {
+    //decisionService.assign(requestId, body.employeeDbId());
+    //return ResponseEntity.ok().build();
+ // }
 }
