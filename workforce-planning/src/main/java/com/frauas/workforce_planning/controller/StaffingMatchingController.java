@@ -25,8 +25,8 @@ public class StaffingMatchingController {
     this.decisionService = decisionService;
   }
 
-  @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
-  public ResponseEntity<?> getMatches(@PathVariable Long requestId,
+  @GetMapping("/resource-planner/staffing-requests/matches")
+  public ResponseEntity<?> getMatches(@RequestParam Long requestId,
                                     @RequestParam(defaultValue = "10") int topN) {
 
     List<MatchedEmployeeDTO> list = matchingService.matchEmployees(requestId, topN);
@@ -43,18 +43,11 @@ public class StaffingMatchingController {
     return ResponseEntity.ok(list);
   }
 
-@PostMapping("/resource-planner/staffing-requests/{requestId}/decision")
-public ResponseEntity<Void> decision(@PathVariable Long requestId,
-                                     @RequestBody StaffingDecisionRequest body) {
-  decisionService.decide(requestId, body.accept(), body.employeeDbId());
+  @PostMapping("/resource-planner/staffing-requests/decision")
+  public ResponseEntity<Void> decision(@RequestParam Long requestId,
+                                      @RequestBody StaffingDecisionRequest body) {
+    decisionService.decide(requestId, body.accept(), body.employeeDbId());
 
-  return ResponseEntity.ok().build();
-}
-
-  //@PostMapping("/department-head/staffing-requests/assign")
-  //public ResponseEntity<Void> assign(@RequestParam Long requestId,
-                                   //  @RequestBody CandidateActionRequest body) {
-    //decisionService.assign(requestId, body.employeeDbId());
-    //return ResponseEntity.ok().build();
- // }
+    return ResponseEntity.ok().build();
+  }
 }

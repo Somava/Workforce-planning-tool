@@ -1,4 +1,4 @@
-package com.frauas.workforce_planning.controllers;
+package com.frauas.workforce_planning.controller;
 
 import com.frauas.workforce_planning.dto.LeadershipEmployeeDTO;
 import com.frauas.workforce_planning.services.EmployeeService;
