@@ -6,6 +6,9 @@ import com.frauas.workforce_planning.repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
+import com.frauas.workforce_planning.dto.LeadershipEmployeeDTO;
 
 @Service
 public class EmployeeService {
@@ -71,4 +74,26 @@ public EmployeeProfileDTO getProfile(String email) {
         headEmail
     );
 }
+// NEW Method for Alice/Heads/Planners (Directory View)
+    @Transactional(readOnly = true)
+    public List<LeadershipEmployeeDTO> getEmployeePoolForLeadership() {
+        return employeeRepository.findAll().stream()
+            // Filter: Only return those with Role ID 4 (ROLE_EMPLOYEE)
+            .filter(emp -> emp.getDefaultRole() != null && emp.getDefaultRole().getId() == 4)
+            .map(emp -> new LeadershipEmployeeDTO(
+                emp.getId(),
+                emp.getEmployeeId(),
+                emp.getFirstName() + " " + emp.getLastName(),
+                emp.getJobRole() != null ? emp.getJobRole().getName() : "N/A",
+                emp.getEmail(),
+                emp.getSkills(),
+                emp.getLanguages().stream()
+                   .map(l -> l.getLanguage().getName() + " (" + l.getProficiencyLevel() + ")")
+                   .collect(Collectors.toList()),
+                emp.getExperienceYears(),
+                emp.getPerformanceRating(),
+                emp.getMatchingAvailability() != null ? emp.getMatchingAvailability().name() : "N/A"
+            ))
+            .collect(Collectors.toList());
+    }
 }
