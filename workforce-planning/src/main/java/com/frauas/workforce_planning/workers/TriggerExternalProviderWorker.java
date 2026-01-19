@@ -1,5 +1,6 @@
 package com.frauas.workforce_planning.workers;
 
+import com.frauas.workforce_planning.dto.ExternalWorkforce3BRequestDTO;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.annotation.JobWorker;
@@ -8,13 +9,12 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class TriggerExternalProviderWorker {
 
-  // Put Team 3B base URL in application.yaml (for now you can keep localhost mock)
   @Value("${team3b.base-url:http://localhost:8080}")
   private String team3bBaseUrl;
 
@@ -25,53 +25,74 @@ public class TriggerExternalProviderWorker {
 
     Map<String, Object> vars = job.getVariablesAsMap();
 
-    // 1) Correlation key MUST match BPMN: correlationKey="=requestId"
-    String requestId = (String) vars.get("requestId");
-    if (requestId == null || requestId.isBlank()) {
-      requestId = "REQ-" + job.getProcessInstanceKey();
+    // ✅ 1) Use numeric internalRequestId (must match BPMN correlation key and 3B response)
+    Long internalRequestId = toLong(vars.get("internalRequestId"));
+    if (internalRequestId == null) {
+      // fallback: still allow demo, but it's better to set internalRequestId earlier in process
+      internalRequestId = job.getProcessInstanceKey(); // unique number
     }
 
-    //  3B identify which subteam (1B) sent the request
-    String internalRequestId = "G1B-" + requestId;
+    Long projectId = toLong(vars.get("projectId"));
+    String projectName = safeString(vars.get("projectName"), "Unknown Project");
+    String jobTitle = safeString(vars.get("jobTitle"), safeString(vars.get("title"), "External resource needed"));
+    String description = safeString(vars.get("description"), "Internal search failed. Requesting external expert.");
 
-    // 2) Build payload EXACTLY in 3B names (latest contract)
-    Map<String, Object> payloadFor3b = new HashMap<>();
-    payloadFor3b.put("internalRequestId", internalRequestId);
+    Integer availabilityHoursPerWeek = toInt(vars.get("availabilityHoursPerWeek"));
+    if (availabilityHoursPerWeek == null) availabilityHoursPerWeek = toInt(vars.get("availabilityHours"));
+    if (availabilityHoursPerWeek == null) availabilityHoursPerWeek = 40;
 
-    // These must exist (mandatory in their table). If your vars differ, update the key names below.
-    payloadFor3b.put("title", safeString(vars.get("title"), safeString(vars.get("positionName"), "External resource needed")));
-    payloadFor3b.put("description", safeString(vars.get("description"), "Internal search failed. Requesting external expert."));
+    Double wagePerHour = toDouble(vars.get("wagePerHour"));
+    if (wagePerHour == null) wagePerHour = 0.0;
 
-    // Optional fields
-    payloadFor3b.put("requiredSkills", safeString(vars.get("requiredSkills"), safeString(vars.get("employeeSkills"), null)));
-    payloadFor3b.put("startDate", safeString(vars.get("startDate"), null)); // "YYYY-MM-DD"
-    payloadFor3b.put("endDate", safeString(vars.get("endDate"), null));     // "YYYY-MM-DD"
-    payloadFor3b.put("projectContext", safeString(vars.get("projectContext"), safeString(vars.get("targetProject"), null)));
-    payloadFor3b.put("Performance Loc", safeString(vars.get("performanceLoc"), "Onshore"));
+    Integer experienceYears = toInt(vars.get("experienceYears"));
+    if (experienceYears == null) experienceYears = 1;
 
-    // 3) POST to 3B endpoint (contract)
+    String location = safeString(vars.get("location"), "Remote");
+    String projectContext = safeString(vars.get("projectContext"), null);
+    String startDate = safeString(vars.get("startDate"), null);
+    String endDate = safeString(vars.get("endDate"), null);
+
+    List<String> skills = toSkillsList(vars.get("skills"));
+    if (skills.isEmpty()) skills = toSkillsList(vars.get("requiredSkills"));
+
+    ExternalWorkforce3BRequestDTO payload = new ExternalWorkforce3BRequestDTO(
+        internalRequestId,
+        projectId,
+        projectName,
+        jobTitle,
+        description,
+        availabilityHoursPerWeek,
+        wagePerHour,
+        skills,
+        experienceYears,
+        location,
+        projectContext,
+        startDate,
+        endDate
+    );
+
     String url = team3bBaseUrl + "/api/group1/workforce-request";
+
     try {
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(payloadFor3b, headers);
 
+      HttpEntity<ExternalWorkforce3BRequestDTO> requestEntity = new HttpEntity<>(payload, headers);
       ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
 
       System.out.println("[TriggerExternalProvider] Sent request to 3B: " + url);
-      System.out.println("[TriggerExternalProvider] Payload: " + payloadFor3b);
+      System.out.println("[TriggerExternalProvider] Payload: " + payload);
       System.out.println("[TriggerExternalProvider] 3B response: " + response.getStatusCode() + " body=" + response.getBody());
 
     } catch (Exception ex) {
-      // For sprint/demo: don't crash process; just log error and continue waiting (or you can throw to fail job)
       System.out.println("[TriggerExternalProvider] ERROR calling 3B endpoint: " + ex.getMessage());
+      // For demo you can still complete, but for real reliability you may want to throw here.
     }
 
-    // 4) Save correlation + flags back into Camunda variables so process continues to Await External Response
+    // ✅ 4) Save internalRequestId so message catch can correlate
     Map<String, Object> out = new HashMap<>();
-    out.put("requestId", requestId);                 // MUST exist for message correlation
+    out.put("internalRequestId", internalRequestId);
     out.put("externalRequestSent", true);
-    out.put("internalRequestId", internalRequestId); // helpful for traceability in your process
 
     client.newCompleteCommand(job.getKey())
         .variables(out)
@@ -83,5 +104,33 @@ public class TriggerExternalProviderWorker {
     if (value == null) return fallback;
     String s = String.valueOf(value);
     return s.isBlank() ? fallback : s;
+  }
+
+  private Long toLong(Object v) {
+    if (v == null) return null;
+    if (v instanceof Number n) return n.longValue();
+    try { return Long.parseLong(String.valueOf(v)); } catch (Exception e) { return null; }
+  }
+
+  private Integer toInt(Object v) {
+    if (v == null) return null;
+    if (v instanceof Number n) return n.intValue();
+    try { return Integer.parseInt(String.valueOf(v)); } catch (Exception e) { return null; }
+  }
+
+  private Double toDouble(Object v) {
+    if (v == null) return null;
+    if (v instanceof Number n) return n.doubleValue();
+    try { return Double.parseDouble(String.valueOf(v)); } catch (Exception e) { return null; }
+  }
+
+  private List<String> toSkillsList(Object v) {
+    if (v == null) return List.of();
+    if (v instanceof List<?> list) {
+      return list.stream().map(String::valueOf).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
+    }
+    String s = String.valueOf(v);
+    if (s.isBlank()) return List.of();
+    return Arrays.stream(s.split(",")).map(String::trim).filter(x -> !x.isEmpty()).collect(Collectors.toList());
   }
 }
