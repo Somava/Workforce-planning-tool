@@ -23,6 +23,8 @@ import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
+import com.frauas.workforce_planning.model.entity.User;
+import com.frauas.workforce_planning.dto.SuccessDashboardDTO;
 import java.util.stream.Collectors;
 
 import io.camunda.zeebe.client.ZeebeClient;
@@ -376,6 +378,46 @@ public class StaffingRequestService {
             .variables(Map.of("confirm", false))
             .send()
             .join();
+    }
+    /**
+     * Fetches successful assignments for the Congratulations Dashboard.
+     * Corrected to navigate User -> Employee for names.
+     */
+    @Transactional(readOnly = true)
+    public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
+        // 1. Resolve the user from the email via employeeRepository
+        com.frauas.workforce_planning.model.entity.User actualUser = employeeRepository.findByEmail(email)
+                .map(Employee::getUser)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // 2. Query the repository using the single-parameter email query we updated
+        List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
+
+        // 3. Map entities to the DTO using the correct path to Employee names
+        return successRequests.stream().map(req -> {
+            var au = req.getAssignedUser();
+            
+            // Logic to handle Name and ID navigation
+            String empName = "External/Freelancer";
+            String empIdStr = "N/A";
+
+            if (au != null && au.getEmployee() != null) {
+                // Accessing names from the linked Employee entity
+                empName = au.getEmployee().getFirstName() + " " + au.getEmployee().getLastName();
+                empIdStr = au.getEmployee().getEmployeeId();
+            }
+
+            return new SuccessDashboardDTO(
+                req.getRequestId(),
+                req.getProjectName(),
+                req.getTitle(),       // Position Title
+                req.getDescription(), // Job Description
+                empName,
+                empIdStr,
+                String.format("Congratulations! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", 
+                    empName, empIdStr, req.getTitle(), req.getProjectName())
+            );
+        }).collect(Collectors.toList());
     }
 
 

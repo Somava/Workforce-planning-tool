@@ -7,6 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.frauas.workforce_planning.dto.SuccessDashboardDTO;
+import com.frauas.workforce_planning.services.StaffingRequestService;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -21,10 +24,29 @@ public class WorkforceOverviewController {
     @Autowired
     private EmployeeService employeeService;
 
+    @Autowired
+    private StaffingRequestService staffingRequestService;
+
     @GetMapping("/all-employees")
     public ResponseEntity<List<LeadershipEmployeeDTO>> getGlobalEmployeePool() {
         // Calls the service logic to filter for Role ID 4 and exclude department info
         List<LeadershipEmployeeDTO> employeePool = employeeService.getEmployeePoolForLeadership();
         return ResponseEntity.ok(employeePool);
+    }
+
+    /**
+     * Endpoint representing the "Notify All Parties" outcome in the BPMN diagram.
+     * Returns successful assignments where the user is the Manager, Dept Head, or Planner.
+     */
+    @GetMapping("/success-notifications")
+    public ResponseEntity<List<SuccessDashboardDTO>> getSuccessNotifications(@RequestParam String email) {
+        // Calls the logic that matches your BPMN 'Notify All Parties' step
+        List<SuccessDashboardDTO> notifications = staffingRequestService.getSuccessDashboardNotifications(email);
+        
+        if (notifications.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        
+        return ResponseEntity.ok(notifications);
     }
 }

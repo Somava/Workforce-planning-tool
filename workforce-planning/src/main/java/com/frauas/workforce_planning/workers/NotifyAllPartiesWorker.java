@@ -1,7 +1,6 @@
 package com.frauas.workforce_planning.workers;
 
 import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -12,108 +11,123 @@ import org.springframework.stereotype.Component;
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
 import io.camunda.zeebe.spring.client.annotation.JobWorker;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
+import com.frauas.workforce_planning.model.entity.Department;
+import com.frauas.workforce_planning.model.entity.User;
+import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
+@Slf4j
 public class NotifyAllPartiesWorker {
 
     private final JavaMailSender emailSender;
+    private final StaffingRequestRepository repository;
 
     @Value("${spring.mail.username}")
     private String senderEmail;
 
     @Autowired
-    public NotifyAllPartiesWorker(JavaMailSender emailSender) {
+    public NotifyAllPartiesWorker(JavaMailSender emailSender, StaffingRequestRepository repository) {
         this.emailSender = emailSender;
+        this.repository = repository;
     }
 
-    // Set the JobWorker type to match the BPMN task's job type, e.g., "notify-all-parties"
     @JobWorker(type = "notify-all-parties")
+    @Transactional
     public void notifyAllParties(final JobClient client, final ActivatedJob job) {
-
         Map<String, Object> variables = job.getVariablesAsMap();
+        Long requestId = ((Number) variables.get("requestId")).longValue();
 
-        // 1. Get required variables from the process
-        String projectName = (String) variables.getOrDefault("projectName", "Unnamed Project");
-        // These variables MUST be set earlier in the process instance!
-        String requesterEmail = (String) variables.getOrDefault("requesterEmail", "requester-missing@example.com");
-        String assignedEmployeeEmail = (String) variables.getOrDefault("assignedEmployeeEmail", "employee-missing@example.com");
-        String assignedEmployeeName = (String) variables.getOrDefault("assignedEmployeeName", "A Resource");
-        String departmentHeadEmail = (String) variables.getOrDefault("departmentHeadEmail", "head-missing@example.com");
+        // 1. Fetch fresh data from DB
+        StaffingRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found for Worker: " + requestId));
 
+        Department dept = request.getDepartment();
 
-        // 2. Define email content for Requester (Manager)
-        String requesterSubject = "Staffing Request Completed: Project " + projectName;
-        String requesterBody = String.format("""
-                The staffing request for project '%s' has been successfully completed and approved.
-                
-                The assigned employee is **%s**.
-                
-                Thank you for using the workforce planning system.""",
-                projectName,
-                assignedEmployeeName
-        );
-
-        // 3. Define email content for Assigned Employee
-        String employeeSubject = "New Staffing Assignment: Project " + projectName;
-        String employeeBody = String.format("""
-                Congratulations! You have been successfully assigned to the following project:
-                
-                **Project:** %s
-                **Project Requester Email:** %s
-                
-                Please contact the requester to begin your assignment and for further details.
-                
-                Thank you.""",
-                projectName,
-                requesterEmail
-        );
+        // 2. Extract Data
+        String projectName = request.getProjectName();
+        String positionTitle = request.getTitle();
         
-        // 4. Define email content for Department Head (or Resource Planner, for informational purposes)
-        String headSubject = "Project Staffed Confirmation: Project " + projectName;
-        String headBody = String.format("""
-                The staffing request for project '%s' has been fully processed and completed.
-                
-                **Assigned Employee:** %s
-                
-                This is for your information.""",
-                projectName,
-                assignedEmployeeName
-        );
+        // MANAGER (The Requester - StaffingRequest.getCreatedBy() returns Employee)
+        Employee creatorEmployee = request.getCreatedBy();
+        String managerEmail = (creatorEmployee.getUser() != null) ? creatorEmployee.getUser().getEmail() : "N/A";
+        String managerName = creatorEmployee.getFirstName() + " " + creatorEmployee.getLastName();
 
+        // DEPARTMENT HEAD
+        String deptHeadEmail = (dept.getDepartmentHead() != null) ? dept.getDepartmentHead().getEmail() : null;
 
-        // 5. Send Emails to all parties
-        sendEmail(requesterEmail, requesterSubject, requesterBody);
-        sendEmail(assignedEmployeeEmail, employeeSubject, employeeBody);
-        sendEmail(departmentHeadEmail, headSubject, headBody);
+        // RESOURCE PLANNER
+        String plannerEmail = (dept.getResourcePlanner() != null) ? dept.getResourcePlanner().getEmail() : null;
 
+        // EMPLOYEE (The Assigned Talent - StaffingRequest.getAssignedUser() returns User)
+        String employeeEmail = null;
+        String employeeName = "External/Freelancer";
+        if (request.getAssignedUser() != null) {
+            User assignedUserAccount = request.getAssignedUser();
+            employeeEmail = assignedUserAccount.getEmail();
+            
+            // Navigate User -> Employee to get the names
+            if (assignedUserAccount.getEmployee() != null) {
+                employeeName = assignedUserAccount.getEmployee().getFirstName() + " " + 
+                               assignedUserAccount.getEmployee().getLastName();
+            }
+        }
 
-        // 6. Complete the Job and set process variable
+        // 3. Define the Summary
+        String summary = """
+                Project: %s
+                Position: %s
+                Assigned Employee: %s
+                Requesting Manager: %s
+                """.formatted(projectName, positionTitle, employeeName, managerName);
+
+        // 4. Send Emails
+        
+        // Notify Manager
+        sendEmail(managerEmail, "Staffing Complete: " + projectName, 
+            "Hello " + managerName + ",\n\nAssignment is complete. Please begin onboarding steps.\n\n" + summary);
+
+        // Notify Employee
+        if (employeeEmail != null) {
+            sendEmail(employeeEmail, "Congratulations! Your New Assignment", 
+                "Hello " + employeeName + ",\n\nYou have been officially assigned. Please contact " + managerEmail + " to start.\n\n" + summary);
+        }
+
+        // Notify Department Head
+        if (deptHeadEmail != null) {
+            sendEmail(deptHeadEmail, "Resource Assignment Finalized", 
+                "The staffing request for your department has been filled.\n\n" + summary);
+        }
+
+        // Notify Resource Planner
+        if (plannerEmail != null) {
+            sendEmail(plannerEmail, "Resource Allocation Finalized", 
+                "The staffing request is now closed and resource capacity updated.\n\n" + summary);
+        }
+
+        // 5. Complete Job in Camunda
         client.newCompleteCommand(job.getKey())
                 .variable("finalNotificationSent", true)
                 .send()
                 .join();
     }
 
-    /**
-     * Helper method to construct and send a single email.
-     * @param toEmail The recipient's email address.
-     * @param subject The email subject line.
-     * @param body The email body text.
-     */
     private void sendEmail(String toEmail, String subject, String body) {
+        if (toEmail == null || toEmail.isEmpty() || toEmail.equals("N/A")) return;
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(senderEmail);
             message.setTo(toEmail);
             message.setSubject(subject);
             message.setText(body);
-
             emailSender.send(message);
-            System.out.println("Final notification email sent successfully to: " + toEmail);
-
+            log.info("Notification sent to: {}", toEmail);
         } catch (MailException e) {
-            System.err.println("ERROR sending final email to " + toEmail + ": " + e.getMessage());
-            
+            log.error("Failed to notify {}: {}", toEmail, e.getMessage());
         }
     }
 }

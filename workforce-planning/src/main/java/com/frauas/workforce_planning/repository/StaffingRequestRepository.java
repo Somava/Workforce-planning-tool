@@ -81,5 +81,17 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         @Param("userId") Long userId
     );
 
-    
+  @Query("SELECT s FROM StaffingRequest s " +
+           "LEFT JOIN FETCH s.assignedUser au " + 
+           "LEFT JOIN FETCH au.employee e " + 
+           "JOIN s.department d " +
+           "WHERE s.status = com.frauas.workforce_planning.model.enums.RequestStatus.INT_EMPLOYEE_ASSIGNED " +
+           "AND (" +
+           "   s.createdBy.user.email = :email " +           // Case: Requester is Manager
+           "   OR d.departmentHead.email = :email " +        // Case: User is Dept Head
+           "   OR d.resourcePlanner.email = :email" +        // Case: User is Resource Planner
+           ")")
+    List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
 }
+
+    
