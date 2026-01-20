@@ -36,11 +36,8 @@
       <bpmn:lane id="Lane_Manager" name="1. Manager">
         <bpmn:flowNodeRef>Activity_ValidateRequestData</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Event_Start</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Activity_NotifyRequesterRejected</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>EndEvent_RequestRejected</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_ResubmitDecision</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_Cancelled</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>EndEvent_Resubmitted</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_ReviewExternalFailure</bpmn:flowNodeRef>
       </bpmn:lane>
     </bpmn:laneSet>
@@ -49,6 +46,7 @@
         <zeebe:taskDefinition type="validate-request-data" retries="3" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1246sdl</bpmn:incoming>
+      <bpmn:incoming>Flow_1vgrkgo</bpmn:incoming>
       <bpmn:outgoing>Flow_ToGateway</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Activity_TriggerExternalSourcing" name="Trigger Service Management / Provider Request">
@@ -68,8 +66,8 @@
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_Approved" name="Approved?">
       <bpmn:incoming>Flow_1u3i2k9</bpmn:incoming>
-      <bpmn:outgoing>Flow_05e6i2u</bpmn:outgoing>
       <bpmn:outgoing>Flow_1v1v9d0_Success</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12qt3bx</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:exclusiveGateway id="Gateway_SuitableResource" name="Suitable Resource Found?">
       <bpmn:incoming>Flow_1qypvtd</bpmn:incoming>
@@ -84,7 +82,7 @@
     <bpmn:exclusiveGateway id="Gateway_ResubmitDecision" name="Re-Submit or Cancel?">
       <bpmn:incoming>Flow_ManagerReviewToDecision</bpmn:incoming>
       <bpmn:outgoing>Flow_Cancel</bpmn:outgoing>
-      <bpmn:outgoing>Flow_Resubmit</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1vgrkgo</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:intermediateCatchEvent id="Message_ExternalResponseReceived" name="Await External Response">
       <bpmn:incoming>Flow_TriggerToWait</bpmn:incoming>
@@ -95,35 +93,13 @@
         </bpmn:extensionElements>
       </bpmn:messageEventDefinition>
     </bpmn:intermediateCatchEvent>
-    <bpmn:endEvent id="EndEvent_RequestRejected" name="Request Rejected">
-      <bpmn:incoming>Flow_03a0z6p</bpmn:incoming>
-    </bpmn:endEvent>
     <bpmn:endEvent id="EndEvent_AssignmentComplete" name="Assignment Complete">
       <bpmn:incoming>Flow_ToAssignmentComplete</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:endEvent id="EndEvent_Cancelled" name="Request Cancelled">
       <bpmn:incoming>Flow_Cancel</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:endEvent id="EndEvent_Resubmitted" name="Request Resubmitted">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="send-resubmission-notification" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_Resubmit</bpmn:incoming>
-      <bpmn:messageEventDefinition messageRef="Message_0tst5m9" />
-    </bpmn:endEvent>
-    <bpmn:serviceTask id="Activity_NotifyRequesterRejected" name="Notify Requester (Rejected)">
-      <bpmn:extensionElements>
-        <zeebe:taskDefinition type="notify-requester" />
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_05e6i2u</bpmn:incoming>
-      <bpmn:incoming>Flow_0dgbzzd</bpmn:incoming>
-      <bpmn:outgoing>Flow_03a0z6p</bpmn:outgoing>
-    </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_ToGateway" sourceRef="Activity_ValidateRequestData" targetRef="Activity_DepartmentHeadApproval" />
-    <bpmn:sequenceFlow id="Flow_05e6i2u" name="No" sourceRef="Gateway_Approved" targetRef="Activity_NotifyRequesterRejected">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=deptHeadApproved = false</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_03a0z6p" sourceRef="Activity_NotifyRequesterRejected" targetRef="EndEvent_RequestRejected" />
     <bpmn:sequenceFlow id="Flow_InternalSuccess" name="Yes (Internal)" sourceRef="Gateway_SuitableResource" targetRef="Activity_ApproveEmployeeAssignment">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=suitableResourceFound = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
@@ -134,10 +110,7 @@
     <bpmn:sequenceFlow id="Flow_ResponseToGateway" sourceRef="Message_ExternalResponseReceived" targetRef="Gateway_ExternalResourceOutcome" />
     <bpmn:sequenceFlow id="Flow_ManagerReviewToDecision" sourceRef="Activity_ReviewExternalFailure" targetRef="Gateway_ResubmitDecision" />
     <bpmn:sequenceFlow id="Flow_Cancel" name="Cancel Request" sourceRef="Gateway_ResubmitDecision" targetRef="EndEvent_Cancelled">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=externalDecision = "cancel"</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_Resubmit" name="Re-Submit (New Process)" sourceRef="Gateway_ResubmitDecision" targetRef="EndEvent_Resubmitted">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=externalDecision = "resubmit"</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=managerDecision = "cancel"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_ToAssignmentComplete" sourceRef="Activity_FinalNotification" targetRef="EndEvent_AssignmentComplete" />
     <bpmn:exclusiveGateway id="Gateway_0bnomq5" name="Assignment Approved?">
@@ -225,21 +198,29 @@
     <bpmn:sequenceFlow id="Flow_106vkb0" sourceRef="Activity_127m3pi" targetRef="Activity_ReviewExternalFailure" />
     <bpmn:exclusiveGateway id="Gateway_00a9ynf" name="Employee Confirm ?">
       <bpmn:incoming>Flow_14pqgmk</bpmn:incoming>
-      <bpmn:outgoing>Flow_0dgbzzd</bpmn:outgoing>
       <bpmn:outgoing>Flow_1wxlpx1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1rde60r</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_0dgbzzd" name="No" sourceRef="Gateway_00a9ynf" targetRef="Activity_NotifyRequesterRejected">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=confirm = false</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
     <bpmn:receiveTask id="Activity_ReviewExternalFailure" name="Review Request&#10; Failure" messageRef="Message_1vbtjem">
       <bpmn:incoming>Flow_ExternalFailure</bpmn:incoming>
       <bpmn:incoming>Flow_0qjar78</bpmn:incoming>
       <bpmn:incoming>Flow_106vkb0</bpmn:incoming>
+      <bpmn:incoming>Flow_1rde60r</bpmn:incoming>
+      <bpmn:incoming>Flow_12qt3bx</bpmn:incoming>
       <bpmn:outgoing>Flow_ManagerReviewToDecision</bpmn:outgoing>
     </bpmn:receiveTask>
     <bpmn:sequenceFlow id="Flow_0gkef42" sourceRef="Activity_035p8yb" targetRef="Activity_FinalNotification" />
     <bpmn:sequenceFlow id="Flow_1wxlpx1" name="Yes" sourceRef="Gateway_00a9ynf" targetRef="Activity_FinalNotification">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=confirm = true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1rde60r" name="No" sourceRef="Gateway_00a9ynf" targetRef="Activity_ReviewExternalFailure">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=confirm = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_12qt3bx" name="No" sourceRef="Gateway_Approved" targetRef="Activity_ReviewExternalFailure">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=deptHeadApproved = false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1vgrkgo" name="Re-Submit" sourceRef="Gateway_ResubmitDecision" targetRef="Activity_ValidateRequestData">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=managerDecision = "resubmit"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
   </bpmn:process>
   <bpmn:message id="Message_0v293ld" name="DeptHeadDecision">
@@ -297,7 +278,7 @@
       <bpmndi:BPMNShape id="Gateway_Approved_di" bpmnElement="Gateway_Approved" isMarkerVisible="true">
         <omgdc:Bounds x="570" y="240" width="40" height="40" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="563" y="223" width="53" height="14" />
+          <omgdc:Bounds x="619.5" y="253" width="53" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_SuitableResource_di" bpmnElement="Gateway_SuitableResource" isMarkerVisible="true">
@@ -315,19 +296,13 @@
       <bpmndi:BPMNShape id="Gateway_ResubmitDecision_di" bpmnElement="Gateway_ResubmitDecision" isMarkerVisible="true">
         <omgdc:Bounds x="1390" y="110" width="40" height="40" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1377" y="81" width="66" height="27" />
+          <omgdc:Bounds x="1412" y="101.5" width="66" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Message_ExternalResponseReceived_di" bpmnElement="Message_ExternalResponseReceived">
         <omgdc:Bounds x="1062" y="452" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="985" y="456" width="70" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_RequestRejected_di" bpmnElement="EndEvent_RequestRejected">
-        <omgdc:Bounds x="762" y="112" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="736" y="88" width="88" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_AssignmentComplete_di" bpmnElement="EndEvent_AssignmentComplete">
@@ -341,15 +316,6 @@
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1685" y="81" width="49" height="27" />
         </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_Resubmitted_di" bpmnElement="EndEvent_Resubmitted">
-        <omgdc:Bounds x="1832" y="160" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1839" y="126" width="62" height="27" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1bxm6lz_di" bpmnElement="Activity_NotifyRequesterRejected">
-        <omgdc:Bounds x="600" y="100" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0bnomq5_di" bpmnElement="Gateway_0bnomq5" isMarkerVisible="true">
         <omgdc:Bounds x="1245" y="255" width="50" height="50" />
@@ -401,7 +367,7 @@
       <bpmndi:BPMNShape id="Gateway_00a9ynf_di" bpmnElement="Gateway_00a9ynf" isMarkerVisible="true">
         <omgdc:Bounds x="1545" y="505" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1545" y="467.5" width="49" height="27" />
+          <omgdc:Bounds x="1545" y="564.5" width="50" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0ykpqav_di" bpmnElement="Activity_ReviewExternalFailure">
@@ -412,18 +378,6 @@
         <omgdi:waypoint x="400" y="140" />
         <omgdi:waypoint x="460" y="140" />
         <omgdi:waypoint x="460" y="220" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_05e6i2u_di" bpmnElement="Flow_05e6i2u">
-        <omgdi:waypoint x="610" y="260" />
-        <omgdi:waypoint x="650" y="260" />
-        <omgdi:waypoint x="650" y="180" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="617" y="237" width="15" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_03a0z6p_di" bpmnElement="Flow_03a0z6p">
-        <omgdi:waypoint x="700" y="130" />
-        <omgdi:waypoint x="762" y="130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_InternalSuccess_di" bpmnElement="Flow_InternalSuccess">
         <omgdi:waypoint x="850" y="360" />
@@ -460,14 +414,6 @@
         <omgdi:waypoint x="1692" y="130" />
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1580" y="108" width="79" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_Resubmit_di" bpmnElement="Flow_Resubmit">
-        <omgdi:waypoint x="1410" y="150" />
-        <omgdi:waypoint x="1410" y="178" />
-        <omgdi:waypoint x="1832" y="178" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1739" y="146" width="82" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToAssignmentComplete_di" bpmnElement="Flow_ToAssignmentComplete">
@@ -568,16 +514,6 @@
         <omgdi:waypoint x="1249" y="220" />
         <omgdi:waypoint x="1249" y="180" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_0dgbzzd_di" bpmnElement="Flow_0dgbzzd">
-        <omgdi:waypoint x="1570" y="555" />
-        <omgdi:waypoint x="1570" y="690" />
-        <omgdi:waypoint x="530" y="690" />
-        <omgdi:waypoint x="530" y="170" />
-        <omgdi:waypoint x="600" y="170" />
-        <bpmndi:BPMNLabel>
-          <omgdc:Bounds x="1542" y="563" width="15" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0gkef42_di" bpmnElement="Flow_0gkef42">
         <omgdi:waypoint x="1300" y="620" />
         <omgdi:waypoint x="1750" y="620" />
@@ -589,6 +525,32 @@
         <omgdi:waypoint x="1850" y="530" />
         <bpmndi:BPMNLabel>
           <omgdc:Bounds x="1714" y="512" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rde60r_di" bpmnElement="Flow_1rde60r">
+        <omgdi:waypoint x="1570" y="505" />
+        <omgdi:waypoint x="1570" y="140" />
+        <omgdi:waypoint x="1272" y="140" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="1578" y="463" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12qt3bx_di" bpmnElement="Flow_12qt3bx">
+        <omgdi:waypoint x="590" y="240" />
+        <omgdi:waypoint x="590" y="140" />
+        <omgdi:waypoint x="1172" y="140" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="598" y="187" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vgrkgo_di" bpmnElement="Flow_1vgrkgo">
+        <omgdi:waypoint x="1410" y="110" />
+        <omgdi:waypoint x="1410" y="90" />
+        <omgdi:waypoint x="895" y="90" />
+        <omgdi:waypoint x="895" y="120" />
+        <omgdi:waypoint x="400" y="120" />
+        <bpmndi:BPMNLabel>
+          <omgdc:Bounds x="773" y="103" width="53" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>

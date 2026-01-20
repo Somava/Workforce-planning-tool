@@ -11,12 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.frauas.workforce_planning.dto.EmployeeApplicationDTO;
+import com.frauas.workforce_planning.dto.EmployeeProfileDTO;
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.services.EmployeeApplicationService;
-import com.frauas.workforce_planning.services.StaffingRequestService;
-import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.services.EmployeeService;
-import com.frauas.workforce_planning.dto.EmployeeProfileDTO;
+import com.frauas.workforce_planning.services.StaffingRequestService;
 
 @RestController
 @RequestMapping("/api/employee-portal")
