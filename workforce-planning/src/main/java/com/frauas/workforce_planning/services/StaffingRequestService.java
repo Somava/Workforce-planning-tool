@@ -27,6 +27,7 @@ import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import java.util.Collections;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -427,6 +428,7 @@ public class StaffingRequestService {
                     empIdStr = emp.getEmployeeId();
                 }
             }
+        }
 
             String managerName = (req.getCreatedBy() != null)
                     ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()

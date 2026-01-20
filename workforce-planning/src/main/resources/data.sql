@@ -104,7 +104,45 @@ INSERT INTO employees (
 '["Market Research", "Excel", "Algorithms"]'::jsonb, 40, 4.2, 'Benchmarking', 'Gardening'),
 
 (19, 'neumann.hr@frauas.de', 'E-119', 'Laura', 'Neumann', 1, 'Darmstadt', 'PART_TIME', 3, 34.00, '+49-15510440240', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 12, 4, 
-'["Employee Relations", "Payroll", "HRIS"]'::jsonb, 20, 3.6, 'HR Operations', 'Yoga')
+'["Employee Relations", "Payroll", "HRIS"]'::jsonb, 20, 3.6, 'HR Operations', 'Yoga'),
+
+(20, 'zimmermann.it@frauas.de', 'E-120', 'Christian', 'Zimmermann', 1, 'Frankfurt', 'FULL_TIME', 12, 42.00, '+49-15510440020', '2026-01-01', '2028-12-31', 'AVAILABLE', 4, 1, 4, 
+'["Cloud Architecture", "Kubernetes", "Go", "Terraform"]'::jsonb, 40, 4.8, 'Infrastructure Modernization', 'Sailing'),
+
+(21, 'krueger.it@frauas.de', 'E-121', 'Julia', 'Krüger', 1, 'Munich', 'PART_TIME', 4, 28.50, '+49-15510440021', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 2, 4, 
+'["UI/UX Design", "Figma", "React", "Mobile First"]'::jsonb, 20, 4.1, 'Customer Facing Portals', 'Photography'),
+
+(22, 'hartmann.it@frauas.de', 'E-122', 'Sebastian', 'Hartmann', 1, 'Berlin', 'FULL_TIME', 6, 34.00, '+49-15510440022', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 3, 4, 
+'["Node.js", "GraphQL", "MongoDB", "Microservices"]'::jsonb, 40, 3.9, 'Backend Scaling', 'Gaming'),
+
+(23, 'lange.it@frauas.de', 'E-123', 'Melanie', 'Lange', 1, 'Darmstadt', 'FULL_TIME', 8, 37.00, '+49-15510440023', '2026-01-01', '2028-06-30', 'AVAILABLE', 4, 4, 4, 
+'["Cybersecurity", "Penetration Testing", "Python"]'::jsonb, 40, 4.5, 'Security Audits', 'Martial Arts'),
+
+-- 5. Additional R&D Specialists (IDs 24-27)
+(24, 'schmidt.rd@frauas.de', 'E-124', 'Andreas', 'Schmidt', 1, 'Munich', 'FULL_TIME', 15, 39.00, '+49-15510440024', '2026-01-01', '2030-12-31', 'AVAILABLE', 4, 5, 4, 
+'["Quantum Computing", "Algorithms", "C++", "Matlab"]'::jsonb, 40, 4.9, 'Next-Gen Research', 'Astronomy'),
+
+(25, 'voigt.rd@frauas.de', 'E-125', 'Vanessa', 'Voigt', 1, 'Darmstadt', 'PART_TIME', 3, 31.00, '+49-15510440025', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
+'["Bioinformatics", "Data Mining", "Python"]'::jsonb, 25, 3.8, 'Genomic Data Analysis', 'Baking'),
+
+(26, 'beck.rd@frauas.de', 'E-126', 'Fabian', 'Beck', 1, 'Frankfurt', 'FULL_TIME', 7, 36.50, '+49-15510440026', '2026-01-01', '2028-12-31', 'AVAILABLE', 4, 7, 4, 
+'["Robotics", "ROS", "Embedded C", "Sensor Fusion"]'::jsonb, 40, 4.4, 'Automation Systems', 'Drones'),
+
+(27, 'mayer.rd@frauas.de', 'E-127', 'Isabelle', 'Mayer', 1, 'Munich', 'PART_TIME', 5, 33.00, '+49-15510440027', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 8, 4, 
+'["Computer Vision", "OpenCV", "TensorFlow"]'::jsonb, 20, 4.2, 'Image Recognition', 'Skiing'),
+
+-- 6. Additional HR Specialists (IDs 28-31)
+(28, 'schwarz.hr@frauas.de', 'E-128', 'Alexander', 'Schwarz', 1, 'Berlin', 'FULL_TIME', 11, 35.00, '+49-15510440028', '2026-01-01', '2029-12-31', 'AVAILABLE', 4, 9, 4, 
+'["Change Management", "Organizational Dev", "Coaching"]'::jsonb, 40, 4.7, 'Corporate Culture', 'Psychology'),
+
+(29, 'otto.hr@frauas.de', 'E-129', 'Natalie', 'Otto', 1, 'Frankfurt', 'FULL_TIME', 4, 26.50, '+49-15510440029', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 10, 4, 
+'["Employer Branding", "Social Media", "Recruiting"]'::jsonb, 40, 4.0, 'Campus Recruitment', 'Travel'),
+
+(30, 'fuchs.hr@frauas.de', 'E-130', 'Maximilian', 'Fuchs', 1, 'Darmstadt', 'PART_TIME', 6, 29.00, '+49-15510440030', '2026-01-01', '2028-01-01', 'AVAILABLE', 4, 11, 4, 
+'["Labor Law", "Contract Negotiation", "Compliance"]'::jsonb, 30, 3.7, 'Legal Compliance', 'History'),
+
+(31, 'peters.hr@frauas.de', 'E-131', 'Clara', 'Peters', 1, 'Berlin', 'FULL_TIME', 2, 24.00, '+49-15510440031', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 12, 4, 
+'["Onboarding", "Training", "Excel"]'::jsonb, 40, 3.5, 'Employee Integration', 'Painting')
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE employees SET supervisor_id = 1 WHERE id IN (2, 3, 4, 5, 6, 7);
