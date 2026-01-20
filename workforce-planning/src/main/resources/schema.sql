@@ -205,6 +205,7 @@ CREATE TABLE staffing_requests (
     experience_years INTEGER,
     validation_error TEXT,
     rejection_reason TEXT,
+    rejection_type TEXT,
 
     CONSTRAINT fk_staffreq_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
     CONSTRAINT fk_staffreq_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),

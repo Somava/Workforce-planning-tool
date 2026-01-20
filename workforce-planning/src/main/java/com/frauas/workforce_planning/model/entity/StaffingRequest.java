@@ -97,10 +97,7 @@ public class StaffingRequest {
 
     @Column(name = "validation_error")
     private String validationError;
-
-    @Column(name = "rejection_reason", columnDefinition = "TEXT")
-    private String rejectionReason;
-
+    
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by_employee_id")
     // BREAKS THE LOOP: Ignores the lists inside the Employee object
@@ -114,5 +111,11 @@ public class StaffingRequest {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    @Column(name = "rejection_type")
+    private String rejectionType;
+
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
 
 }

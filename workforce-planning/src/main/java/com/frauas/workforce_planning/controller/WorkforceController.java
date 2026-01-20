@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.services.StaffingRequestService;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -40,19 +41,6 @@ public class WorkforceController {
         StaffingRequest savedRequest = staffingService.createAndStartRequest(dto, currentUserId);
         return ResponseEntity.ok(savedRequest);
     }
-
-    // /**
-    //  * Updates an existing request.
-    //  * Changed path variable name to match the service's findByRequestId logic.
-    //  */
-    // @PutMapping("/{requestId}/update")
-    // public ResponseEntity<StaffingRequest> updateRequest(
-    //         @PathVariable Long requestId, 
-    //         @RequestBody WorkforceRequestDTO dto) {
-        
-    //     StaffingRequest updated = staffingService.updateExistingRequest(requestId, dto);
-    //     return ResponseEntity.ok(updated);
-    // }
     
     // In WorkforceController.java
     @GetMapping("/manager-requests")
