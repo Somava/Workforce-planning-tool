@@ -3,14 +3,17 @@ package com.frauas.workforce_planning.services;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
-
+import com.frauas.workforce_planning.dto.StaffingRequestUpdateDTO;
+import com.frauas.workforce_planning.dto.SuccessDashboardDTO;
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.Department;
 import com.frauas.workforce_planning.model.entity.Employee;
@@ -19,13 +22,10 @@ import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.MatchingAvailability;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.DepartmentRepository;
+import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
-import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
-import com.frauas.workforce_planning.model.entity.User;
-import com.frauas.workforce_planning.dto.SuccessDashboardDTO;
-import java.util.stream.Collectors;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -420,6 +420,45 @@ public class StaffingRequestService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional
+    public void updateRequestDetails(Long requestId, StaffingRequestUpdateDTO dto) {
+        // Use the 'repository' variable consistently as per your createAndStartRequest method
+        StaffingRequest request = repository.findById(requestId)
+            .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
 
+        // Update fields only if they are present in the DTO
+        if (dto.title() != null) request.setTitle(dto.title());
+        if (dto.description() != null) request.setDescription(dto.description());
+        if (dto.requiredSkills() != null) request.setRequiredSkills(dto.requiredSkills());
+        if (dto.experienceYears() != null) request.setExperienceYears(dto.experienceYears());
+        if (dto.wagePerHour() != null) request.setWagePerHour(dto.wagePerHour());
+        if (dto.workLocation() != null) request.setWorkLocation(dto.workLocation());
+        if (dto.availabilityHoursPerWeek() != null) request.setAvailabilityHoursPerWeek(dto.availabilityHoursPerWeek());
+
+        /* * Logic Alignment: Set status to PENDING_APPROVAL. 
+         * Since it's re-submitting, it goes back to the 'Validate' and 'Dept Head' steps.
+         */
+        request.setStatus(RequestStatus.PENDING_APPROVAL); 
+        
+        repository.save(request);
+    }
+
+    @Transactional
+    public void updateStatus(Long requestId, String status) {
+        repository.findById(requestId).ifPresent(r -> {
+            // Note: If you want to use the String status directly, 
+            // ensure your Entity supports String or map it to RequestStatus.valueOf(status)
+            try {
+                r.setStatus(RequestStatus.valueOf(status.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid status provided: {}", status);
+            }
+            repository.save(r);
+        });
+    }
+
+    public Optional<StaffingRequest> getById(Long requestId) {
+        return repository.findById(requestId);
+    }
 
 }

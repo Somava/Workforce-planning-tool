@@ -29,6 +29,8 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     List<StaffingRequest> findByStatus(RequestStatus status);
 
+    List<StaffingRequest> findByCreatedByEmail(String email);
+
 
     /**
      * PostgreSQL Native Query for JSONB search.

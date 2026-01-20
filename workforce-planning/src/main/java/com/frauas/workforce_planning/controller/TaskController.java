@@ -13,12 +13,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
+import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
-import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.services.StaffingRequestService;
-import com.frauas.workforce_planning.model.entity.User;
+
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
