@@ -97,7 +97,12 @@ public class TaskController {
     public ResponseEntity<String> handleDeptHeadDecision(
             @RequestParam Long requestId,
             @RequestParam String email, // Changed from Long deptHeadId to String email
-            @RequestParam boolean approved) {
+            @RequestParam boolean approved,
+            @RequestParam(required = false) String reason) {
+
+        String finalReason = (reason == null || reason.trim().isEmpty()) 
+                         ? "No specific reason provided by Dept Head." 
+                         : reason;
 
         // 1. Find the User by email to get their ID
         User user = userRepository.findByEmail(email)
@@ -109,6 +114,7 @@ public class TaskController {
 
         // 3. AUTHORIZATION: Use the ID we found from the email
         if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+            log.warn("Unauthorized access attempt by {} for request {}", email, requestId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("User with email " + email + " is not authorized to approve this request.");
         }
@@ -118,8 +124,8 @@ public class TaskController {
             staffingRequestService.approveRequestByDepartmentHead(requestId);
             log.info("Request {} approved by email: {}", requestId, email);
         } else {
-            staffingRequestService.rejectRequestByDepartmentHead(requestId);
-            log.info("Request {} rejected by email: {}", requestId, email);
+            staffingRequestService.rejectRequestByDepartmentHead(requestId, finalReason);
+            log.info("Request {} rejected by email: {}", requestId, email, finalReason);
         }
 
         String action = approved ? "approved" : "rejected";
@@ -134,7 +140,12 @@ public class TaskController {
     public ResponseEntity<String> handleInternalEmployeeDecision(
             @RequestParam Long requestId,
             @RequestParam String email,
-            @RequestParam boolean approved) {
+            @RequestParam boolean approved,
+            @RequestParam(required = false) String reason) {
+
+        String finalReason = (reason == null || reason.trim().isEmpty()) 
+                         ? "Dept Head rejected the internal employee assignment without specific feedback." 
+                         : reason;
 
         // 1) Resolve Dept Head user by email
         User user = userRepository.findByEmail(email)
@@ -160,8 +171,8 @@ public class TaskController {
             staffingRequestService.markInternalEmployeeApproved(requestId);
             log.info("Internal employee APPROVED request {} (reported by dept head email={})", requestId, email);
         } else {
-            staffingRequestService.markInternalEmployeeRejected(requestId);
-            log.info("Internal employee REJECTED request {} (reported by dept head email={})", requestId, email);
+            staffingRequestService.markInternalEmployeeRejected(requestId, finalReason);
+            log.info("Internal employee REJECTED request {} (reported by dept head email={})", requestId, email, finalReason);
         }
 
         String action = approved ? "approved" : "rejected";
@@ -273,50 +284,7 @@ public class TaskController {
      * Employee confirms or rejects an assignment for a staffing request.
      * Signals the Camunda Receive Task via service layer.
      */
-    @PostMapping("/employee/assignment-decision")
-    public ResponseEntity<String> handleEmployeeAssignmentDecision(
-            @RequestParam Long requestId,
-            @RequestParam String email,
-            @RequestParam boolean approved) {
-
-        // 1) Find user by email
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "User not found with email: " + email
-                ));
-
-        // 2) Fetch request
-        StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
-                .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Request not found: " + requestId
-                ));
-
-        // 3) Must have assigned user
-        if (request.getAssignedUser() == null) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "No assigned user for request: " + requestId
-            );
-        }
-
-        // 4) Authorization: this employee must be the assigned user
-        if (!request.getAssignedUser().getId().equals(user.getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("User " + email + " is not authorized to decide for request " + requestId);
-        }
-
-        // 5) Delegate: service updates DB + signals Camunda
-        if (approved) {
-            staffingRequestService.confirmAssignmentByEmployee(requestId);
-            log.info("Employee {} CONFIRMED assignment for request {}", email, requestId);
-        } else {
-            staffingRequestService.rejectAssignmentByEmployee(requestId);
-            log.info("Employee {} REJECTED assignment for request {}", email, requestId);
-        }
-
-        String action = approved ? "confirmed" : "rejected";
-        return ResponseEntity.ok("Assignment for request " + requestId + " has been " + action + " by " + email);
-    }
+    
 
 
     /**

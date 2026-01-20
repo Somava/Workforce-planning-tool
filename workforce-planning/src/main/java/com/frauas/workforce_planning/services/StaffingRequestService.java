@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,6 +160,7 @@ public class StaffingRequestService {
         
         // 2. Update Database (The "Pull" part for the Manager's Dashboard)
         request.setStatus(RequestStatus.REQUEST_REJECTED);
+        request.setRejectionType("DEPT_HEAD_REJECTED_INITIALLY");
         request.setRejectionReason(reason); // This maps directly to your entity field
         repository.save(request);
 
@@ -176,7 +178,7 @@ public class StaffingRequestService {
                 .send()
                 .join();
         
-        log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId);
+        log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId, reason);
     }
 
     @Transactional
@@ -230,7 +232,7 @@ public class StaffingRequestService {
     }
 
     @Transactional
-    public void markInternalEmployeeRejected(Long requestId) {
+    public void markInternalEmployeeRejected(Long requestId,  String reason) {
         StaffingRequest request = repository.findByRequestId(requestId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "Request not found: " + requestId
@@ -252,7 +254,14 @@ public class StaffingRequestService {
 
         // Update request status
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
+        request.setRejectionType("DEPT_HEAD_ASSIGNMENT_REJECTED"); // ✅ Hardcoded Type
+        request.setRejectionReason(reason);
         repository.save(request);
+
+        Map<String, Object> variables = Map.of(
+            "intEmployeeApproved", false,
+            "rejectionReason", reason
+        );
 
         zeebeClient.newPublishMessageCommand()
             .messageName("InternalEmployeeDecision") // must match BPMN
@@ -260,8 +269,10 @@ public class StaffingRequestService {
             .variables(Map.of("intEmployeeApproved", false))
             .send()
             .join();
+        
+        log.info("Dept Head rejected internal assignment for Request {}. Reason: {}", requestId, reason);
     }
-
+    
 
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
@@ -352,7 +363,7 @@ public class StaffingRequestService {
     }
 
     @Transactional
-    public void rejectAssignmentByEmployee(Long requestId) {
+    public void rejectAssignmentByEmployee(Long requestId, String reason) {
         StaffingRequest request = repository.findByRequestId(requestId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "Request not found: " + requestId
@@ -370,7 +381,14 @@ public class StaffingRequestService {
         employeeRepository.save(employee);
 
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_EMP);
+        request.setRejectionType("EMPLOYEE_DECLINED"); // Hardcoded Type
+        request.setRejectionReason(reason); 
         repository.save(request);
+
+        Map<String, Object> variables = Map.of(
+            "confirm", false,
+            "rejectionReason", reason
+        );
 
         zeebeClient.newPublishMessageCommand()
             .messageName("Employee_Confirmation") // MUST match BPMN exactly
@@ -378,44 +396,66 @@ public class StaffingRequestService {
             .variables(Map.of("confirm", false))
             .send()
             .join();
+
+        log.info("Employee rejection recorded for Request ID: {}. Reason: {}", requestId, reason);
     }
+
     /**
      * Fetches successful assignments for the Congratulations Dashboard.
      * Corrected to navigate User -> Employee for names.
      */
     @Transactional(readOnly = true)
     public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
-        // 1. Resolve the user from the email via employeeRepository
-        com.frauas.workforce_planning.model.entity.User actualUser = employeeRepository.findByEmail(email)
-                .map(Employee::getUser)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-
-        // 2. Query the repository using the single-parameter email query we updated
         List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
 
-        // 3. Map entities to the DTO using the correct path to Employee names
         return successRequests.stream().map(req -> {
             var au = req.getAssignedUser();
             
-            // Logic to handle Name and ID navigation
+            // 1. Define 'emp' properly inside the map block
+            com.frauas.workforce_planning.model.entity.Employee emp = (au != null) ? au.getEmployee() : null;
+
             String empName = "External/Freelancer";
             String empIdStr = "N/A";
+            boolean isSelfAssignment = false;
 
-            if (au != null && au.getEmployee() != null) {
-                // Accessing names from the linked Employee entity
-                empName = au.getEmployee().getFirstName() + " " + au.getEmployee().getLastName();
-                empIdStr = au.getEmployee().getEmployeeId();
+            if (au != null) {
+                if (au.getEmail().equalsIgnoreCase(email)) {
+                    isSelfAssignment = true;
+                }
+                if (emp != null) {
+                    empName = emp.getFirstName() + " " + emp.getLastName();
+                    empIdStr = emp.getEmployeeId();
+                }
             }
 
+            String managerName = (req.getCreatedBy() != null)
+                    ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()
+                    : "N/A";
+
+            String displayMessage = isSelfAssignment 
+                ? String.format("Congratulations! You have been officially assigned to the project '%s' as '%s'.", req.getProjectName(), req.getTitle())
+                : String.format("Success! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", empName, empIdStr, req.getTitle(), req.getProjectName());
+
+            // 2. Return the DTO with careful attention to types
             return new SuccessDashboardDTO(
                 req.getRequestId(),
                 req.getProjectName(),
-                req.getTitle(),       // Position Title
-                req.getDescription(), // Job Description
+                req.getTitle(),
+                req.getDescription(),
                 empName,
                 empIdStr,
-                String.format("Congratulations! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", 
-                    empName, empIdStr, req.getTitle(), req.getProjectName())
+                req.getProjectStartDate(),
+                req.getProjectEndDate(),
+                req.getProjectLocation(),
+                managerName,
+                req.getWagePerHour(),
+                // --- Employee Specifics ---
+                (emp != null && emp.getPrimaryLocation() != null) ? emp.getPrimaryLocation() : "N/A",
+                (emp != null && emp.getContractType() != null) ? emp.getContractType().name() : "N/A",
+                (emp != null && emp.getPerformanceRating() != null) ? emp.getPerformanceRating() : 0.0,
+                // FIX: If emp or skills is null, return an empty List, NOT a String "N/A"
+                (emp != null && emp.getSkills() != null) ? emp.getSkills() : java.util.Collections.emptyList(),
+                displayMessage // Final field
             );
         }).collect(Collectors.toList());
     }
