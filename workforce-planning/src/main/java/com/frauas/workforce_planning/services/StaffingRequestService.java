@@ -26,6 +26,7 @@ import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import java.util.Collections;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -383,42 +384,61 @@ public class StaffingRequestService {
      * Fetches successful assignments for the Congratulations Dashboard.
      * Corrected to navigate User -> Employee for names.
      */
-    @Transactional(readOnly = true)
-    public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
-        // 1. Resolve the user from the email via employeeRepository
-        com.frauas.workforce_planning.model.entity.User actualUser = employeeRepository.findByEmail(email)
-                .map(Employee::getUser)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+   @Transactional(readOnly = true)
+public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
+    List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
 
-        // 2. Query the repository using the single-parameter email query we updated
-        List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
+    return successRequests.stream().map(req -> {
+        var au = req.getAssignedUser();
+        
+        // 1. Define 'emp' properly inside the map block
+        com.frauas.workforce_planning.model.entity.Employee emp = (au != null) ? au.getEmployee() : null;
 
-        // 3. Map entities to the DTO using the correct path to Employee names
-        return successRequests.stream().map(req -> {
-            var au = req.getAssignedUser();
-            
-            // Logic to handle Name and ID navigation
-            String empName = "External/Freelancer";
-            String empIdStr = "N/A";
+        String empName = "External/Freelancer";
+        String empIdStr = "N/A";
+        boolean isSelfAssignment = false;
 
-            if (au != null && au.getEmployee() != null) {
-                // Accessing names from the linked Employee entity
-                empName = au.getEmployee().getFirstName() + " " + au.getEmployee().getLastName();
-                empIdStr = au.getEmployee().getEmployeeId();
+        if (au != null) {
+            if (au.getEmail().equalsIgnoreCase(email)) {
+                isSelfAssignment = true;
             }
+            if (emp != null) {
+                empName = emp.getFirstName() + " " + emp.getLastName();
+                empIdStr = emp.getEmployeeId();
+            }
+        }
 
-            return new SuccessDashboardDTO(
-                req.getRequestId(),
-                req.getProjectName(),
-                req.getTitle(),       // Position Title
-                req.getDescription(), // Job Description
-                empName,
-                empIdStr,
-                String.format("Congratulations! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", 
-                    empName, empIdStr, req.getTitle(), req.getProjectName())
-            );
-        }).collect(Collectors.toList());
-    }
+        String managerName = (req.getCreatedBy() != null)
+                ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()
+                : "N/A";
+
+        String displayMessage = isSelfAssignment 
+            ? String.format("Congratulations! You have been officially assigned to the project '%s' as '%s'.", req.getProjectName(), req.getTitle())
+            : String.format("Success! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", empName, empIdStr, req.getTitle(), req.getProjectName());
+
+        // 2. Return the DTO with careful attention to types
+        return new SuccessDashboardDTO(
+            req.getRequestId(),
+            req.getProjectName(),
+            req.getTitle(),
+            req.getDescription(),
+            empName,
+            empIdStr,
+            req.getProjectStartDate(),
+            req.getProjectEndDate(),
+            req.getProjectLocation(),
+            managerName,
+            req.getWagePerHour(),
+            // --- Employee Specifics ---
+            (emp != null && emp.getPrimaryLocation() != null) ? emp.getPrimaryLocation() : "N/A",
+            (emp != null && emp.getContractType() != null) ? emp.getContractType().name() : "N/A",
+            (emp != null && emp.getPerformanceRating() != null) ? emp.getPerformanceRating() : 0.0,
+            // FIX: If emp or skills is null, return an empty List, NOT a String "N/A"
+            (emp != null && emp.getSkills() != null) ? emp.getSkills() : java.util.Collections.emptyList(),
+            displayMessage // Final field
+        );
+    }).collect(Collectors.toList());
+}
 
     @Transactional
     public void updateRequestDetails(Long requestId, StaffingRequestUpdateDTO dto) {
