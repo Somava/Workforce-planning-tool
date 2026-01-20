@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 const ApprovalDashboard = () => {
-    const [activeTab, setActiveTab] = useState('pending');
-    const [deptTasks, setDeptTasks] = useState([]);
+    const [activeTab, setActiveTab] = useState('staffing'); 
+    const [staffingTasks, setStaffingTasks] = useState([]);
+    const [assignmentTasks, setAssignmentTasks] = useState([]);
     const [departmentName, setDepartmentName] = useState("Loading..."); 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -11,80 +12,82 @@ const ApprovalDashboard = () => {
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
 
     const userEmail = localStorage.getItem("email") || "charlie@frauas.de";
-    
-    const fetchStaffingRequests = useCallback(async () => {
+
+    // Helper to calculate skill match percentage
+    const calculateMatch = (required = [], candidate = []) => {
+        if (required.length === 0) return 100;
+        const matched = required.filter(skill => candidate.includes(skill));
+        return Math.round((matched.length / required.length) * 100);
+    };
+
+    const fetchAllData = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/tasks/dept-head?email=${userEmail}`);
-            const data = await response.json();
-            
-            const applicationsList = Array.isArray(data) ? data : (data.applications || []);
-            const pendingTasks = applicationsList.filter(t => t.status === 'PENDING_APPROVAL');
-            
-            setDeptTasks(pendingTasks);
+            const [staffingRes, assignmentRes] = await Promise.all([
+                fetch(`http://localhost:8080/api/tasks/dept-head?email=${userEmail}`),
+                fetch(`http://localhost:8080/api/tasks/dept-head/int-employee-approval?email=${userEmail}`)
+            ]);
 
-            if (pendingTasks.length > 0 && pendingTasks[0].department) {
-                setDepartmentName(pendingTasks[0].department.name);
-            } else {
-                switch (userEmail) {
-                    case "charlie@frauas.de": setDepartmentName("Research & Development"); break;
-                    case "bob@frauas.de": setDepartmentName("Information Technology"); break;
-                    case "diana@frauas.de": setDepartmentName("Human Resources"); break;
-                    default: setDepartmentName("Department");
-                }
-            }
+            const staffingData = await staffingRes.json();
+            const assignmentData = await assignmentRes.json();
 
+            setStaffingTasks(Array.isArray(staffingData) ? staffingData.filter(t => t.status === 'PENDING_APPROVAL') : []);
+            setAssignmentTasks(Array.isArray(assignmentData) ? assignmentData : []);
+
+            const names = { 
+                "charlie@frauas.de": "Research & Development", 
+                "bob@frauas.de": "Information Technology", 
+                "diana@frauas.de": "Human Resources" 
+            };
+            setDepartmentName(names[userEmail] || "Department Dashboard");
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
-            setMessage({ text: "Error connecting to API.", type: 'error' });
+            setMessage({ text: "Error connecting to backend services.", type: 'error' });
         } finally {
             setIsRefreshing(false);
         }
     }, [userEmail]);
 
     useEffect(() => {
-        fetchStaffingRequests();
-    }, [fetchStaffingRequests]);
+        fetchAllData();
+    }, [fetchAllData]);
 
-    const handleDecision = async (requestId, isApproved) => {
-        if (!requestId) {
-            setMessage({ text: "Error: Request ID is missing.", type: 'error' });
-            return;
-        }
-
-        setPendingAction(`${isApproved}-${requestId}`);
-        
+    const handleDecision = async (id, isApproved) => {
+        setPendingAction(`${isApproved}-${id}`);
         try {
             const queryParams = new URLSearchParams({
-                requestId: requestId.toString(),
+                requestId: id.toString(),
                 email: userEmail,
                 approved: isApproved.toString()
             });
 
-            const url = `http://localhost:8080/api/tasks/dept-head/decision?${queryParams.toString()}`;
+            const endpoint = activeTab === 'staffing' 
+                ? 'api/tasks/dept-head/decision' 
+                : 'api/tasks/dept-head/int-employee-decision';
 
-            const response = await fetch(url, { 
+            const response = await fetch(`http://localhost:8080/${endpoint}?${queryParams.toString()}`, { 
                 method: 'POST', 
-                headers: { 'accept': '*/*' }
+                headers: { 'accept': '*/*' } 
             });
 
             if (response.ok) {
                 setMessage({ 
-                    text: `Request #${requestId} ${isApproved ? 'Approved' : 'Rejected'}.`, 
+                    text: `${activeTab === 'staffing' ? 'Request' : 'Assignment'} #${id} ${isApproved ? 'Approved' : 'Rejected'}.`, 
                     type: isApproved ? 'success' : 'action' 
                 });
-                fetchStaffingRequests();
+                fetchAllData();
             } else {
-                const errorData = await response.json().catch(() => ({}));
-                setMessage({ text: errorData.error || "Action failed on server.", type: 'error' });
+                setMessage({ text: "Server failed to process decision.", type: 'error' });
             }
         } catch (err) {
-            setMessage({ text: "Network error. Check if server is running.", type: 'error' });
+            setMessage({ text: "Network error.", type: 'error' });
         } finally {
             setPendingAction(null);
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
         }
     };
+
+    const currentTasks = activeTab === 'staffing' ? staffingTasks : assignmentTasks;
 
     return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
@@ -102,143 +105,162 @@ const ApprovalDashboard = () => {
 
                 <div style={styles.titleRow}>
                     <div style={styles.titleGroup}>
-                        <h1 style={styles.mainTitle}>Career Portal</h1>
-                        <p style={styles.subTitle}>Viewing <strong>{departmentName}</strong> applications</p>
+                        <h1 style={styles.mainTitle}>Department Portal</h1>
+                        <p style={styles.subTitle}>Approvals for <strong>{departmentName}</strong></p>
                     </div>
                     <div style={styles.syncGroup}>
                         <span style={styles.syncText}>Last synced: {lastSynced}</span>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); fetchStaffingRequests(); }} 
-                            style={styles.refreshBtn}
-                            disabled={isRefreshing}
-                        >
+                        <button onClick={(e) => { e.stopPropagation(); fetchAllData(); }} style={styles.refreshBtn} disabled={isRefreshing}>
                             {isRefreshing ? '...' : '↻'}
                         </button>
                     </div>
                 </div>
 
                 <div style={styles.tabContainer}>
-                    <button 
-                        style={{...styles.tab, ...(activeTab === 'pending' ? styles.activeTab : {})}} 
-                        onClick={() => setActiveTab('pending')}
-                    >
-                        Staffing Request Approval ({deptTasks.length})
+                    <button style={{...styles.tab, ...(activeTab === 'staffing' ? styles.activeTab : {})}} onClick={() => setActiveTab('staffing')}>
+                        Staffing Requests ({staffingTasks.length})
                     </button>
-                    <button 
-                        style={{...styles.tab, ...(activeTab === 'tracker' ? styles.activeTab : {})}} 
-                        onClick={() => setActiveTab('tracker')}
-                    >
-                        Employee Assignment Approval
+                    <button style={{...styles.tab, ...(activeTab === 'assignment' ? styles.activeTab : {})}} onClick={() => setActiveTab('assignment')}>
+                        Employee Assignments ({assignmentTasks.length})
                     </button>
                 </div>
 
                 <div style={styles.list}>
-                    {activeTab === 'pending' ? (
-                        deptTasks.map((item) => (
-                            <div key={item.requestId} style={styles.cardlessRow}>
-                                <div style={styles.cardMain}>
-                                    <div style={styles.cardHeader}>
-                                        <div>
-                                            <h2 style={styles.jobTitle}>{item.title}</h2>
-                                            <p style={styles.subHeader}>
-                                                <span style={styles.projectLink}>{item.project?.name}</span>
-                                                <span style={styles.separator}>|</span>
-                                                <span>{item.department?.name}</span>
-                                            </p>
-                                        </div>
-                                        <div style={styles.priceGroup}>
-                                            <span style={styles.wage}>€{item.wagePerHour}/hr</span>
-                                            <div style={{ position: 'relative' }}>
-                                                <button 
-                                                    style={styles.infoCircle} 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setExpandedInfo(expandedInfo === item.requestId ? null : item.requestId);
-                                                    }}
-                                                >i</button>
-                                                
-                                                {expandedInfo === item.requestId && (
-                                                    <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
-                                                        <div style={styles.floatingGrid}>
-                                                            <div>
-                                                                <h5 style={styles.panelTitle}>Management</h5>
-                                                                <p style={styles.floatText}><strong>Manager:</strong> {item.project?.managerUser?.employee?.firstName} {item.project?.managerUser?.employee?.lastName}</p>
-                                                                <p style={styles.floatText}><strong>Email:</strong> {item.project?.managerUser?.email}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h5 style={styles.panelTitle}>Unit</h5>
-                                                                <p style={styles.floatText}><strong>Department:</strong> {item.department?.name}</p>
-                                                                <p style={styles.floatText}><strong>Planner:</strong> {item.department?.resourcePlanner?.email}</p>
-                                                            </div>
-                                                            <div>
-                                                                <h5 style={styles.panelTitle}>Status</h5>
-                                                                <p style={styles.floatText}><strong>Project:</strong> {item.project?.status}</p>
-                                                                <p style={styles.floatText}><strong>Published:</strong> {item.project?.published ? "Yes" : "No"}</p>
+                    {currentTasks.length > 0 ? (
+                        currentTasks.map((item) => {
+                            const itemId = item.requestId;
+                            const emp = item.assignedUser?.employee;
+                            const manager = item.project?.managerUser?.employee;
+                            const matchScore = calculateMatch(item.requiredSkills, emp?.skills);
+
+                            return (
+                                <div key={itemId} style={styles.cardlessRow}>
+                                    <div style={styles.cardMain}>
+                                        <div style={styles.cardHeader}>
+                                            <div>
+                                                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                                                    <h2 style={styles.jobTitle}>{item.title}</h2>
+                                                    {activeTab === 'assignment' && (
+                                                        <span style={{
+                                                            ...styles.matchBadge, 
+                                                            background: matchScore > 75 ? '#dcfce7' : '#fef9c3',
+                                                            color: matchScore > 75 ? '#166534' : '#854d0e'
+                                                        }}>
+                                                            {matchScore}% Match
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p style={styles.subHeader}>
+                                                    <span style={styles.projectLink}>{item.project?.name || item.projectName}</span>
+                                                    <span style={styles.separator}>|</span>
+                                                    <span style={{fontWeight: '700', color: activeTab === 'staffing' ? '#64748b' : '#4338ca'}}>
+                                                        {activeTab === 'staffing' ? (item.department?.name || "Pending") : `Candidate: ${emp?.firstName} ${emp?.lastName}`}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <div style={styles.priceGroup}>
+                                                <span style={styles.wage}>€{item.wagePerHour}/hr</span>
+                                                <div style={{ position: 'relative' }}>
+                                                    <button 
+                                                        style={styles.infoCircle} 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedInfo(expandedInfo === itemId ? null : itemId);
+                                                        }}
+                                                    >i</button>
+                                                    
+                                                    {expandedInfo === itemId && (
+                                                        <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
+                                                            <div style={styles.floatingGrid}>
+                                                                <div style={styles.infoSection}>
+                                                                    <h5 style={styles.panelTitle}>THE REQUEST (DEMAND)</h5>
+                                                                    <p style={styles.floatText}><strong>Role:</strong> {item.title}</p>
+                                                                    <p style={styles.floatText}><strong>Location:</strong> {item.workLocation || item.project?.location}</p>
+                                                                    <p style={styles.floatText}><strong>Manager:</strong> {manager?.firstName} {manager?.lastName}</p>
+                                                                    <p style={styles.floatText}><strong>Required Skills:</strong> {item.requiredSkills?.join(', ')}</p>
+                                                                </div>
+
+                                                                <div style={styles.infoSectionHighlight}>
+                                                                    <h5 style={styles.panelTitle}>FETCHED EMPLOYEE </h5>
+                                                                    {emp ? (
+                                                                        <>
+                                                                            <p style={styles.floatText}><strong>Name:</strong> {emp.firstName} {emp.lastName}</p>
+                                                                            <p style={styles.floatText}><strong>Home Base:</strong> {emp.primaryLocation}</p>
+                                                                            <p style={styles.floatText}><strong>Rating:</strong> {emp.performanceRating} / 5.0</p>
+                                                                            <p style={{...styles.floatText, fontWeight: 'bold', color: '#4338ca'}}>
+                                                                                <strong>Skill Match:</strong> {matchScore}%
+                                                                            </p>
+                                                                        </>
+                                                                    ) : (
+                                                                        <p style={styles.floatText}>No specific employee yet.</p>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.metaGrid}>
+                                            <div style={styles.metaCol}>
+                                                <div style={styles.metaItem}><strong>Request ID:</strong> {itemId}</div>
+                                                <div style={styles.metaItem}><strong>Employee Base:</strong> {emp?.primaryLocation || 'N/A'}</div>
+                                            </div>
+                                            <div style={styles.metaCol}>
+                                                <div style={styles.metaItem}><strong>Mode:</strong> {item.workLocation}</div>
+                                                <div style={styles.metaItem}><strong>Start:</strong> {item.projectStartDate}</div>
+                                            </div>
+                                            <div style={styles.metaCol}>
+                                                <div style={styles.metaItem}><strong>Hrs/Week:</strong> {item.availabilityHoursPerWeek}</div>
+                                                <div style={styles.metaItem}><strong>End:</strong> {item.projectEndDate}</div>
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.descriptionRow}>
+                                            <div style={styles.descCol}>
+                                                <span style={styles.smallLabel}>Job Description :</span>
+                                                <p style={styles.descText}>{item.description}</p>
+                                            </div>
+                                            <div style={styles.descCol}>
+                                                <span style={styles.smallLabel}>
+                                                    {activeTab === 'staffing' ? 'Required Skills :' : 'Candidate Skills :'}
+                                                </span>
+                                                <div style={styles.skillRow}>
+                                                    {(activeTab === 'staffing' ? item.requiredSkills : emp?.skills || []).map(skill => (
+                                                        <span key={skill} style={{
+                                                            ...styles.skillBadge,
+                                                            border: (activeTab === 'assignment' && item.requiredSkills?.includes(skill)) ? '1.5px solid #4338ca' : 'none'
+                                                        }}>
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Updated Meta Grid: Includes all previous fields plus Work Location, Request Dates, and Available Hours */}
-                                    <div style={styles.metaGrid}>
-                                        <div style={styles.metaCol}>
-                                            <div style={styles.metaItem}><strong>Request ID:</strong> {item.requestId}</div>
-                                            <div style={styles.metaItem}><strong>Work Location:</strong> {item.workLocation}</div>
-                                            <div style={styles.metaItem}><strong>Project Location:</strong> {item.project?.location}</div>
-                                        </div>
-                                        <div style={styles.metaCol}>
-                                            <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} yr(s)</div>
-                                            <div style={styles.metaItem}><strong>Assignment Start:</strong> {item.projectStartDate}</div>
-                                            <div style={styles.metaItem}><strong>Project Start:</strong> {item.project?.startDate}</div>
-                                        </div>
-                                        <div style={styles.metaCol}>
-                                            <div style={styles.metaItem}><strong>Load:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                            <div style={styles.metaItem}><strong>Assignment End:</strong> {item.projectEndDate}</div>
-                                            <div style={styles.metaItem}><strong>Project End:</strong> {item.project?.endDate}</div>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.descriptionRow}>
-                                        <div style={styles.descCol}>
-                                            <span style={styles.smallLabel}>Position Description :</span>
-                                            <p style={styles.descText}>{item.description}</p>
-                                        </div>
-                                        <div style={styles.descCol}>
-                                            <span style={styles.smallLabel}>Project Context :</span>
-                                            <p style={styles.descText}>{item.project?.description}</p>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.skillRow}>
-                                        {item.requiredSkills?.map(skill => (
-                                            <span key={skill} style={styles.skillBadge}>{skill}</span>
-                                        ))}
+                                    <div style={styles.actionCol}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDecision(itemId, true); }} 
+                                            style={styles.btnAccept}
+                                            disabled={pendingAction !== null}
+                                        >
+                                            {pendingAction === `true-${itemId}` ? "..." : "Approve"}
+                                        </button>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleDecision(itemId, false); }} 
+                                            style={styles.btnReject}
+                                            disabled={pendingAction !== null}
+                                        >
+                                            {pendingAction === `false-${itemId}` ? "..." : "Reject"}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div style={styles.actionCol}>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDecision(item.requestId, true); }} 
-                                        style={styles.btnAccept}
-                                        disabled={pendingAction !== null}
-                                    >
-                                        {pendingAction === `true-${item.requestId}` ? "..." : "Accept"}
-                                    </button>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDecision(item.requestId, false); }} 
-                                        style={styles.btnReject}
-                                        disabled={pendingAction !== null}
-                                    >
-                                        {pendingAction === `false-${item.requestId}` ? "..." : "Reject"}
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
-                        <div style={styles.emptyState}>No data found for Employee Assignment.</div>
+                        <div style={styles.emptyState}>No pending tasks in this category.</div>
                     )}
                 </div>
             </main>
@@ -263,25 +285,28 @@ const styles = {
     cardMain: { flex: 1 },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' },
     jobTitle: { fontSize: '30px', fontWeight: 'bold', color: '#1e293b', margin: 0 },
+    matchBadge: { padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase' },
     subHeader: { display: 'flex', gap: '10px', fontSize: '15px', marginTop: '6px', color: '#64748b' },
     projectLink: { color: '#6366f1', fontWeight: '700' },
     separator: { color: '#cbd5e1' },
     priceGroup: { display: 'flex', alignItems: 'center', gap: '18px' },
     wage: { color: '#059669', fontWeight: '800', fontSize: '30px' },
     infoCircle: { width: '28px', height: '28px', borderRadius: '50%', border: '1.5px solid #cbd5e1', background: 'none', color: '#1e293b', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' },
-    floatingTab: { position: 'absolute', top: '40px', right: '0', width: '500px', background: 'white', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px', zIndex: 100 },
-    floatingGrid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '20px' },
-    floatText: { fontSize: '12px', color: '#475569', margin: '4px 0' },
-    panelTitle: { fontSize: '13px', fontWeight: 'bold', color: '#1e293b', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '4px' },
+    floatingTab: { position: 'absolute', top: '40px', right: '0', width: '600px', background: 'white', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', zIndex: 100 },
+    floatingGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' },
+    infoSection: { padding: '10px' },
+    infoSectionHighlight: { padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' },
+    floatText: { fontSize: '12px', color: '#475569', margin: '6px 0', lineHeight: '1.4' },
+    panelTitle: { fontSize: '11px', letterSpacing: '0.05em', fontWeight: '800', color: '#1e293b', marginBottom: '12px', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px' },
     metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '25px', background: '#f8fafc', padding: '25px', borderRadius: '12px' },
     metaCol: { display: 'flex', flexDirection: 'column', gap: '8px' },
     metaItem: { fontSize: '13px', color: '#475569' },
     descriptionRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '25px' },
     descCol: { display: 'flex', flexDirection: 'column', gap: '6px' },
-    smallLabel: { fontSize: '14px', fontWeight: '700', color: '#1e293b' },
+    smallLabel: { fontSize: '14px', fontWeight: '700', color: '#1e293b', marginBottom: '8px' },
     descText: { fontSize: '14px', color: '#64748b', lineHeight: '1.6', margin: 0 },
-    skillRow: { display: 'flex', gap: '10px', flexWrap: 'wrap' },
-    skillBadge: { background: '#e0e7ff', color: '#4338ca', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '700' },
+    skillRow: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+    skillBadge: { background: '#e0e7ff', color: '#4338ca', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '700' },
     actionCol: { display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '200px', paddingTop: '10px' },
     btnAccept: { background: '#059669', color: 'white', border: 'none', padding: '18px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' },
     btnReject: { background: 'transparent', color: '#ef4444', border: '1px solid #fee2e2', padding: '17px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' },
