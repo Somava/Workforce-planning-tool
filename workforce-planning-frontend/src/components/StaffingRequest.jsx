@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, Calendar, Clock, AlertCircle, Send, MapPin, List, CheckCircle } from 'lucide-react';
 
 const StaffingRequest = () => {
+    // Force scroll to top on component mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     const [projects, setProjects] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -10,11 +15,11 @@ const StaffingRequest = () => {
         description: '',
         experienceYears: '',
         projectId: '',
-        availabilityHoursPerWeek: '',
+        availabilityHoursPerWeek: '', 
         projectStartDate: '',
         projectEndDate: '',
         departmentId: '',
-        wagePerHour: '', // Managed as a string for input, parsed on submit
+        wagePerHour: '', 
         requiredSkills: '', 
         projectLocation: '', 
         workLocation: ''    
@@ -50,7 +55,7 @@ const StaffingRequest = () => {
             projectId: id,
             departmentId: '', 
             projectLocation: selectedProj ? selectedProj.location : '',
-            workLocation: selectedProj ? selectedProj.location : ''
+            workLocation: '' 
         });
 
         if (id) {
@@ -82,13 +87,12 @@ const StaffingRequest = () => {
         const start = new Date(formData.projectStartDate);
         const end = new Date(formData.projectEndDate);
         
-        // --- Wage Specific Validation ---
         const wage = parseFloat(formData.wagePerHour);
-        
         const experience = parseInt(formData.experienceYears);
-        const hours = parseInt(formData.availabilityHoursPerWeek);
 
         if (!formData.projectId || !formData.departmentId) return "Project and Department are required.";
+        if (!formData.workLocation) return "Please select a Work Location.";
+        if (!formData.availabilityHoursPerWeek) return "Please select contract hours.";
         
         if (start < today) return "Start date cannot be in the past.";
         if (end < start) return "End date cannot be before start date.";
@@ -102,12 +106,8 @@ const StaffingRequest = () => {
         
         if (isNaN(experience) || experience < 1 || experience > 25) return "Experience must be between 1 and 25 years.";
         
-        // --- Wage Range Validation ---
         if (isNaN(wage) || wage <= 0) return "Wage per hour must be greater than zero.";
         if (wage > 40) return "Max wage allowed is 40.00 €.";
-        
-        if (isNaN(hours) || hours <= 0) return "Hours per week must be greater than zero.";
-        if (hours > 40) return "Availability cannot exceed 40 hours per week.";
         
         return null;
     };
@@ -128,11 +128,8 @@ const StaffingRequest = () => {
         const payload = {
             ...formData,
             experienceYears: parseInt(formData.experienceYears),
-            availabilityHoursPerWeek: parseInt(formData.availabilityHoursPerWeek),
-            
-            // --- Final Wage Formatting for Payload ---
+            availabilityHoursPerWeek: parseInt(formData.availabilityHoursPerWeek), 
             wagePerHour: parseFloat(formData.wagePerHour),
-            
             requiredSkills: formData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== ""),
             projectId: parseInt(formData.projectId),
             departmentId: parseInt(formData.departmentId)
@@ -150,6 +147,7 @@ const StaffingRequest = () => {
 
             if (response.ok) {
                 setIsSubmitted(true);
+                window.scrollTo(0, 0); // Scroll to top on success
             } else {
                 setMessage({ type: 'error', text: 'Backend rejected the request.' });
             }
@@ -163,7 +161,7 @@ const StaffingRequest = () => {
     if (isSubmitted) {
         return (
             <div style={styles.container}>
-                <div style={{...styles.glassCard, textAlign: 'center', padding: '60px'}}>
+                <div style={{...styles.glassCard, textAlign: 'center', padding: '60px', marginTop: '20px'}}>
                     <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px', marginInline: 'auto'}} />
                     <h2 style={styles.title}>Request Submitted</h2>
                     <p style={{color: '#6b7280', margin: '15px 0 30px'}}>
@@ -229,13 +227,17 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}><MapPin size={14}/> Work Location</label>
-                            <input 
+                            <select 
                                 name="workLocation"  
-                                style={styles.input} 
-                                placeholder="Preferred Office Location"
+                                style={styles.select} 
+                                value={formData.workLocation}
                                 onChange={handleChange} 
                                 required 
-                            />
+                            >
+                                <option value="">Select Location</option>
+                                <option value="onsite">Onsite</option>
+                                <option value="Remote">Remote</option>
+                            </select>
                         </div>
                     </div>
 
@@ -255,7 +257,6 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Wage / Hour (€)</label>
-                            {/* Input: Allowing decimals but keeping it numeric */}
                             <input 
                                 name="wagePerHour" 
                                 type="number" 
@@ -283,16 +284,17 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Hrs/Week</label>
-                            <input 
+                            <select 
                                 name="availabilityHoursPerWeek" 
-                                type="text" 
+                                style={styles.select} 
                                 value={formData.availabilityHoursPerWeek}
-                                style={styles.input} 
-                                onChange={(e) => {
-                                    if (/^\d*$/.test(e.target.value)) handleChange(e);
-                                }} 
+                                onChange={handleChange} 
                                 required 
-                            />
+                            >
+                                <option value="">Select Hours</option>
+                                <option value="40">Full time contract (40 hrs/week)</option>
+                                <option value="20">Part time contract (20 hrs/week)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -306,8 +308,23 @@ const StaffingRequest = () => {
 };
 
 const styles = {
-    container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', padding: '20px' },
-    glassCard: { background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '850px' },
+    container: { 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'flex-start', // Changed from center to push to top
+        justifyContent: 'center', 
+        background: '#f3f4f6', 
+        padding: '30px 20px' // Reduced top padding
+    },
+    glassCard: { 
+        background: '#fff', 
+        padding: '30px', 
+        borderRadius: '12px', 
+        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
+        width: '100%', 
+        maxWidth: '850px',
+        marginTop: '10px' // Small margin for aesthetic breathing room
+    },
     header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     msgBox: { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' },
@@ -317,7 +334,7 @@ const styles = {
     flexItem: { flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '0' },
     label: { fontSize: '14px', fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '5px' },
     input: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
-    select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', boxSizing: 'border-box' },
+    select: { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' },
     textarea: { minHeight: '90px', resize: 'vertical' },
     submitBtn: { marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', borderRadius: '8px', border: 'none', background: '#4F46E5', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }
 };
