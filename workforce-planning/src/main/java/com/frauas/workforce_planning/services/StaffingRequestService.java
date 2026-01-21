@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +26,6 @@ import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
-import java.util.Collections;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -428,7 +426,6 @@ public class StaffingRequestService {
                     empIdStr = emp.getEmployeeId();
                 }
             }
-        }
 
             String managerName = (req.getCreatedBy() != null)
                     ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()
@@ -455,9 +452,9 @@ public class StaffingRequestService {
                 (emp != null && emp.getPrimaryLocation() != null) ? emp.getPrimaryLocation() : "N/A",
                 (emp != null && emp.getContractType() != null) ? emp.getContractType().name() : "N/A",
                 (emp != null && emp.getPerformanceRating() != null) ? emp.getPerformanceRating() : 0.0,
-                // FIX: If emp or skills is null, return an empty List, NOT a String "N/A"
+                // FIX: If emp or skills is null, return an empty List
                 (emp != null && emp.getSkills() != null) ? emp.getSkills() : java.util.Collections.emptyList(),
-                displayMessage // Final field
+                displayMessage 
             );
         }).collect(Collectors.toList());
     }
