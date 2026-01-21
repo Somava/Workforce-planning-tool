@@ -4,14 +4,15 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
       #mode: never
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/workforce-planning 
+    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
     username: postgres
-    password: FRAU20242025
+    password: 'FRAU@20242025'
     driver-class-name: org.postgresql.Driver
+
 
   jpa:
    
@@ -50,7 +51,8 @@ camunda:
     zeebe:
       
       request-timeout: 60s
-      keep-alive: 30s
+      default-request-timeout: 60s
+      keep-alive: 60s
 # camunda:
 #   client:
 #     mode: saas
