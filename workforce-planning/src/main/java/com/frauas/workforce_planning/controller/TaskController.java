@@ -291,44 +291,44 @@ public class TaskController {
      * Project Manager decides whether to resubmit a request after internal employee rejection.
      * Signals Camunda in the service layer.
      */
-    @PostMapping("/project-manager/resubmit-decision")
-    public ResponseEntity<String> handleProjectManagerResubmitDecision(
-            @RequestParam Long requestId,
-            @RequestParam String email,
-            @RequestParam boolean resubmit) {
+    // @PostMapping("/project-manager/resubmit-decision")
+    // public ResponseEntity<String> handleProjectManagerResubmitDecision(
+    //         @RequestParam Long requestId,
+    //         @RequestParam String email,
+    //         @RequestParam boolean resubmit) {
 
-        // 1) Find user by email
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+    //     // 1) Find user by email
+    //     User user = userRepository.findByEmail(email)
+    //             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-        // 2) Role check: must be project manager
-        boolean isProjectManager =
-                user.getEmployee() != null
-                && user.getEmployee().getDefaultRole() != null
-                && "ROLE_MANAGER".equals(user.getEmployee().getDefaultRole().getName());
+    //     // 2) Role check: must be project manager
+    //     boolean isProjectManager =
+    //             user.getEmployee() != null
+    //             && user.getEmployee().getDefaultRole() != null
+    //             && "ROLE_MANAGER".equals(user.getEmployee().getDefaultRole().getName());
 
-        if (!isProjectManager) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("User with email " + email + " is not authorized (not a Project Manager).");
-        }
+    //     if (!isProjectManager) {
+    //         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+    //                 .body("User with email " + email + " is not authorized (not a Project Manager).");
+    //     }
 
-        // 3) Fetch request
-        StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+    //     // 3) Fetch request
+    //     StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
+    //             .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
 
         
 
-        // 4) Delegate to service: DB updates + Camunda message
-        if (resubmit) {
-            staffingRequestService.resubmitRequestByProjectManager(requestId);
-            log.info("Request {} RESUBMITTED by PM email: {}", requestId, email);
-        } else {
-            staffingRequestService.cancelRequestByProjectManager(requestId);
-            log.info("Request {} NOT resubmitted (cancelled/closed) by PM email: {}", requestId, email);
-        }
+    //     // 4) Delegate to service: DB updates + Camunda message
+    //     if (resubmit) {
+    //         staffingRequestService.resubmitRequestByProjectManager(requestId);
+    //         log.info("Request {} RESUBMITTED by PM email: {}", requestId, email);
+    //     } else {
+    //         staffingRequestService.cancelRequestByProjectManager(requestId);
+    //         log.info("Request {} NOT resubmitted (cancelled/closed) by PM email: {}", requestId, email);
+    //     }
 
-        String action = resubmit ? "resubmitted" : "not resubmitted";
-        return ResponseEntity.ok("Request " + requestId + " has been " + action + " by " + email);
-    }
+    //     String action = resubmit ? "resubmitted" : "not resubmitted";
+    //     return ResponseEntity.ok("Request " + requestId + " has been " + action + " by " + email);
+    // }
 
 }
