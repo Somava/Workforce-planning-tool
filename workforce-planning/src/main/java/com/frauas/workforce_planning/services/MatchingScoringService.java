@@ -127,12 +127,6 @@ double total =
 }
 
 
-   // private String pickRequestLocation(StaffingRequest r) {
-        // prefer workLocation, else projectLocation
-       // if (!isBlank(r.getWorkLocation())) return r.getWorkLocation();
-        //return r.getProjectLocation();
-    //}
-
     private Set<String> normalizeSet(List<String> list) {
         return list.stream()
                 .filter(Objects::nonNull)

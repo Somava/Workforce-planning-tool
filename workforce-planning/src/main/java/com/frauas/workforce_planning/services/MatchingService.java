@@ -120,12 +120,42 @@ public class MatchingService {
 Set<Long> leadershipEmployeeIds = userRepository.findLeadershipEmployeeIds();
 
 // 3) Hard filters (TRUE constraints only)
+for (Employee emp : candidates) {
+    boolean idOk = emp.getId() != null;
+    boolean leaderOk = emp.getId() != null && !leadershipEmployeeIds.contains(emp.getId());
+    boolean deptOk = passesDepartment(emp, request);
+    boolean hoursOk = passesContractHours(emp, request);
+    boolean locOk = passesLocation(emp, request);
+    boolean wageOk = passesWage(emp, request);
+    boolean skillsOk = passesSkillsAnyMatch(emp, request);
+
+    // Print only the employee you care about (id=21) to avoid huge logs
+    if (emp.getId() != null && emp.getId().equals(21L)) {
+        System.out.println(
+            "DEBUG EMP 21 => " +
+            "idOk=" + idOk +
+            " leaderOk=" + leaderOk +
+            " deptOk=" + deptOk +
+            " hoursOk=" + hoursOk +
+            " locOk=" + locOk +
+            " wageOk=" + wageOk +
+            " skillsOk=" + skillsOk +
+            " | empDept=" + (emp.getDepartment()!=null ? emp.getDepartment().getId() : null) +
+            " empHours=" + emp.getTotalHoursPerWeek() +
+            " empLoc=" + emp.getPrimaryLocation() +
+            " empWage=" + emp.getWagePerHour() +
+            " empSkills=" + emp.getSkills()
+        );
+    }
+}
+
 List<Employee> baseFiltered = candidates.stream()
         .filter(e -> e.getId() != null)
         .filter(e -> !leadershipEmployeeIds.contains(e.getId()))
         .filter(e -> passesDepartment(e, request)) 
         .filter(e -> passesContractHours(e, request))
         .filter(e -> passesLocation(e, request))  
+        .filter(e -> passesWage(e, request))        
         .toList();
 
 System.out.println("DEBUG baseFiltered (available/applied + no leadership + dept) = " + baseFiltered.size());
@@ -171,14 +201,52 @@ return ordered.stream()
 
     // ---------------- Hard filters ----------------
 
-    private boolean passesDepartment(Employee e, StaffingRequest r) {
-    // StaffingRequest.department is an entity
-    if (r.getDepartment() == null || r.getDepartment().getId() == null) return true;
-    if (e.getDepartment() == null || e.getDepartment().getId() == null) return false;
-    return e.getDepartment().getId().equals(r.getDepartment().getId());
+// ---------------- Department grouping ----------------
+
+private static final Map<Long, Set<Long>> GROUPS = Map.ofEntries(
+    Map.entry(1L, Set.of(1L,2L,3L,4L)),
+    Map.entry(2L, Set.of(1L,2L,3L,4L)),
+    Map.entry(3L, Set.of(1L,2L,3L,4L)),
+    Map.entry(4L, Set.of(1L,2L,3L,4L)),
+
+    Map.entry(5L, Set.of(5L,6L,7L,8L)),
+    Map.entry(6L, Set.of(5L,6L,7L,8L)),
+    Map.entry(7L, Set.of(5L,6L,7L,8L)),
+    Map.entry(8L, Set.of(5L,6L,7L,8L)),
+
+    Map.entry(9L, Set.of(9L,10L,11L,12L)),
+    Map.entry(10L, Set.of(9L,10L,11L,12L)),
+    Map.entry(11L, Set.of(9L,10L,11L,12L)),
+    Map.entry(12L, Set.of(9L,10L,11L,12L))
+);
+
+private boolean passesDepartment(Employee e, StaffingRequest r) {
+
+    // request department_id
+    Long reqDeptId = (r.getDepartment() != null)
+            ? r.getDepartment().getId()
+            : null;
+
+    // employee department_id
+    Long empDeptId = (e.getDepartment() != null)
+            ? e.getDepartment().getId()
+            : null;
+
+    if (reqDeptId == null) return true;
+    if (empDeptId == null) return false;
+
+    boolean ok = GROUPS
+            .getOrDefault(reqDeptId, Set.of(reqDeptId))
+            .contains(empDeptId);
+
+    System.out.println(
+        "DEPT CHECK -> requestDept=" + reqDeptId +
+        " employeeDept=" + empDeptId +
+        " result=" + ok
+    );
+
+    return ok;
 }
-
-
 
 
     private boolean passesExperience(Employee e, StaffingRequest r) {
@@ -243,12 +311,13 @@ private int matchedSkillCount(Employee e, StaffingRequest r) {
      * If you mean "offered wage", then remove this hard filter and score only.
      */
     private boolean passesWage(Employee e, StaffingRequest r) {
-        BigDecimal budget = r.getWagePerHour();
-        if (budget == null) return true; // no budget
-        BigDecimal empWage = e.getWagePerHour();
-        if (empWage == null) return false;
-        return empWage.compareTo(budget) <= 0;
-    }
+    BigDecimal budget = r.getWagePerHour();
+    if (budget == null) return true; // no budget
+    BigDecimal empWage = e.getWagePerHour();
+    if (empWage == null) return false;
+    return empWage.compareTo(budget) <= 0;
+}
+
 
   private boolean passesLocation(Employee e, StaffingRequest r) {
     String workLoc = r.getWorkLocation();       // only "Remote" or "Onsite"

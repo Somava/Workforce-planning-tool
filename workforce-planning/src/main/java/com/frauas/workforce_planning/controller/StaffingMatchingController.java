@@ -56,10 +56,5 @@ public ResponseEntity<MatchResponseDTO> getMatches(@PathVariable Long requestId,
     return ResponseEntity.ok("Request " + requestId + " has been processed");
   }
 
-  @PostMapping("/department-head/staffing-requests/{requestId}/assign")
-  public ResponseEntity<Void> assign(@PathVariable Long requestId,
-                                     @RequestBody CandidateActionRequest body) {
-    decisionService.assign(requestId, body.employeeDbId());
-    return ResponseEntity.ok().build();
-  }
+  
 }
