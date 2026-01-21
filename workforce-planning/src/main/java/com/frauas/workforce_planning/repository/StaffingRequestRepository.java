@@ -31,7 +31,8 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     List<StaffingRequest> findByCreatedByEmail(String email);
 
-
+    // StaffingRequestRepository.java
+    List<StaffingRequest> findByStatusIn(List<RequestStatus> status);
     /**
      * PostgreSQL Native Query for JSONB search.
      */
@@ -101,7 +102,8 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
        "   OR rp.email = :email " + // Planner check
        "   OR au.email = :email" +  // Assigned Employee check
        ")")
-List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
+       
+    List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
 }
 
     

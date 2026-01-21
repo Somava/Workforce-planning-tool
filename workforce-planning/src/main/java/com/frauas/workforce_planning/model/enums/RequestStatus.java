@@ -15,7 +15,9 @@ public enum RequestStatus {
     PM_RESUBMITTED,
     PM_CANCELLED,
     SUBMITTED, //WrongData , manager needs to correct
-    REJECTED, //rejected by Department head
+    REJECTED,
+    NO_EXT_EMPLOYEE_FOUND,
+    EXT_EMPLOYEE_REJECTED_BY_DH,
 
     
     ASSIGNED,

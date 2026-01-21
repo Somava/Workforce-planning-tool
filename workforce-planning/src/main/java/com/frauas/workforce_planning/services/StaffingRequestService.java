@@ -179,21 +179,28 @@ public class StaffingRequestService {
         
         log.info("Request {} rejected. Reason saved to DB and signaled to Camunda.", requestId, reason);
     }
-
     @Transactional
     public void approveRequestByDepartmentHead(Long requestId) {
-        StaffingRequest request = repository.findByRequestId(requestId).orElseThrow();
+        StaffingRequest request = repository.findByRequestId(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+        
         request.setStatus(RequestStatus.APPROVED);
         repository.save(request);
 
+        // Create a map to ensure all necessary flow control variables are present
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("deptHeadApproved", true);
+        variables.put("dataValid", true); // ✅ Added this to match the rejection logic
+
         zeebeClient.newPublishMessageCommand()
             .messageName("DeptHeadDecision")
-            .correlationKey(requestId.toString()) // Matches the Modeler key
-            .variable("deptHeadApproved", true)
+            .correlationKey(requestId.toString())
+            .variables(variables) // Use .variables(map) instead of .variable(key, value)
             .send()
             .join();
         
-    }
+        log.info("Request {} approved and signaled to Camunda with dataValid=true", requestId);
+}
 
     @Transactional
     public void markInternalEmployeeApproved(Long requestId) {
@@ -298,25 +305,25 @@ public class StaffingRequestService {
 
     @Transactional
     public void resubmitRequestByProjectManager(Long requestId) {
-    StaffingRequest request = repository.findByRequestId(requestId)
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.NOT_FOUND, "Request not found: " + requestId
-        ));
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));
 
-    // Update DB status (use your actual enum value)
-    request.setStatus(RequestStatus.PM_RESUBMITTED);
-    repository.save(request);
+        // Update DB status (use your actual enum value)
+        request.setStatus(RequestStatus.PM_RESUBMITTED);
+        repository.save(request);
 
-    // Signal Camunda (must match BPMN)
-    zeebeClient.newPublishMessageCommand()
-        .messageName("Review Request Failure") // <-- match BPMN exactly
-        .correlationKey(requestId.toString())
-        .variables(Map.of("externalDecision", "resubmit"))
-        .send()
-        .join();
+        // Signal Camunda (must match BPMN)
+        zeebeClient.newPublishMessageCommand()
+            .messageName("Review Request Failure") // <-- match BPMN exactly
+            .correlationKey(requestId.toString())
+            .variables(Map.of("externalDecision", "resubmit"))
+            .send()
+            .join();
 
-    log.info("PM resubmitted request {} and signaled Camunda.", requestId);
-}
+        log.info("PM resubmitted request {} and signaled Camunda.", requestId);
+    }
 
     @Transactional
     public void cancelRequestByProjectManager(Long requestId) {
