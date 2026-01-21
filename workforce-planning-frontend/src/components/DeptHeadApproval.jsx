@@ -173,7 +173,7 @@ const ApprovalDashboard = () => {
                                                         <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
                                                             <div style={styles.floatingGrid}>
                                                                 <div style={styles.infoSection}>
-                                                                    <h5 style={styles.panelTitle}>THE REQUEST (DEMAND)</h5>
+                                                                    <h5 style={styles.panelTitle}>THE REQUEST </h5>
                                                                     <p style={styles.floatText}><strong>Role:</strong> {item.title}</p>
                                                                     <p style={styles.floatText}><strong>Location:</strong> {item.workLocation || item.project?.location}</p>
                                                                     <p style={styles.floatText}><strong>Manager:</strong> {manager?.firstName} {manager?.lastName}</p>

@@ -5,6 +5,9 @@ const EmployeeDashboard = () => {
     const [mainTab, setMainTab] = useState('assignments'); // Default to assignments to show opportunities
     const [activeTab, setActiveTab] = useState('browse');
     
+    // New state for Personal Information API
+    const [userProfile, setUserProfile] = useState(null);
+    
     const [openPositions, setOpenPositions] = useState([]);
     const [myApplications, setMyApplications] = useState([]);
     const [assignedRequests, setAssignedRequests] = useState([]); 
@@ -55,10 +58,11 @@ const EmployeeDashboard = () => {
     const fetchData = useCallback(async () => {
         const emailParam = encodeURIComponent(userEmail);
         try {
-            const [posRes, appRes, empAssignRes] = await Promise.all([
+            const [posRes, appRes, empAssignRes, profileRes] = await Promise.all([
                 fetch(`http://localhost:8080/api/employee-portal/open-positions?email=${emailParam}`),
                 fetch(`http://localhost:8080/api/employee-portal/my-applications?email=${emailParam}`),
-                fetch(`http://localhost:8080/api/tasks/employee/assigned-requests?email=${emailParam}`)
+                fetch(`http://localhost:8080/api/tasks/employee/assigned-requests?email=${emailParam}`),
+                fetch(`http://localhost:8080/api/employee-portal/my-profile?email=${emailParam}`)
             ]);
 
             if (posRes.ok) {
@@ -73,6 +77,10 @@ const EmployeeDashboard = () => {
                 const data = await empAssignRes.json();
                 setAssignedRequests(Array.isArray(data) ? data : []);
             }
+            if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                setUserProfile(profileData);
+            }
         } catch (err) { 
             console.error("Sync Error:", err); 
         }
@@ -80,7 +88,7 @@ const EmployeeDashboard = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // API Actions
+    // API Actions (Apply, Withdraw, Decision) ... [Logic kept exactly as your code]
     const handleApply = async (requestId) => {
         setPendingAction(requestId);
         try {
@@ -127,7 +135,60 @@ const EmployeeDashboard = () => {
     return (
         <div style={styles.page}>
             <div style={styles.container}>
-                <h1 style={{...styles.title, marginBottom: '30px'}}>My Employee Portal</h1>
+                
+                {/* 1. Integrated Profile Section - UPDATED WITH ALL JSON FIELDS */}
+                {userProfile && (
+                    <div style={styles.profileHeader} className="alert-fade-in">
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                            <div>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                    <h1 style={styles.profileName}>{userProfile.firstName} {userProfile.lastName}</h1>
+                                    <span style={styles.ratingBadge}>★ {userProfile.performanceRating}</span>
+                                </div>
+                                <p style={styles.profileSub}>{userProfile.jobRoleName} | {userProfile.departmentName}</p>
+                                <p style={{fontSize: '14px', color: '#64748b', margin: '4px 0'}}>
+                                    📧 {userProfile.email} | 📞 {userProfile.emergencyContact}
+                                </p>
+                            </div>
+                            <div style={{textAlign: 'right'}}>
+                                <div style={styles.wageHighlight}>€{userProfile.wagePerHour}<span style={{fontSize: '16px'}}> /hr</span></div>
+                                <span style={styles.availabilityStatus}>{userProfile.matchingAvailability}</span>
+                            </div>
+                        </div>
+                        
+                        <div style={styles.profileStatsGrid}>
+                            <div style={styles.statItem}><strong>Employee ID:</strong> {userProfile.employeeId}</div>
+                            <div style={styles.statItem}><strong>Experience:</strong> {userProfile.experienceYears} Years</div>
+                            <div style={styles.statItem}><strong>Working Hours:</strong> {userProfile.totalHoursPerWeek}h/week</div>
+                            <div style={styles.statItem}><strong>Location:</strong> {userProfile.primaryLocation}</div>
+                            <div style={styles.statItem}><strong>Contract:</strong> {userProfile.contractType.replace('_', ' ')}</div>
+                            <div style={styles.statItem}><strong>Window:</strong> {userProfile.availabilityStart} to {userProfile.availabilityEnd}</div>
+                        </div>
+
+                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '20px'}}>
+                            <div>
+                                <p style={styles.sectionLabel}>Technical Skills</p>
+                                <div style={styles.skillList}>
+                                    {userProfile.skills?.map(skill => <span key={skill} style={styles.skillBadge}>{skill}</span>)}
+                                </div>
+                                <p style={{...styles.sectionLabel, marginTop: '15px'}}>Languages</p>
+                                <div style={styles.skillList}>
+                                    {userProfile.languages?.map(lang => <span key={lang} style={styles.langBadge}>{lang}</span>)}
+                                </div>
+                            </div>
+                            <div style={styles.orgInfoBox}>
+                                <p style={styles.sectionLabel}>Organization & Preferences</p>
+                                <div style={styles.orgDetail}><strong>Supervisor:</strong> {userProfile.supervisorName} ({userProfile.supervisorEmail})</div>
+                                <div style={styles.orgDetail}><strong>Dept Head:</strong> {userProfile.departmentHeadName}</div>
+                                <div style={{...styles.orgDetail, color: '#4f46e5', marginTop: '8px'}}>
+                                    <strong>Preferences:</strong> {userProfile.projectPreferences} | <strong>Interests:</strong> {userProfile.interests}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <h1 style={{...styles.title, marginBottom: '30px', marginTop: '40px'}}>My Employee Portal</h1>
 
                 {/* Main Tabs */}
                 <div style={{display: 'flex', gap: '40px', borderBottom: '1px solid #e2e8f0', marginBottom: '25px'}}>
@@ -143,7 +204,7 @@ const EmployeeDashboard = () => {
                     </div>
                 )}
 
-                {/* Assignment Confirmation Section */}
+                {/* Assignment Confirmation Section - KEPT EXACTLY AS YOUR PREVIOUS VERSION */}
                 {mainTab === 'assignments' && (
                     <div className="alert-fade-in">
                         <div style={styles.congratsBox}>
@@ -158,9 +219,7 @@ const EmployeeDashboard = () => {
                                         <div>
                                             <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
                                             <h2 style={styles.jobTitle}>{item.title}</h2>
-                                            <div style={styles.statusLabelBadge}>
-                                                Approved by dept head, awaiting employee confirmation
-                                            </div>
+                                            <div style={styles.statusLabelBadge}>Approved by dept head, awaiting employee confirmation</div>
                                         </div>
                                         <div style={styles.wageBox}>
                                             <span style={styles.wageText}>€{item.wagePerHour}</span>
@@ -177,7 +236,6 @@ const EmployeeDashboard = () => {
                                         <h4 style={styles.sectionLabel}>Project Context</h4>
                                         <p style={{fontSize: '17px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0'}}>{item.project?.name}</p>
                                         <p style={{fontSize: '14px', color: '#475569', lineHeight: '1.6', marginBottom: '15px'}}>{item.project?.description}</p>
-                                        
                                         <div style={styles.metaGrid}>
                                             <div style={styles.metaItem}><strong>📍 Work Location:</strong> {item.workLocation || item.project?.location }</div>
                                             <div style={styles.metaItem}><strong>🕒 Engagement:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
@@ -199,9 +257,7 @@ const EmployeeDashboard = () => {
                                             <tbody>
                                                 <tr>
                                                     <td style={styles.sTd}>Resource Planner</td>
-                                                    <td style={styles.sTd}>
-                                                        {item.project?.managerUser?.employee?.firstName} {item.project?.managerUser?.employee?.lastName || "TBD"}
-                                                    </td>
+                                                    <td style={styles.sTd}>{item.project?.managerUser?.employee?.firstName} {item.project?.managerUser?.employee?.lastName || "TBD"}</td>
                                                     <td style={styles.sTd}>{item.project?.managerUser?.email || "N/A"}</td>
                                                 </tr>
                                                 <tr>
@@ -218,18 +274,10 @@ const EmployeeDashboard = () => {
                                             {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
                                         </div>
                                         <div style={{display: 'flex', gap: '12px'}}>
-                                            <button 
-                                                onClick={() => handleEmployeeDecision(item.requestId, true)} 
-                                                style={{...styles.applyBtn, background: '#10b981'}} 
-                                                disabled={pendingAction !== null}
-                                            >
+                                            <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>
                                                 {pendingAction === item.requestId ? '...' : 'Accept Assignment'}
                                             </button>
-                                            <button 
-                                                onClick={() => handleEmployeeDecision(item.requestId, false)} 
-                                                style={{...styles.applyBtn, background: '#ef4444'}} 
-                                                disabled={pendingAction !== null}
-                                            >
+                                            <button onClick={() => handleEmployeeDecision(item.requestId, false)} style={{...styles.applyBtn, background: '#ef4444'}} disabled={pendingAction !== null}>
                                                 Decline
                                             </button>
                                         </div>
@@ -244,7 +292,7 @@ const EmployeeDashboard = () => {
                     </div>
                 )}
 
-                {/* Career Portal Section */}
+                {/* Career Portal Section ... [Kept exactly as your version] */}
                 {mainTab === 'career' && (
                     <div className="alert-fade-in">
                         <header style={styles.header}>
@@ -253,7 +301,7 @@ const EmployeeDashboard = () => {
                                 <button onClick={() => setActiveTab('applied')} style={activeTab === 'applied' ? styles.activeTab : styles.tab}>My Applications ({myApplications.length})</button>
                             </div>
                         </header>
-
+                        {/* ... Browser and Applied views remain the same as your code ... */}
                         {activeTab === 'browse' && (
                             <div style={styles.grid}>
                                 {availableJobs.map(job => (
@@ -284,7 +332,6 @@ const EmployeeDashboard = () => {
                                 ))}
                             </div>
                         )}
-
                         {activeTab === 'applied' && (
                             <div style={styles.tableWrap}>
                                 <table style={styles.table}>
@@ -335,6 +382,21 @@ const styles = {
     title: { fontSize: '28px', fontWeight: '800', color: '#0f172a' },
     mainTab: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: '#64748b', cursor: 'pointer' },
     mainTabActive: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '700', color: '#4f46e5', cursor: 'pointer', borderBottom: '2px solid #4f46e5' },
+    
+    // Updated Profile Header Styles
+    profileHeader: { background: 'white', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' },
+    profileName: { fontSize: '32px', fontWeight: '800', color: '#1e293b', margin: 0 },
+    ratingBadge: { background: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '8px', fontSize: '14px', fontWeight: '700' },
+    profileSub: { color: '#6366f1', fontWeight: '600', marginTop: '4px' },
+    wageHighlight: { fontSize: '28px', fontWeight: '800', color: '#10b981' },
+    availabilityStatus: { display: 'block', color: '#059669', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', marginTop: '4px' },
+    profileStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '25px', padding: '20px', background: '#f8fafc', borderRadius: '16px' },
+    statItem: { fontSize: '13px', color: '#64748b' },
+    skillBadge: { background: '#e0e7ff', color: '#4338ca', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginRight: '8px', marginBottom: '8px', display: 'inline-block' },
+    langBadge: { background: '#f1f5f9', color: '#475569', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginRight: '8px', marginBottom: '8px', display: 'inline-block' },
+    orgInfoBox: { background: '#fcfdff', padding: '15px', borderRadius: '12px', border: '1px solid #eff2ff' },
+    orgDetail: { fontSize: '13px', color: '#475569', marginBottom: '4px' },
+
     congratsBox: {
         background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
         padding: '30px',
@@ -345,24 +407,8 @@ const styles = {
     },
     congratsTitle: { margin: '0 0 10px 0', fontSize: '24px', fontWeight: '800' },
     congratsText: { margin: 0, fontSize: '16px', opacity: 0.9, lineHeight: '1.5' },
-    statusLabelBadge: {
-        marginTop: '8px',
-        display: 'inline-block',
-        padding: '6px 12px',
-        background: '#fef3c7',
-        color: '#92400e',
-        borderRadius: '8px',
-        fontSize: '13px',
-        fontWeight: '700',
-        border: '1px solid #fde68a'
-    },
-    wageBox: {
-        textAlign: 'right',
-        background: '#f0fdf4',
-        padding: '10px 15px',
-        borderRadius: '12px',
-        border: '1px solid #dcfce7'
-    },
+    statusLabelBadge: { marginTop: '8px', display: 'inline-block', padding: '6px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '13px', fontWeight: '700', border: '1px solid #fde68a' },
+    wageBox: { textAlign: 'right', background: '#f0fdf4', padding: '10px 15px', borderRadius: '12px', border: '1px solid #dcfce7' },
     wageText: { fontSize: '22px', fontWeight: '800', color: '#166534', display: 'block' },
     wageUnit: { fontSize: '14px', color: '#166534', fontWeight: '600' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
