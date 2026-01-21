@@ -36,6 +36,13 @@ List<Object[]> findLanguagesWithProficiency(@Param("employeeId") Long employeeId
 
     // 🔹 Support for the new capacity tracking fields in the new schema
     List<Employee> findByRemainingHoursPerWeekGreaterThanEqual(Integer hours);
+    
+    // 🔹 Find employee linked to a given User (used for undoing reserve)
+       Optional<Employee> findByUser_Id(Long userId);
+
+
+
+
 
     // 🔹 Find by Email for the Employee Portal lookups
    Optional<Employee> findByEmail(String email);

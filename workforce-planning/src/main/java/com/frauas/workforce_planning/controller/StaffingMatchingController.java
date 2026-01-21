@@ -2,16 +2,13 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import com.frauas.workforce_planning.dto.CandidateActionRequest;
+import com.frauas.workforce_planning.dto.MatchResponseDTO;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
-import com.frauas.workforce_planning.dto.StaffingDecisionRequest;
 import com.frauas.workforce_planning.services.MatchingService;
 import com.frauas.workforce_planning.services.StaffingDecisionService;
 
@@ -28,29 +25,41 @@ public class StaffingMatchingController {
     this.decisionService = decisionService;
   }
 
-  @GetMapping("/resource-planner/staffing-requests/matches")
-  public ResponseEntity<?> getMatches(@RequestParam Long requestId,
-                                    @RequestParam(defaultValue = "10") int topN) {
+  @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
+public ResponseEntity<MatchResponseDTO> getMatches(@PathVariable Long requestId,
+                                                   @RequestParam(defaultValue = "10") int topN) {
 
-    List<MatchedEmployeeDTO> list = matchingService.matchEmployees(requestId, topN);
+  List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
 
-    // Ensure we never return null
-    if (list == null || list.isEmpty()) {
-        return ResponseEntity.ok(java.util.Map.of(
-        "message", "Unable to get employees for this role in our organisation"
-));
-
-    }
-
-    // Same response as before when employees exist
-    return ResponseEntity.ok(list);
+  if (matches.isEmpty()) {
+    return ResponseEntity.ok(new MatchResponseDTO(
+        "Unable to get employees for this role in our organisation",
+        List.of()
+    ));
   }
 
-  @PostMapping("/resource-planner/staffing-requests/decision")
-  public ResponseEntity<Void> decision(@RequestParam Long requestId,
-                                      @RequestBody StaffingDecisionRequest body) {
-    decisionService.decide(requestId, body.accept(), body.employeeDbId());
+  return ResponseEntity.ok(new MatchResponseDTO(null, matches));
+}
 
+  @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
+  public ResponseEntity<String> reserve(@RequestParam Long requestId,
+                                        @RequestParam boolean internalFound,
+                                        @RequestBody(required = false) CandidateActionRequest body) {
+    if (internalFound && body == null) {
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "employeeDbId is required when internalFound=true"
+        );
+    }
+    Long employeeDbId = body != null ? body.employeeDbId() : null;
+    decisionService.reserve(requestId, internalFound, employeeDbId);
+    return ResponseEntity.ok("Request " + requestId + " has been processed");
+  }
+
+  @PostMapping("/department-head/staffing-requests/{requestId}/assign")
+  public ResponseEntity<Void> assign(@PathVariable Long requestId,
+                                     @RequestBody CandidateActionRequest body) {
+    decisionService.assign(requestId, body.employeeDbId());
     return ResponseEntity.ok().build();
   }
 }

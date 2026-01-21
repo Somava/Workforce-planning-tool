@@ -19,6 +19,10 @@ import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
+import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.Map;
+
 
 @Service
 public class MatchingService {
@@ -51,13 +55,16 @@ public class MatchingService {
         StaffingRequest request = staffingRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("StaffingRequest not found: " + requestId));
 
-       //logs
-       System.out.println("DEBUG: requestId = " + requestId);
-      System.out.println("DEBUG: requestStatus = " + request.getStatus());
-      System.out.println("DEBUG: requestExp = " + request.getExperienceYears());
-      System.out.println("DEBUG: requestWage = " + request.getWagePerHour());
-     System.out.println("DEBUG: requestWorkLoc = " + request.getWorkLocation());
-     System.out.println("DEBUG: requestProjectLoc = " + request.getProjectLocation());
+        // ✅ PUT THE DEBUG LOG RIGHT HERE
+    System.out.println(
+        "DEBUG requestId=" + requestId
+        + " status=" + request.getStatus()
+        + " hours=" + request.getAvailabilityHoursPerWeek()
+        + " workLoc=" + request.getWorkLocation()
+        + " projectLoc=" + request.getProjectLocation()
+        + " deptId=" + (request.getDepartment() != null ? request.getDepartment().getId() : null)
+        + " skills=" + request.getRequiredSkills()
+    );
 
 
         // ✅ Add the status check RIGHT HERE
@@ -66,6 +73,8 @@ public class MatchingService {
                 "Matching is allowed only for APPROVED requests. Current status = " + request.getStatus()
         );
     }
+
+
 
     int requiredHours = safeInt(request.getAvailabilityHoursPerWeek(), 0);
 
@@ -83,85 +92,94 @@ public class MatchingService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-    //logs
-    System.out.println("DEBUG: appliedEmployeeDbIds size = " + appliedEmployeeDbIds.size());
-
+            
 
         // 2) Candidate pool from DB: start with strongest DB filter first (availability + capacity)
-        List<Employee> candidates = employeeRepository
-    .findByMatchingAvailability(MatchingAvailability.AVAILABLE);
-        // TEMP DISABLED: capacity check will be enabled after hours subtraction logic
-        //List<Employee> candidates = employeeRepository
-                //.findByMatchingAvailabilityAndRemainingHoursPerWeekGreaterThanEqual(
-                       // MatchingAvailability.AVAILABLE,
-                       // requiredHours
-                //);
+       List<Employee> availableEmployees =
+        employeeRepository.findByMatchingAvailability(MatchingAvailability.AVAILABLE);
 
-    //logs
-
-
-    System.out.println("DEBUG: candidates size (after DB query) = " + candidates.size());
+    // Employees who applied for THIS request (employee_application table)
+     List<Employee> appliedEmployees = employeeApplicationRepository
+        .findByStaffingRequest_RequestId(requestId)
+        .stream()
+        .map(EmployeeApplication::getEmployee)
+        .filter(Objects::nonNull)
+        .toList();
 
 
-    // NEW logs: how many pass each hard filter
-long expPass = candidates.stream().filter(e -> passesExperience(e, request)).count();
-long wagePass = candidates.stream().filter(e -> passesWage(e, request)).count();
-long locPass  = candidates.stream().filter(e -> passesLocation(e, request)).count();
-long hoursPass = candidates.stream().filter(e -> passesContractHours(e, request)).count();
-System.out.println("DEBUG: hoursPass = " + hoursPass);
+   // Merge AVAILABLE + APPLIED employees (dedupe by employee id)
+   Map<Long, Employee> merged = new LinkedHashMap<>();
+   for (Employee e : availableEmployees) merged.put(e.getId(), e);
+   for (Employee e : appliedEmployees) merged.put(e.getId(), e);
+    List<Employee> candidates = new ArrayList<>(merged.values());
 
 
-System.out.println("DEBUG: expPass = " + expPass);
-System.out.println("DEBUG: wagePass = " + wagePass);
-System.out.println("DEBUG: locPass = " + locPass);
-System.out.println("DEBUG: locPass = " + locPass);
 
-// NEW log: show first few employees and why they fail
-for (int i = 0; i < Math.min(5, candidates.size()); i++) {
-    Employee e = candidates.get(i);
-    System.out.println("DEBUG EMP[" + i + "] id=" + e.getEmployeeId()
-            + " totalHours=" + e.getTotalHoursPerWeek()
-            + " exp=" + e.getExperienceYears()
-            + " wage=" + e.getWagePerHour()
-            + " loc=" + e.getPrimaryLocation()
-            + " | hoursOk=" + passesContractHours(e, request)
-            + " | expOk=" + passesExperience(e, request)
-            + " wageOk=" + passesWage(e, request)
-            + " locOk=" + passesLocation(e, request));
+
+/// 2.5) Exclude leadership employees
+Set<Long> leadershipEmployeeIds = userRepository.findLeadershipEmployeeIds();
+
+// 3) Hard filters (TRUE constraints only)
+List<Employee> baseFiltered = candidates.stream()
+        .filter(e -> e.getId() != null)
+        .filter(e -> !leadershipEmployeeIds.contains(e.getId()))
+        .filter(e -> passesDepartment(e, request)) 
+        .filter(e -> passesContractHours(e, request))
+        .filter(e -> passesLocation(e, request))  
+        .toList();
+
+System.out.println("DEBUG baseFiltered (available/applied + no leadership + dept) = " + baseFiltered.size());
+
+// 4) Skill gate: must match at least 1 required skill (prevents Python-only)
+List<Employee> skillFiltered = baseFiltered.stream()
+        .filter(e -> passesSkillsAnyMatch(e, request))  // your method already does ">=1 overlap"
+        .toList();
+
+System.out.println("DEBUG skillFiltered (>=1 skill overlap) = " + skillFiltered.size());
+
+// If request has required skills and nobody matches ANY => return empty (trigger external worker)
+if (request.getRequiredSkills() != null
+        && !request.getRequiredSkills().isEmpty()
+        && skillFiltered.isEmpty()) {
+    return List.of();
+}
+
+// 5) Order: overlap bucket first (2 > 1), then score (waivers), then applied first
+List<Employee> ordered = skillFiltered.stream()
+        .sorted(Comparator
+                .comparingInt((Employee e) -> matchedSkillCount(e, request)).reversed()
+                .thenComparingDouble(e ->
+                        scoringService.score(e, request, appliedEmployeeDbIds.contains(e.getId()))
+                ).reversed()
+                .thenComparing(e -> appliedEmployeeDbIds.contains(e.getId()), Comparator.reverseOrder())
+        )
+        .toList();
+
+System.out.println("DEBUG ordered size = " + ordered.size());
+
+// 6) Map to DTO ONCE + limit + return
+return ordered.stream()
+        .map(e -> {
+            boolean applied = appliedEmployeeDbIds.contains(e.getId());
+            double score = scoringService.score(e, request, applied);
+            return toDto(requestId, e, score, applied);
+        })
+        .limit(Math.max(topN, 0))
+        .toList();
+    }
+
+
+    // ---------------- Hard filters ----------------
+
+    private boolean passesDepartment(Employee e, StaffingRequest r) {
+    // StaffingRequest.department is an entity
+    if (r.getDepartment() == null || r.getDepartment().getId() == null) return true;
+    if (e.getDepartment() == null || e.getDepartment().getId() == null) return false;
+    return e.getDepartment().getId().equals(r.getDepartment().getId());
 }
 
 
 
-// 2.5) Exclude leadership employees
-Set<Long> leadershipEmployeeIds = userRepository.findLeadershipEmployeeIds();
-
-// 3) Hard filters (NO scoring here)
-List<Employee> filtered = candidates.stream()
-        .filter(e -> !leadershipEmployeeIds.contains(e.getId())) //  exclude managers / heads / planners
-        .filter(e -> passesContractHours(e, request))   
-        .filter(e -> passesExperience(e, request))
-        .filter(e -> passesWage(e, request))
-        .filter(e -> passesLocation(e, request))
-        .toList();
-
-        //logs
-        System.out.println("DEBUG: filtered size (after hard filters) = " + filtered.size());
-
-        // 4) Score + map to DTO
-        List<MatchedEmployeeDTO> scored = filtered.stream()
-                .map(e -> {
-                    boolean applied = appliedEmployeeDbIds.contains(e.getId());
-                    double score = scoringService.score(e, request, applied);
-                    return toDto(requestId, e, score, applied);
-                })
-                .sorted(Comparator.comparingDouble(MatchedEmployeeDTO::score).reversed())
-                .limit(Math.max(topN, 0))
-                .toList();
-
-        return scored;
-    }
-
-    // ---------------- Hard filters ----------------
 
     private boolean passesExperience(Employee e, StaffingRequest r) {
         Integer req = r.getExperienceYears();
@@ -170,6 +188,54 @@ List<Employee> filtered = candidates.stream()
         if (emp == null) return false;
         return emp >= req;
     }
+
+   private boolean passesSkillsStrict(Employee e, StaffingRequest r) {
+    List<String> req = r.getRequiredSkills();
+    if (req == null || req.isEmpty()) return true;
+
+    List<String> empSkills = e.getSkills();
+    if (empSkills == null || empSkills.isEmpty()) return false;
+
+    Set<String> emp = normalizeSkills(empSkills);
+    Set<String> required = normalizeSkills(req);
+
+    return emp.containsAll(required);
+}
+   private boolean passesSkillsAnyMatch(Employee e, StaffingRequest r) {
+    List<String> req = r.getRequiredSkills();
+    if (req == null || req.isEmpty()) return true;
+
+    List<String> empSkills = e.getSkills();
+    if (empSkills == null || empSkills.isEmpty()) return false;
+
+    Set<String> emp = normalizeSkills(empSkills);
+    Set<String> required = normalizeSkills(req);
+
+    return required.stream().anyMatch(emp::contains);
+}
+private Set<String> normalizeSkills(List<String> list) {
+    if (list == null) return Set.of();
+    return list.stream()
+            .filter(Objects::nonNull)
+            .map(s -> s.trim().toLowerCase())
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toSet());
+}
+
+private int matchedSkillCount(Employee e, StaffingRequest r) {
+    List<String> req = r.getRequiredSkills();
+    if (req == null || req.isEmpty()) return 0;
+
+    List<String> empSkills = e.getSkills();
+    if (empSkills == null || empSkills.isEmpty()) return 0;
+
+    Set<String> emp = normalizeSkills(empSkills);
+    Set<String> required = normalizeSkills(req);
+
+    return (int) required.stream().filter(emp::contains).count();
+}
+
+
 
     /**
      * Wage rule assumption:
@@ -184,23 +250,27 @@ List<Employee> filtered = candidates.stream()
         return empWage.compareTo(budget) <= 0;
     }
 
-    private boolean passesLocation(Employee e, StaffingRequest r) {
+  private boolean passesLocation(Employee e, StaffingRequest r) {
+    String workLoc = r.getWorkLocation();       // only "Remote" or "Onsite"
+    String projectLoc = r.getProjectLocation(); // city (meaningful)
 
-    // 1) If staffing request is Remote => allow employees from ANY city
-    String workLocMode = r.getWorkLocation(); // expected: "Remote" or "Onsite"
-    if (!isBlank(workLocMode) && workLocMode.trim().equalsIgnoreCase("Remote")) {
+    // Remote => anyone
+    if (workLoc != null && workLoc.trim().equalsIgnoreCase("Remote")) {
         return true;
     }
 
-    // 2) If not Remote, match employee primary location with request's project location (city)
-    String reqCity = r.getProjectLocation(); // expected: "Berlin", "Frankfurt", etc.
-    if (isBlank(reqCity)) return true; // no city specified => don't filter
+    // Onsite => employee must be in project city
+    if (workLoc != null && workLoc.trim().equalsIgnoreCase("Onsite")) {
+        if (projectLoc == null || projectLoc.trim().isEmpty()) return true; // or false if strict
+        String empCity = e.getPrimaryLocation();
+        if (empCity == null || empCity.trim().isEmpty()) return false;
+        return empCity.trim().equalsIgnoreCase(projectLoc.trim());
+    }
 
-    String empCity = e.getPrimaryLocation();
-    if (isBlank(empCity)) return false;
-
-    return empCity.trim().equalsIgnoreCase(reqCity.trim());
+    // unknown / null => don't block
+    return true;
 }
+
 
 
     private boolean passesContractHours(Employee e, StaffingRequest r) {

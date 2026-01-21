@@ -1,14 +1,13 @@
 package com.frauas.workforce_planning.services;
 
-import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
 import com.frauas.workforce_planning.model.entity.Employee;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.enums.MatchingAvailability;
@@ -21,78 +20,86 @@ import io.camunda.zeebe.client.ZeebeClient;
 @Service
 public class StaffingDecisionService {
 
-  private final StaffingRequestRepository staffingRequestRepository;
-  private final EmployeeRepository employeeRepository;
-  private final MatchingService matchingService;
-  private final ZeebeClient zeebeClient;
+  @Autowired
+  private StaffingRequestRepository staffingRequestRepository;
 
-  public StaffingDecisionService(
-      StaffingRequestRepository staffingRequestRepository,
-      EmployeeRepository employeeRepository,
-      MatchingService matchingService,
-      ZeebeClient zeebeClient
-  ) {
-    this.staffingRequestRepository = staffingRequestRepository;
+  @Autowired
+  private final EmployeeRepository employeeRepository;
+
+  @Autowired
+  private ZeebeClient zeebeClient;
+
+  public StaffingDecisionService(EmployeeRepository employeeRepository) {
     this.employeeRepository = employeeRepository;
-    this.matchingService = matchingService;
-    this.zeebeClient = zeebeClient;
   }
 
   @Transactional
-  public void decide(Long requestId, boolean internalFound, Long employeeDbId) {
+  public void reserve(Long requestId, boolean internalFound, Long employeeDbId) {
 
+    // Load request
     StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
         .orElseThrow(() -> new ResponseStatusException(
             HttpStatus.NOT_FOUND, "StaffingRequest not found: " + requestId
         ));
 
-    if (internalFound) {
-      Employee employee = employeeRepository.findById(employeeDbId)
-          .orElseThrow(() -> new ResponseStatusException(
-              HttpStatus.NOT_FOUND, "Employee not found: " + employeeDbId
-          ));
+    if(internalFound){
+        // Load employee
+        Employee employee = employeeRepository.findById(employeeDbId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Employee not found: " + employeeDbId
+            ));
 
-      employee.setMatchingAvailability(MatchingAvailability.RESERVED);
-      employeeRepository.save(employee);
+        employee.setMatchingAvailability(MatchingAvailability.RESERVED);
+        employeeRepository.save(employee);
 
-      request.setStatus(RequestStatus.EMPLOYEE_RESERVED);
-      if (employee.getUser() != null) {
-        request.setAssignedUser(employee.getUser());
-      }
-      staffingRequestRepository.save(request);
+        request.setStatus(RequestStatus.EMPLOYEE_RESERVED); 
 
-      zeebeClient.newPublishMessageCommand()
-          .messageName("ResourcePlannerSelection")
-          .correlationKey(requestId.toString())
-          .variables(Map.of(
-              "suitableResourceFound", true,
-              "reservedEmployeeId", employeeDbId,
-              "isExternalCandidate", false
-          ))
-          .send()
-          .join();
+        if (employee.getUser() != null) {
+            request.setAssignedUser(employee.getUser());
+        }
 
-    } else {
-      // Reset matched employees to AVAILABLE
-      List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, 1000);
-      for (MatchedEmployeeDTO m : matches) {
-        employeeRepository.findById(m.employeeDbId()).ifPresent(emp -> {
-          emp.setMatchingAvailability(MatchingAvailability.AVAILABLE);
-          employeeRepository.save(emp);
-        });
-      }
+        staffingRequestRepository.save(request);
 
-      request.setStatus(RequestStatus.EXTERNAL_SEARCH_TRIGGERED);
-      staffingRequestRepository.save(request);
+        zeebeClient.newPublishMessageCommand()
+            .messageName("ResourcePlannerSelection")
+            .correlationKey(requestId.toString())
+            .variables(Map.of(
+                "suitableResourceFound", true,
+                "reservedEmployeeId", employeeDbId,
+                "isExternalCandidate", false 
+            ))
+            .send()
+            .join();
 
-      zeebeClient.newPublishMessageCommand()
-          .messageName("ResourcePlannerSelection")
-          .correlationKey(requestId.toString())
-          .variables(Map.of("suitableResourceFound", false))
-          .send()
-          .join();
     }
-  } // ✅ THIS closes decide()
+    else { // internalFound == false
+
+    //  UNDO previously reserved employee (if any)
+    if (request.getAssignedUser() != null) {
+        employeeRepository.findByUser_Id(request.getAssignedUser().getId())
+            .ifPresent(emp -> {
+                if (emp.getMatchingAvailability() == MatchingAvailability.RESERVED) {
+                    emp.setMatchingAvailability(MatchingAvailability.AVAILABLE);
+                    employeeRepository.save(emp);
+                }
+            });
+
+        request.setAssignedUser(null);
+    }
+
+    request.setStatus(RequestStatus.EXTERNAL_SEARCH_TRIGGERED);
+    staffingRequestRepository.save(request);
+
+    zeebeClient.newPublishMessageCommand()
+        .messageName("ResourcePlannerSelection")
+        .correlationKey(requestId.toString())
+        .variables(Map.of("suitableResourceFound", false))
+        .send()
+        .join();
+}
+
+
+  }
 
   @Transactional
   public void assign(Long requestId, Long employeeDbId) {

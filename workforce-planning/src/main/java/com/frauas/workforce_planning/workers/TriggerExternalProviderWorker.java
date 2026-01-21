@@ -15,13 +15,20 @@ import java.util.stream.Collectors;
 @Component
 public class TriggerExternalProviderWorker {
 
-  @Value("${team3b.base-url:http://localhost:8080}")
-  private String team3bBaseUrl;
+  //@Value("${team3b.base-url:http://localhost:8080}")
+ @Value("${team3b.base-url:}")
+private String team3bBaseUrl;
 
   private final RestTemplate restTemplate = new RestTemplate();
 
   @JobWorker(type = "serviceMgmtConnector")
   public void triggerExternalProvider(final JobClient client, final ActivatedJob job) {
+    if (team3bBaseUrl == null || team3bBaseUrl.isBlank()) {
+  throw new RuntimeException(
+      "team3b.base-url is not configured (3B URL missing)"
+  );
+}
+
 
     Map<String, Object> vars = job.getVariablesAsMap();
 
@@ -72,32 +79,48 @@ public class TriggerExternalProviderWorker {
     );
 
     String url = team3bBaseUrl + "/api/group1/workforce-request";
+HttpHeaders headers = new HttpHeaders();
+headers.setContentType(MediaType.APPLICATION_JSON);
 
-    try {
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
+HttpEntity<ExternalWorkforce3BRequestDTO> requestEntity =
+    new HttpEntity<>(payload, headers);
 
-      HttpEntity<ExternalWorkforce3BRequestDTO> requestEntity = new HttpEntity<>(payload, headers);
-      ResponseEntity<String> response = restTemplate.postForEntity(url, requestEntity, String.class);
+ResponseEntity<String> response;
+try {
+  response = restTemplate.postForEntity(url, requestEntity, String.class);
+} catch (Exception ex) {
+  // ✅ IMPORTANT: do NOT complete the job
+  // Zeebe will retry / raise incident
+  throw new RuntimeException(
+      "[TriggerExternalProvider] ERROR calling 3B endpoint: " + url, ex
+  );
+}
 
-      System.out.println("[TriggerExternalProvider] Sent request to 3B: " + url);
-      System.out.println("[TriggerExternalProvider] Payload: " + payload);
-      System.out.println("[TriggerExternalProvider] 3B response: " + response.getStatusCode() + " body=" + response.getBody());
+// ✅ Accept ANY 2xx (200 / 201 / 202)
+if (!response.getStatusCode().is2xxSuccessful()) {
+  throw new RuntimeException(
+      "[TriggerExternalProvider] 3B returned non-2xx: "
+          + response.getStatusCode()
+          + " body=" + response.getBody()
+  );
+}
 
-    } catch (Exception ex) {
-      System.out.println("[TriggerExternalProvider] ERROR calling 3B endpoint: " + ex.getMessage());
-      // For demo you can still complete, but for real reliability you may want to throw here.
-    }
+System.out.println("[TriggerExternalProvider] Sent request to 3B: " + url);
+System.out.println("[TriggerExternalProvider] Payload: " + payload);
+System.out.println("[TriggerExternalProvider] 3B response: "
+    + response.getStatusCode()
+    + " body=" + response.getBody());
 
-    // ✅ 4) Save internalRequestId so message catch can correlate
-    Map<String, Object> out = new HashMap<>();
-    out.put("internalRequestId", internalRequestId);
-    out.put("externalRequestSent", true);
+// ✅ ONLY NOW complete the job
+Map<String, Object> out = new HashMap<>();
+out.put("internalRequestId", internalRequestId);
+out.put("externalRequestSent", true);
+out.put("externalAckStatus", response.getStatusCodeValue());
 
-    client.newCompleteCommand(job.getKey())
-        .variables(out)
-        .send()
-        .join();
+client.newCompleteCommand(job.getKey())
+    .variables(out)
+    .send()
+    .join();
   }
 
   private String safeString(Object value, String fallback) {

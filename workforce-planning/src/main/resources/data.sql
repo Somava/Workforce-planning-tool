@@ -106,43 +106,75 @@ INSERT INTO employees (
 (19, 'neumann.hr@frauas.de', 'E-119', 'Laura', 'Neumann', 1, 'Darmstadt', 'PART_TIME', 3, 34.00, '+49-15510440240', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 12, 4, 
 '["Employee Relations", "Payroll", "HRIS"]'::jsonb, 20, 3.6, 'HR Operations', 'Yoga'),
 
-(20, 'zimmermann.it@frauas.de', 'E-120', 'Christian', 'Zimmermann', 1, 'Frankfurt', 'FULL_TIME', 12, 42.00, '+49-15510440020', '2026-01-01', '2028-12-31', 'AVAILABLE', 4, 1, 4, 
-'["Cloud Architecture", "Kubernetes", "Go", "Terraform"]'::jsonb, 40, 4.8, 'Infrastructure Modernization', 'Sailing'),
+-- IT / Infra (helps request 2: Networking+Linux, request 7: Troubleshooting, request 5: Cisco+Security)
+(20, 'meier.it@frauas.de', 'E-120', 'Jonas', 'Meier', 1, 'Munich', 'FULL_TIME', 6, 30.00, '+49-15510000020',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4,
+ '["Networking", "Linux", "Troubleshooting"]'::jsonb, 40, 4.0, 'Skyfall Infra', 'Systems'),
 
-(21, 'krueger.it@frauas.de', 'E-121', 'Julia', 'Krüger', 1, 'Munich', 'PART_TIME', 4, 28.50, '+49-15510440021', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 2, 4, 
-'["UI/UX Design", "Figma", "React", "Mobile First"]'::jsonb, 20, 4.1, 'Customer Facing Portals', 'Photography'),
+(21, 'zimmer.it@frauas.de', 'E-121', 'Nina', 'Zimmer', 1, 'Berlin', 'PART_TIME', 3, 24.00, '+49-15510000021',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 4, 4,
+ '["Troubleshooting", "Technical Support", "Linux"]'::jsonb, 20, 3.7, 'Mobile Support', 'Music'),
 
-(22, 'hartmann.it@frauas.de', 'E-122', 'Sebastian', 'Hartmann', 1, 'Berlin', 'FULL_TIME', 6, 34.00, '+49-15510440022', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 3, 4, 
-'["Node.js", "GraphQL", "MongoDB", "Microservices"]'::jsonb, 40, 3.9, 'Backend Scaling', 'Gaming'),
+(22, 'hartmann.it@frauas.de', 'E-122', 'Felix', 'Hartmann', 1, 'Frankfurt', 'FULL_TIME', 7, 37.00, '+49-15510000022',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 3, 4,
+ '["Cisco", "Security", "Network Security"]'::jsonb, 40, 4.2, 'Legacy Security', 'Security'),
 
-(23, 'lange.it@frauas.de', 'E-123', 'Melanie', 'Lange', 1, 'Darmstadt', 'FULL_TIME', 8, 37.00, '+49-15510440023', '2026-01-01', '2028-06-30', 'AVAILABLE', 4, 4, 4, 
-'["Cybersecurity", "Penetration Testing", "Python"]'::jsonb, 40, 4.5, 'Security Audits', 'Martial Arts'),
+-- DevOps (helps request 4: Jenkins+Docker, also cloud/devops pool)
+(23, 'kruger.it@frauas.de', 'E-123', 'Lena', 'Kruger', 1, 'Frankfurt', 'PART_TIME', 4, 26.00, '+49-15510000023',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4,
+ '["Jenkins", "Docker", "CI/CD"]'::jsonb, 20, 3.9, 'Skyfall CI/CD', 'Automation'),
 
--- 5. Additional R&D Specialists (IDs 24-27)
-(24, 'schmidt.rd@frauas.de', 'E-124', 'Andreas', 'Schmidt', 1, 'Munich', 'FULL_TIME', 15, 39.00, '+49-15510440024', '2026-01-01', '2030-12-31', 'AVAILABLE', 4, 5, 4, 
-'["Quantum Computing", "Algorithms", "C++", "Matlab"]'::jsonb, 40, 4.9, 'Next-Gen Research', 'Astronomy'),
+(24, 'schneider.it@frauas.de', 'E-124', 'Paul', 'Schneider', 1, 'Munich', 'FULL_TIME', 9, 35.00, '+49-15510000024',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4,
+ '["Docker", "Kubernetes", "Jenkins"]'::jsonb, 40, 4.4, 'Cloud Platform', 'DevOps'),
 
-(25, 'voigt.rd@frauas.de', 'E-125', 'Vanessa', 'Voigt', 1, 'Darmstadt', 'PART_TIME', 3, 31.00, '+49-15510440025', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
-'["Bioinformatics", "Data Mining", "Python"]'::jsonb, 25, 3.8, 'Genomic Data Analysis', 'Baking'),
+-- Backend / Java (helps request 1: Java+AWS onsite Munich 20h; request 1 is onsite+20h so we add PART_TIME in Munich)
+(25, 'lang.it@frauas.de', 'E-125', 'Sven', 'Lang', 1, 'Munich', 'PART_TIME', 6, 34.00, '+49-15510000025',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4,
+ '["Java", "AWS", "Spring"]'::jsonb, 20, 4.1, 'Skyfall Backend', 'Coding'),
 
-(26, 'beck.rd@frauas.de', 'E-126', 'Fabian', 'Beck', 1, 'Frankfurt', 'FULL_TIME', 7, 36.50, '+49-15510440026', '2026-01-01', '2028-12-31', 'AVAILABLE', 4, 7, 4, 
-'["Robotics", "ROS", "Embedded C", "Sensor Fusion"]'::jsonb, 40, 4.4, 'Automation Systems', 'Drones'),
+-- Frontend (helps request 8: React+TypeScript remote 20h)
+(26, 'hoff.it@frauas.de', 'E-126', 'Mara', 'Hoff', 1, 'Darmstadt', 'PART_TIME', 4, 28.00, '+49-15510000026',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4,
+ '["React", "TypeScript", "UI Testing"]'::jsonb, 20, 3.8, 'NeuralCare UI', 'Design'),
 
-(27, 'mayer.rd@frauas.de', 'E-127', 'Isabelle', 'Mayer', 1, 'Munich', 'PART_TIME', 5, 33.00, '+49-15510440027', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 8, 4, 
-'["Computer Vision", "OpenCV", "TensorFlow"]'::jsonb, 20, 4.2, 'Image Recognition', 'Skiing'),
+-- Integration (helps request 10: API+JSON remote 40h)
+(27, 'brandt.it@frauas.de', 'E-127', 'Tim', 'Brandt', 1, 'Frankfurt', 'FULL_TIME', 5, 33.00, '+49-15510000027',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4,
+ '["API", "JSON", "PostgreSQL"]'::jsonb, 40, 4.0, 'Systems Integration', 'Integration'),
 
--- 6. Additional HR Specialists (IDs 28-31)
-(28, 'schwarz.hr@frauas.de', 'E-128', 'Alexander', 'Schwarz', 1, 'Berlin', 'FULL_TIME', 11, 35.00, '+49-15510440028', '2026-01-01', '2029-12-31', 'AVAILABLE', 4, 9, 4, 
-'["Change Management", "Organizational Dev", "Coaching"]'::jsonb, 40, 4.7, 'Corporate Culture', 'Psychology'),
+-- R&D / AI (helps request 14: NLP+Transformers remote 20h; request 11 Python+PyTorch onsite Darmstadt 40h)
+(28, 'richter.rd2@frauas.de', 'E-128', 'Klara', 'Richter', 1, 'Darmstadt', 'PART_TIME', 4, 29.00, '+49-15510000028',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4,
+ '["NLP", "Transformers", "Python"]'::jsonb, 20, 4.2, 'NeuralCare NLP', 'AI'),
 
-(29, 'otto.hr@frauas.de', 'E-129', 'Natalie', 'Otto', 1, 'Frankfurt', 'FULL_TIME', 4, 26.50, '+49-15510440029', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 10, 4, 
-'["Employer Branding", "Social Media", "Recruiting"]'::jsonb, 40, 4.0, 'Campus Recruitment', 'Travel'),
+(29, 'seidel.rd@frauas.de', 'E-129', 'Armin', 'Seidel', 1, 'Darmstadt', 'FULL_TIME', 5, 25.00, '+49-15510000029',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 5, 4,
+ '["Python", "PyTorch", "Machine Learning"]'::jsonb, 40, 4.0, 'Model Training', 'AI'),
 
-(30, 'fuchs.hr@frauas.de', 'E-130', 'Maximilian', 'Fuchs', 1, 'Darmstadt', 'PART_TIME', 6, 29.00, '+49-15510440030', '2026-01-01', '2028-01-01', 'AVAILABLE', 4, 11, 4, 
-'["Labor Law", "Contract Negotiation", "Compliance"]'::jsonb, 30, 3.7, 'Legal Compliance', 'History'),
+-- Data / Stats (helps request 20: Statistics+SAS remote 40h; request 25 Excel+Data Analysis onsite Frankfurt 40h)
+(30, 'wirth.rd@frauas.de', 'E-130', 'Tobias', 'Wirth', 1, 'Berlin', 'FULL_TIME', 6, 27.00, '+49-15510000030',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4,
+ '["Statistics", "SAS", "Data Analytics"]'::jsonb, 40, 4.1, 'Data Integrity', 'Data'),
 
-(31, 'peters.hr@frauas.de', 'E-131', 'Clara', 'Peters', 1, 'Berlin', 'FULL_TIME', 2, 24.00, '+49-15510440031', '2026-01-01', '2027-12-31', 'AVAILABLE', 4, 12, 4, 
-'["Onboarding", "Training", "Excel"]'::jsonb, 40, 3.5, 'Employee Integration', 'Painting')
+(31, 'konig.hr@frauas.de', 'E-131', 'Julia', 'Konig', 1, 'Frankfurt', 'FULL_TIME', 4, 22.00, '+49-15510000031',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 11, 4,
+ '["Excel", "Data Analysis", "Benchmarking"]'::jsonb, 40, 3.9, 'Comp Analysis', 'Finance'),
+
+-- HR (helps request 22 Recruiting+Sourcing remote 40h; request 21 API Integration + HRIS remote 40h)
+(32, 'reuter.hr@frauas.de', 'E-132', 'Ben', 'Reuter', 1, 'Munich', 'FULL_TIME', 5, 28.00, '+49-15510000032',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4,
+ '["Recruiting", "Sourcing", "LinkedIn"]'::jsonb, 40, 4.1, 'Hiring Drive', 'People'),
+
+(33, 'maas.hr@frauas.de', 'E-133', 'Lea', 'Maas', 1, 'Berlin', 'FULL_TIME', 4, 31.00, '+49-15510000033',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4,
+ '["API Integration", "HRIS", "JSON"]'::jsonb, 40, 3.8, 'Payroll Sync', 'HR Tech'),
+
+-- Extra Security/Privacy (helps request 29 GDPR+Privacy onsite Frankfurt 40h by having Frankfurt-based privacy skill)
+(34, 'falk.hr@frauas.de', 'E-134', 'Nora', 'Falk', 1, 'Frankfurt', 'FULL_TIME', 5, 30.00, '+49-15510000034',
+ '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 10, 4,
+ '["GDPR", "Privacy", "Risk Analysis"]'::jsonb, 40, 4.0, 'Compliance', 'Privacy')
+
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE employees SET supervisor_id = 1 WHERE id IN (2, 3, 4, 5, 6, 7);
@@ -170,7 +202,22 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (16, 1, 'C1'),
 (17, 1, 'B2'),
 (18, 1, 'C1'),
-(19, 1, 'B2')
+(19, 1, 'B2'),
+(20, 1, 'B2'),
+(21, 1, 'B2'),
+(22, 1, 'C1'),
+(23, 1, 'B2'),
+(24, 1, 'C1'),
+(25, 1, 'C1'),
+(26, 1, 'B2'),
+(27, 1, 'B2'),
+(28, 1, 'C1'),
+(29, 1, 'C1'),
+(30, 1, 'B2'),
+(31, 1, 'B2'),
+(32, 1, 'C1'),
+(33, 1, 'B2'),
+(34, 1, 'B2')
 ON CONFLICT DO NOTHING;
 
 -- Many employees also know German
@@ -193,7 +240,10 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (16, 2, 'B2'),
 (17, 2, 'B1'),
 (18, 2, 'B2'),
-(19, 2, 'B1')
+(19, 2, 'B1'),
+(20,2,'B2'),(21,2,'B1'),(22,2,'B2'),(23,2,'B1'),(24,2,'B2'),
+(25,2,'B2'),(26,2,'B1'),(27,2,'B1'),(28,2,'B2'),(29,2,'B2'),
+(30,2,'B1'),(31,2,'B1'),(32,2,'B2'),(33,2,'B1'),(34,2,'B2')
 ON CONFLICT DO NOTHING;
 
 -- Some employees also know Spanish
@@ -201,7 +251,12 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (3, 3, 'B1'),
 (9, 3, 'A2'),
 (12, 3, 'B1'),
-(18, 3, 'A2')
+(18, 3, 'A2'),
+(22, 3, 'A2'),
+(25, 3, 'B1'),
+(28, 3, 'A2'),
+(31, 3, 'B1'),
+(34, 3, 'A2')
 ON CONFLICT DO NOTHING;
 
 
@@ -226,8 +281,24 @@ INSERT INTO users (id, email, password_hash, employee_id) VALUES
 (16, 'richter.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 16),
 (17, 'wolf.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 17),
 (18, 'klein.rd@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 18),
-(19, 'neumann.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 19)
+(19, 'neumann.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 19),
+(20, 'meier.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 20),
+(21, 'zimmer.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 21),
+(22, 'hartmann.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 22),
+(23, 'kruger.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 23),
+(24, 'schneider.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 24),
+(25, 'lang.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 25),
+(26, 'hoff.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 26),
+(27, 'brandt.it@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 27),
+(28, 'richter.rd2@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 28),
+(29, 'seidel.rd@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 29),
+(30, 'wirth.rd@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 30),
+(31, 'konig.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 31),
+(32, 'reuter.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 32),
+(33, 'maas.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 33),
+(34, 'falk.hr@frauas.de', '$2a$10$d2rY0xMlb.VyYqJjYmkF2.Fs62XP9zsUSal40cclJT64ozaB8bCbC', 34)
 ON CONFLICT (id) DO NOTHING;
+
 
 
 UPDATE departments SET department_head_user_id = 2, resource_planner_user_id = 5 WHERE id IN (1, 2, 3, 4); 
@@ -242,9 +313,11 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 ON CONFLICT DO NOTHING;
 
 -- NEW: Automated role assignment for the 12 unique heads
+
 INSERT INTO user_roles (user_id, role_id)
-SELECT id, 4 FROM users WHERE id BETWEEN 8 AND 19
+SELECT id, 4 FROM users WHERE id BETWEEN 8 AND 34
 ON CONFLICT DO NOTHING;
+
 
 
 INSERT INTO staffing_requests (

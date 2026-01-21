@@ -24,7 +24,8 @@ public class NotifyExternalGroupWorker {
     Map<String, Object> vars = job.getVariablesAsMap();
 
     // 1) read requestId from Camunda variables and convert to Long
-    Long internalRequestId = toLong(vars.get("requestId"));
+    Long internalRequestId = toLong(vars.get("internalRequestId"));
+
     if (internalRequestId == null) {
       // If requestId is missing, fail the job (or you can complete with log)
       throw new IllegalArgumentException("Missing process variable: requestId");

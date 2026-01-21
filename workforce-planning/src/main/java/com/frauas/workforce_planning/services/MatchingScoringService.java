@@ -21,7 +21,7 @@ public class MatchingScoringService {
     private static final double W_PERF   = 0.10;
 
 
-    private static final double APPLIED_BONUS = 0.05; // bonus if employee applied
+    private static final double APPLIED_BONUS = 0.0; // bonus if employee applied
 
     public double score(Employee e, StaffingRequest r, boolean applied) {
         double skills = skillsScore(e.getSkills(), r.getRequiredSkills());
@@ -68,46 +68,62 @@ double total =
 
 
     private double hoursScore(Integer employeeTotal, Integer required) {
-    if (required == null) return 0.7;
-    if (employeeTotal == null) return 0.0;
-    return employeeTotal.equals(required) ? 1.0 : 0.0;
-    }
+    if (required == null) return 0.7;      // neutral if request doesn't specify
+    if (employeeTotal == null) return 0.4; // mild penalty for missing data
+
+    if (employeeTotal >= required) return 1.0; // can cover required hours
+
+    double ratio = (double) employeeTotal / (double) required; // partial coverage
+    return clamp01(0.2 + 0.8 * ratio);
+}
+
 
 
     private double wageScore(BigDecimal employeeWage, BigDecimal requestWage) {
-        // If request wage is null, don't penalize
-        if (requestWage == null || requestWage.compareTo(BigDecimal.ZERO) <= 0) return 0.7;
-        if (employeeWage == null || employeeWage.compareTo(BigDecimal.ZERO) <= 0) return 0.4;
+    if (requestWage == null || requestWage.compareTo(BigDecimal.ZERO) <= 0) return 0.7;
+    if (employeeWage == null || employeeWage.compareTo(BigDecimal.ZERO) <= 0) return 0.4;
 
-        // closeness: exact match => 1.0; farther => lower
-        BigDecimal diff = employeeWage.subtract(requestWage).abs();
+    int cmp = employeeWage.compareTo(requestWage);
+
+    // If employee is within budget, reward closeness (budget - employee)
+    if (cmp <= 0) {
+        BigDecimal diff = requestWage.subtract(employeeWage); // >= 0
         BigDecimal ratio = diff.divide(requestWage, 6, RoundingMode.HALF_UP);
-
-        double s = 1.0 - ratio.doubleValue(); // 0 diff => 1 ; 100% diff => 0
-        return clamp01(s);
+        return clamp01(1.0 - ratio.doubleValue()); // exact budget => 1.0, cheaper => slightly lower
     }
 
-    private double experienceScore(Integer empYears, Integer reqYears) {
-        if (reqYears == null || reqYears <= 0) return 0.7;
-        if (empYears == null || empYears <= 0) return 0.0;
+    // If employee is over budget, penalize harder
+    BigDecimal over = employeeWage.subtract(requestWage); // > 0
+    BigDecimal ratio = over.divide(requestWage, 6, RoundingMode.HALF_UP);
 
-        if (empYears < reqYears) return 0.0; // normally filtered out already
+    // Example: 10% over budget => 0.5, 20% => 0.0 (tune if needed)
+    double s = 0.5 - (ratio.doubleValue() * 5.0);
+    return clamp01(s);
+ }
+
+   private double experienceScore(Integer empYears, Integer reqYears) {
+    if (reqYears == null || reqYears <= 0) return 0.7;
+    if (empYears == null || empYears <= 0) return 0.4;
+
+    if (empYears >= reqYears) {
         int extra = empYears - reqYears;
-
-        // req met => 0.8, then + up to 0.2 for extra experience
-        double s = 0.8 + Math.min(0.2, extra * 0.02); // +0.02 per extra year up to +0.2
-        return clamp01(s);
+        return clamp01(0.8 + Math.min(0.2, extra * 0.02));
     }
 
-    private double locationScore(String employeeLocation, String requestWorkMode, String requestCity) {
-    if (!isBlank(requestWorkMode) && requestWorkMode.trim().equalsIgnoreCase("Remote")) {
-        return 1.0; // remote request -> everyone acceptable
+    double ratio = (double) empYears / (double) reqYears;
+    return clamp01(0.2 + 0.6 * ratio);
+}
+
+ private double locationScore(String employeeLocation, String workLoc, String projectLoc) {
+    if (workLoc != null && workLoc.trim().equalsIgnoreCase("Remote")) return 1.0;
+
+    if (workLoc != null && workLoc.trim().equalsIgnoreCase("Onsite")) {
+        if (projectLoc == null || projectLoc.trim().isEmpty()) return 0.7;
+        if (employeeLocation == null || employeeLocation.trim().isEmpty()) return 0.0;
+        return employeeLocation.trim().equalsIgnoreCase(projectLoc.trim()) ? 1.0 : 0.0;
     }
 
-    if (isBlank(requestCity)) return 0.7; // unknown city -> neutral
-    if (isBlank(employeeLocation)) return 0.0;
-
-    return employeeLocation.trim().equalsIgnoreCase(requestCity.trim()) ? 1.0 : 0.0;
+    return 0.7;
 }
 
 
