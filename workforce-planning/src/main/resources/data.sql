@@ -71,10 +71,10 @@ INSERT INTO employees (
 (8, 'wagner.it@frauas.de', 'E-108', 'Marcus', 'Wagner', 1, 'Frankfurt', 'FULL_TIME', 10, 38.00, '+49-15510440409', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4, 
 '["Java", "Spring Boot", "AWS"]'::jsonb, 40, 4.0, 'Cloud Migration', 'Gaming'), -- FULL TIME
 
-(9, 'fischer.rd@frauas.de', 'E-109', 'Elena', 'Fischer', 1, 'Frankfurt', 'PART_TIME', 7, 27.00, '+49-15510440451', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 2, 4, 
+(9, 'fischer.rd@frauas.de', 'E-109', 'Elena', 'Fischer', 1, 'Frankfurt', 'PART_TIME', 7, 27.00, '+49-15510440451', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 5, 4, 
 '["React", "TypeScript", "CSS"]'::jsonb, 20, 3.6, 'Frontend UI', 'Art'), -- PART TIME
 
-(10, 'weber.hr@frauas.de', 'E-110', 'Thomas', 'Weber', 1, 'Frankfurt', 'FULL_TIME', 8, 29.00, '+49-15510440003', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 3, 4, 
+(10, 'weber.hr@frauas.de', 'E-110', 'Thomas', 'Weber', 1, 'Frankfurt', 'FULL_TIME', 8, 29.00, '+49-15510440003', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4, 
 '["Docker", "Kubernetes", "AWS"]'::jsonb, 40, 4.3, 'DevOps', 'Cycling'), -- FULL TIME
 
 (11, 'becker.it@frauas.de', 'E-111', 'Sarah', 'Becker', 1, 'Berlin', 'PART_TIME', 5, 26.00, '+49-15510440411', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 4, 4, 
@@ -84,10 +84,10 @@ INSERT INTO employees (
 (12, 'hoffmann.rd@frauas.de', 'E-112', 'Lukas', 'Hoffmann', 1, 'Darmstadt', 'FULL_TIME', 6, 29.00, '+49-15510443654', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 5, 4, 
 '["Python", "Machine Learning", "PyTorch"]'::jsonb, 40, 4.1, 'AI Models', 'Chess'),
 
-(13, 'schulz.hr@frauas.de', 'E-113', 'Miriam', 'Schulz', 1, 'Frankfurt', 'PART_TIME', 4, 32.00, '+49-15510440467', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
+(13, 'schulz.hr@frauas.de', 'E-113', 'Miriam', 'Schulz', 1, 'Frankfurt', 'PART_TIME', 4, 32.00, '+49-15510440467', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4, 
 '["Data Analytics", "SQL", "PostgreSQL"]'::jsonb, 20, 3.9, 'Data Analysis', 'Reading'),
 
-(14, 'koch.it@frauas.de', 'E-114', 'Julian', 'Koch', 1, 'Munich', 'FULL_TIME', 5, 36.00, '+49-15510440711', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 7, 4, 
+(14, 'koch.it@frauas.de', 'E-114', 'Julian', 'Koch', 1, 'Munich', 'FULL_TIME', 5, 36.00, '+49-15510440711', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 3, 4, 
 '["Cybersecurity", "GDPR", "Risk Analysis"]'::jsonb, 40, 4.5, 'Privacy Compliance', 'Running'),
 
 (15, 'bauer.rd@frauas.de', 'E-115', 'Sophia', 'Bauer', 1, 'Frankfurt', 'PART_TIME', 6, 35.50, '+49-15510440486', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 8, 4, 
@@ -97,10 +97,10 @@ INSERT INTO employees (
 (16, 'richter.hr@frauas.de', 'E-116', 'David', 'Richter', 1, 'Frankfurt', 'FULL_TIME', 3, 21.00, '+49-15510440216', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 9, 4, 
 '["Recruiting", "Sourcing", "TypeScript"]'::jsonb, 40, 4.0, 'Talent Acquisition', 'Cooking'),
 
-(17, 'wolf.it@frauas.de', 'E-117', 'Hannah', 'Wolf', 1, 'Berlin', 'PART_TIME', 2, 28.00, '+49-15510440931', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 10, 4, 
+(17, 'wolf.it@frauas.de', 'E-117', 'Hannah', 'Wolf', 1, 'Berlin', 'PART_TIME', 2, 28.00, '+49-15510440931', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 1, 4, 
 '["Technical Support", "Linux", "Troubleshooting"]'::jsonb, 20, 3.8, 'IT Support', 'Music'),
 
-(18, 'klein.rd@frauas.de', 'E-118', 'Simon', 'Klein', 1, 'Berlin', 'FULL_TIME', 4, 33.00, '+49-15510440721', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 11, 4, 
+(18, 'klein.rd@frauas.de', 'E-118', 'Simon', 'Klein', 1, 'Berlin', 'FULL_TIME', 4, 33.00, '+49-15510440721', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 6, 4, 
 '["Market Research", "Excel", "Algorithms"]'::jsonb, 40, 4.2, 'Benchmarking', 'Gardening'),
 
 (19, 'neumann.hr@frauas.de', 'E-119', 'Laura', 'Neumann', 1, 'Darmstadt', 'PART_TIME', 3, 34.00, '+49-15510440240', '2026-01-01', '2027-01-01', 'AVAILABLE', 4, 12, 4, 
