@@ -18,6 +18,7 @@ public enum RequestStatus {
     REJECTED,
     NO_EXT_EMPLOYEE_FOUND,
     EXT_EMPLOYEE_REJECTED_BY_DH,
+    EXTERNAL_RESPONSE_RECEIVED,
 
     
     ASSIGNED,

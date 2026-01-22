@@ -78,5 +78,5 @@ app:
 
 integration: 
   team3b:
-    base-url: http://localhost:8080
+    base-url: https://group3b-api-placeholder.com/api
     request-path: /api/group1/workforce-request

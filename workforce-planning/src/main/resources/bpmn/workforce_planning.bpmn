@@ -51,7 +51,7 @@
     </bpmn:serviceTask>
     <bpmn:serviceTask id="Activity_TriggerExternalSourcing" name="Trigger Service Management / Provider Request">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="serviceMgmtConnector" />
+        <zeebe:taskDefinition type="notify-group-3b" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0k6a1f2</bpmn:incoming>
       <bpmn:outgoing>Flow_TriggerToWait</bpmn:outgoing>

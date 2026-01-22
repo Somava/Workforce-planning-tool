@@ -4,8 +4,14 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+
 import com.frauas.workforce_planning.dto.CandidateActionRequest;
 import com.frauas.workforce_planning.dto.MatchResponseDTO;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
@@ -25,23 +31,23 @@ public class StaffingMatchingController {
     this.decisionService = decisionService;
   }
 
-  @GetMapping("/resource-planner/staffing-requests/{requestId}/matches")
-public ResponseEntity<MatchResponseDTO> getMatches(@PathVariable Long requestId,
-                                                   @RequestParam(defaultValue = "10") int topN) {
+  @GetMapping("/resource-planner/staffing-requests/matches")
+  public ResponseEntity<MatchResponseDTO> getMatches(@RequestParam Long requestId,
+                                                    @RequestParam(defaultValue = "10") int topN) {
 
-  List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
+    List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
 
-  if (matches.isEmpty()) {
-    return ResponseEntity.ok(new MatchResponseDTO(
-        "Unable to get employees for this role in our organisation",
-        List.of()
-    ));
+    if (matches.isEmpty()) {
+      return ResponseEntity.ok(new MatchResponseDTO(
+          "Unable to get employees for this role in our organisation",
+          List.of()
+      ));
+    }
+
+    return ResponseEntity.ok(new MatchResponseDTO(null, matches));
   }
 
-  return ResponseEntity.ok(new MatchResponseDTO(null, matches));
-}
-
-  @PostMapping("/resource-planner/staffing-requests/{requestId}/reserve")
+  @PostMapping("/resource-planner/staffing-requests/reserve")
   public ResponseEntity<String> reserve(@RequestParam Long requestId,
                                         @RequestParam boolean internalFound,
                                         @RequestBody(required = false) CandidateActionRequest body) {
