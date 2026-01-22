@@ -2,18 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const EmployeeDashboard = () => {
     // State Management
-    const [mainTab, setMainTab] = useState('assignments'); // Default to assignments to show opportunities
+    const [mainTab, setMainTab] = useState('career'); // DEFAULT TO CAREER PORTAL
     const [activeTab, setActiveTab] = useState('browse');
     
-    // New state for Personal Information API
     const [userProfile, setUserProfile] = useState(null);
-    
     const [openPositions, setOpenPositions] = useState([]);
     const [myApplications, setMyApplications] = useState([]);
     const [assignedRequests, setAssignedRequests] = useState([]); 
     
     const [message, setMessage] = useState({ text: '', type: '', visible: false });
     const [pendingAction, setPendingAction] = useState(null); 
+    const [decisionMessage, setDecisionMessage] = useState(null); // Persistent feedback for assignments
 
     const userEmail = localStorage.getItem("email") || "hoffmann.rd@frauas.de";
 
@@ -88,7 +87,6 @@ const EmployeeDashboard = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // API Actions (Apply, Withdraw, Decision) ... [Logic kept exactly as your code]
     const handleApply = async (requestId) => {
         setPendingAction(requestId);
         try {
@@ -119,7 +117,10 @@ const EmployeeDashboard = () => {
             });
             const text = await res.text();
             if (res.ok) {
-                showNotification(text || (isApproved ? "Assignment Accepted!" : "Assignment Declined"), 'success');
+                setDecisionMessage(isApproved ? 
+                    { title: "Assignment Accepted! 🎉", text: "You have been successfully added to the project team.", type: 'success' } : 
+                    { title: "Assignment Declined", text: "The request has been removed. You can continue browsing the career portal.", type: 'info' }
+                );
                 await fetchData();
             } else {
                 showNotification(text || "Action failed", "error");
@@ -136,7 +137,7 @@ const EmployeeDashboard = () => {
         <div style={styles.page}>
             <div style={styles.container}>
                 
-                {/* 1. Integrated Profile Section - UPDATED WITH ALL JSON FIELDS */}
+                {/* 1. Integrated Profile Section */}
                 {userProfile && (
                     <div style={styles.profileHeader} className="alert-fade-in">
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
@@ -161,7 +162,7 @@ const EmployeeDashboard = () => {
                             <div style={styles.statItem}><strong>Experience:</strong> {userProfile.experienceYears} Years</div>
                             <div style={styles.statItem}><strong>Working Hours:</strong> {userProfile.totalHoursPerWeek}h/week</div>
                             <div style={styles.statItem}><strong>Location:</strong> {userProfile.primaryLocation}</div>
-                            <div style={styles.statItem}><strong>Contract:</strong> {userProfile.contractType.replace('_', ' ')}</div>
+                            <div style={styles.statItem}><strong>Contract:</strong> {userProfile.contractType?.replace('_', ' ')}</div>
                             <div style={styles.statItem}><strong>Window:</strong> {userProfile.availabilityStart} to {userProfile.availabilityEnd}</div>
                         </div>
 
@@ -192,8 +193,10 @@ const EmployeeDashboard = () => {
 
                 {/* Main Tabs */}
                 <div style={{display: 'flex', gap: '40px', borderBottom: '1px solid #e2e8f0', marginBottom: '25px'}}>
-                    <button onClick={() => setMainTab('assignments')} style={mainTab === 'assignments' ? styles.mainTabActive : styles.mainTab}>Project Assignment Confirmation</button>
                     <button onClick={() => setMainTab('career')} style={mainTab === 'career' ? styles.mainTabActive : styles.mainTab}>Career Portal</button>
+                    <button onClick={() => setMainTab('assignments')} style={mainTab === 'assignments' ? styles.mainTabActive : styles.mainTab}>
+                        Project Assignment Confirmation {assignedRequests.length > 0 && <span style={styles.notifDot}></span>}
+                    </button>
                 </div>
 
                 {/* Notifications */}
@@ -204,95 +207,107 @@ const EmployeeDashboard = () => {
                     </div>
                 )}
 
-                {/* Assignment Confirmation Section - KEPT EXACTLY AS YOUR PREVIOUS VERSION */}
+                {/* Assignment Confirmation Section */}
                 {mainTab === 'assignments' && (
                     <div className="alert-fade-in">
-                        <div style={styles.congratsBox}>
-                            <h2 style={styles.congratsTitle}>Congratulations! 🎉</h2>
-                            <p style={styles.congratsText}>Here are a few opportunities awaiting for you! Please review the details below and confirm your participation.</p>
-                        </div>
-
-                        <div style={styles.grid}>
-                            {assignedRequests.length > 0 ? assignedRequests.map(item => (
-                                <div key={item.requestId} style={styles.card}>
-                                    <div style={styles.cardHeader}>
-                                        <div>
-                                            <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
-                                            <h2 style={styles.jobTitle}>{item.title}</h2>
-                                            <div style={styles.statusLabelBadge}>Approved by dept head, awaiting employee confirmation</div>
-                                        </div>
-                                        <div style={styles.wageBox}>
-                                            <span style={styles.wageText}>€{item.wagePerHour}</span>
-                                            <span style={styles.wageUnit}>/hr</span>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.descriptionSection}>
-                                        <h4 style={styles.sectionLabel}>Description of the Staffing Request</h4>
-                                        <p style={styles.requestDesc}>{item.description || "No description provided."}</p>
-                                    </div>
-
-                                    <div style={styles.infoBoxBlue}>
-                                        <h4 style={styles.sectionLabel}>Project Context</h4>
-                                        <p style={{fontSize: '17px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0'}}>{item.project?.name}</p>
-                                        <p style={{fontSize: '14px', color: '#475569', lineHeight: '1.6', marginBottom: '15px'}}>{item.project?.description}</p>
-                                        <div style={styles.metaGrid}>
-                                            <div style={styles.metaItem}><strong>📍 Work Location:</strong> {item.workLocation || item.project?.location }</div>
-                                            <div style={styles.metaItem}><strong>🕒 Engagement:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                            <div style={styles.metaItem}><strong>📅 Start:</strong> {item.project?.startDate}</div>
-                                            <div style={styles.metaItem}><strong>📅 End:</strong> {item.project?.endDate}</div>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.infoBoxGray}>
-                                        <h4 style={styles.sectionLabel}>Project Contacts</h4>
-                                        <table style={styles.stakeholderTable}>
-                                            <thead>
-                                                <tr>
-                                                    <th style={styles.sTh}>Role</th>
-                                                    <th style={styles.sTh}>Name</th>
-                                                    <th style={styles.sTh}>Contact</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td style={styles.sTd}>Resource Planner</td>
-                                                    <td style={styles.sTd}>{item.project?.managerUser?.employee?.firstName} {item.project?.managerUser?.employee?.lastName || "TBD"}</td>
-                                                    <td style={styles.sTd}>{item.project?.managerUser?.email || "N/A"}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td style={styles.sTd}>Dept. Head</td>
-                                                    <td style={styles.sTd}>Internal Approval Verified</td>
-                                                    <td style={styles.sTd}>—</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <div style={styles.footer}>
-                                        <div style={styles.skillList}>
-                                            {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
-                                        </div>
-                                        <div style={{display: 'flex', gap: '12px'}}>
-                                            <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>
-                                                {pendingAction === item.requestId ? '...' : 'Accept Assignment'}
-                                            </button>
-                                            <button onClick={() => handleEmployeeDecision(item.requestId, false)} style={{...styles.applyBtn, background: '#ef4444'}} disabled={pendingAction !== null}>
-                                                Decline
-                                            </button>
-                                        </div>
-                                    </div>
+                        {assignedRequests.length > 0 ? (
+                            <>
+                                <div style={styles.congratsBox}>
+                                    <h2 style={styles.congratsTitle}>Congratulations! 🎉</h2>
+                                    <p style={styles.congratsText}>Here are a few opportunities awaiting for you! Please review the details below and confirm your participation.</p>
                                 </div>
-                            )) : (
-                                <div style={styles.emptyState}>
-                                    <p style={{color: '#64748b', fontSize: '16px'}}>No pending project assignments found.</p>
+                                <div style={styles.grid}>
+                                    {assignedRequests.map(item => (
+                                        <div key={item.requestId} style={styles.card}>
+                                            <div style={styles.cardHeader}>
+                                                <div>
+                                                    <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
+                                                    <h2 style={styles.jobTitle}>{item.title}</h2>
+                                                    <div style={styles.statusLabelBadge}>Approved by dept head, awaiting employee confirmation</div>
+                                                </div>
+                                                <div style={styles.wageBox}>
+                                                    <span style={styles.wageText}>€{item.wagePerHour}</span>
+                                                    <span style={styles.wageUnit}>/hr</span>
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.descriptionSection}>
+                                                <h4 style={styles.sectionLabel}>Description of the Staffing Request</h4>
+                                                <p style={styles.requestDesc}>{item.description || "No description provided."}</p>
+                                            </div>
+
+                                            <div style={styles.infoBoxBlue}>
+                                                <h4 style={styles.sectionLabel}>Project Context</h4>
+                                                <p style={{fontSize: '17px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0'}}>{item.project?.name}</p>
+                                                <p style={{fontSize: '14px', color: '#475569', lineHeight: '1.6', marginBottom: '15px'}}>{item.project?.description}</p>
+                                                <div style={styles.metaGrid}>
+                                                    <div style={styles.metaItem}><strong>📍 Work Location:</strong> {item.workLocation || item.project?.location }</div>
+                                                    <div style={styles.metaItem}><strong>🕒 Engagement:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
+                                                    <div style={styles.metaItem}><strong>📅 Start:</strong> {item.project?.startDate}</div>
+                                                    <div style={styles.metaItem}><strong>📅 End:</strong> {item.project?.endDate}</div>
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.infoBoxGray}>
+                                                <h4 style={styles.sectionLabel}>Project Contacts</h4>
+                                                <table style={styles.stakeholderTable}>
+                                                    <thead>
+                                                        <tr>
+                                                            <th style={styles.sTh}>Role</th>
+                                                            <th style={styles.sTh}>Name</th>
+                                                            <th style={styles.sTh}>Contact</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td style={styles.sTd}>Resource Planner</td>
+                                                            <td style={styles.sTd}>{item.project?.managerUser?.employee?.firstName} {item.project?.managerUser?.employee?.lastName || "TBD"}</td>
+                                                            <td style={styles.sTd}>{item.project?.managerUser?.email || "N/A"}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style={styles.sTd}>Dept. Head</td>
+                                                            <td style={styles.sTd}>Internal Approval Verified</td>
+                                                            <td style={styles.sTd}>—</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div style={styles.footer}>
+                                                <div style={styles.skillList}>
+                                                    {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
+                                                </div>
+                                                <div style={{display: 'flex', gap: '12px'}}>
+                                                    <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>
+                                                        {pendingAction === item.requestId ? '...' : 'Accept Assignment'}
+                                                    </button>
+                                                    <button onClick={() => handleEmployeeDecision(item.requestId, false)} style={{...styles.applyBtn, background: '#ef4444'}} disabled={pendingAction !== null}>
+                                                        Decline
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
+                            </>
+                        ) : (
+                            <div className="alert-fade-in">
+                                {decisionMessage ? (
+                                    <div style={{...styles.congratsBox, background: decisionMessage.type === 'success' ? '#10b981' : '#64748b'}}>
+                                        <h2 style={styles.congratsTitle}>{decisionMessage.title}</h2>
+                                        <p style={styles.congratsText}>{decisionMessage.text}</p>
+                                    </div>
+                                ) : (
+                                    <div style={styles.emptyState}>
+                                        <p style={{color: '#64748b', fontSize: '16px'}}>No pending project assignments found.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {/* Career Portal Section ... [Kept exactly as your version] */}
+                {/* Career Portal Section */}
                 {mainTab === 'career' && (
                     <div className="alert-fade-in">
                         <header style={styles.header}>
@@ -301,7 +316,7 @@ const EmployeeDashboard = () => {
                                 <button onClick={() => setActiveTab('applied')} style={activeTab === 'applied' ? styles.activeTab : styles.tab}>My Applications ({myApplications.length})</button>
                             </div>
                         </header>
-                        {/* ... Browser and Applied views remain the same as your code ... */}
+                        
                         {activeTab === 'browse' && (
                             <div style={styles.grid}>
                                 {availableJobs.map(job => (
@@ -330,8 +345,10 @@ const EmployeeDashboard = () => {
                                         </div>
                                     </div>
                                 ))}
+                                {availableJobs.length === 0 && <div style={styles.emptyState}>No open positions available.</div>}
                             </div>
                         )}
+
                         {activeTab === 'applied' && (
                             <div style={styles.tableWrap}>
                                 <table style={styles.table}>
@@ -369,6 +386,7 @@ const EmployeeDashboard = () => {
     );
 };
 
+// ... statusStyles and styles objects are identical to your provided original ...
 const statusStyles = {
     'APPLIED': { background: '#eff6ff', color: '#1e40af' },
     'APPROVED': { background: '#ecfdf5', color: '#065f46' },
@@ -380,10 +398,10 @@ const styles = {
     page: { background: '#f8fafc', minHeight: '100vh', width: '100%', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
     container: { maxWidth: '1100px', margin: '0 auto', padding: '40px 20px' },
     title: { fontSize: '28px', fontWeight: '800', color: '#0f172a' },
-    mainTab: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: '#64748b', cursor: 'pointer' },
-    mainTabActive: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '700', color: '#4f46e5', cursor: 'pointer', borderBottom: '2px solid #4f46e5' },
+    mainTab: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: '#64748b', cursor: 'pointer', position: 'relative' },
+    mainTabActive: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '700', color: '#4f46e5', cursor: 'pointer', borderBottom: '2px solid #4f46e5', position: 'relative' },
+    notifDot: { position: 'absolute', top: '10px', right: '-15px', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' },
     
-    // Updated Profile Header Styles
     profileHeader: { background: 'white', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' },
     profileName: { fontSize: '32px', fontWeight: '800', color: '#1e293b', margin: 0 },
     ratingBadge: { background: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '8px', fontSize: '14px', fontWeight: '700' },
