@@ -11,9 +11,12 @@ const ApprovalDashboard = () => {
     const [expandedInfo, setExpandedInfo] = useState(null); 
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
 
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
+    const [targetRequestId, setTargetRequestId] = useState(null);
+
     const userEmail = localStorage.getItem("email") || "charlie@frauas.de";
 
-    // Helper to calculate skill match percentage
     const calculateMatch = (required = [], candidate = []) => {
         if (required.length === 0) return 100;
         const matched = required.filter(skill => candidate.includes(skill));
@@ -52,13 +55,20 @@ const ApprovalDashboard = () => {
         fetchAllData();
     }, [fetchAllData]);
 
-    const handleDecision = async (id, isApproved) => {
+    const handleDecision = async (id, isApproved, reason = "") => {
+        if (!isApproved && !reason.trim()) {
+            setTargetRequestId(id);
+            setShowRejectModal(true);
+            return;
+        }
+
         setPendingAction(`${isApproved}-${id}`);
         try {
             const queryParams = new URLSearchParams({
                 requestId: id.toString(),
                 email: userEmail,
-                approved: isApproved.toString()
+                approved: isApproved.toString(),
+                reason: reason 
             });
 
             const endpoint = activeTab === 'staffing' 
@@ -75,6 +85,8 @@ const ApprovalDashboard = () => {
                     text: `${activeTab === 'staffing' ? 'Request' : 'Assignment'} #${id} ${isApproved ? 'Approved' : 'Rejected'}.`, 
                     type: isApproved ? 'success' : 'action' 
                 });
+                setShowRejectModal(false);
+                setRejectionReason("");
                 fetchAllData();
             } else {
                 setMessage({ text: "Server failed to process decision.", type: 'error' });
@@ -130,7 +142,8 @@ const ApprovalDashboard = () => {
                         currentTasks.map((item) => {
                             const itemId = item.requestId;
                             const emp = item.assignedUser?.employee;
-                            const manager = item.project?.managerUser?.employee;
+                            const manager = item.project?.managerUser?.employee || item.createdBy;
+                            const planner = item.department?.resourcePlanner;
                             const matchScore = calculateMatch(item.requiredSkills, emp?.skills);
 
                             return (
@@ -171,30 +184,13 @@ const ApprovalDashboard = () => {
                                                     
                                                     {expandedInfo === itemId && (
                                                         <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
-                                                            <div style={styles.floatingGrid}>
-                                                                <div style={styles.infoSection}>
-                                                                    <h5 style={styles.panelTitle}>THE REQUEST </h5>
-                                                                    <p style={styles.floatText}><strong>Role:</strong> {item.title}</p>
-                                                                    <p style={styles.floatText}><strong>Location:</strong> {item.workLocation || item.project?.location}</p>
-                                                                    <p style={styles.floatText}><strong>Manager:</strong> {manager?.firstName} {manager?.lastName}</p>
-                                                                    <p style={styles.floatText}><strong>Required Skills:</strong> {item.requiredSkills?.join(', ')}</p>
-                                                                </div>
-
-                                                                <div style={styles.infoSectionHighlight}>
-                                                                    <h5 style={styles.panelTitle}>FETCHED EMPLOYEE </h5>
-                                                                    {emp ? (
-                                                                        <>
-                                                                            <p style={styles.floatText}><strong>Name:</strong> {emp.firstName} {emp.lastName}</p>
-                                                                            <p style={styles.floatText}><strong>Home Base:</strong> {emp.primaryLocation}</p>
-                                                                            <p style={styles.floatText}><strong>Rating:</strong> {emp.performanceRating} / 5.0</p>
-                                                                            <p style={{...styles.floatText, fontWeight: 'bold', color: '#4338ca'}}>
-                                                                                <strong>Skill Match:</strong> {matchScore}%
-                                                                            </p>
-                                                                        </>
-                                                                    ) : (
-                                                                        <p style={styles.floatText}>No specific employee yet.</p>
-                                                                    )}
-                                                                </div>
+                                                            <div style={styles.infoSection}>
+                                                                <h5 style={styles.panelTitle}>STAKEHOLDERS</h5>
+                                                                <p style={styles.floatText}><strong>Project Manager:</strong> {manager?.firstName} {manager?.lastName} ({manager?.email})</p>
+                                                                <p style={styles.floatText}><strong>Resource Planner:</strong> {planner?.email || 'Not Assigned'}</p>
+                                                                
+                                                                <h5 style={{...styles.panelTitle, marginTop: '12px'}}>PROJECT CONTEXT</h5>
+                                                                <p style={styles.floatText}>{item.project?.description || item.projectContext}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -204,22 +200,22 @@ const ApprovalDashboard = () => {
 
                                         <div style={styles.metaGrid}>
                                             <div style={styles.metaCol}>
-                                                <div style={styles.metaItem}><strong>Request ID:</strong> {itemId}</div>
-                                                <div style={styles.metaItem}><strong>Employee Base:</strong> {emp?.primaryLocation || 'N/A'}</div>
+                                                <div style={styles.metaItem}><strong>ID:</strong> {itemId}</div>
+                                                <div style={styles.metaItem}><strong>Project Location:</strong> {item.projectLocation || item.project?.location}</div>
                                             </div>
                                             <div style={styles.metaCol}>
                                                 <div style={styles.metaItem}><strong>Mode:</strong> {item.workLocation}</div>
-                                                <div style={styles.metaItem}><strong>Start:</strong> {item.projectStartDate}</div>
+                                                <div style={styles.metaItem}><strong>Schedule:</strong> {item.projectStartDate} to {item.projectEndDate}</div>
                                             </div>
                                             <div style={styles.metaCol}>
-                                                <div style={styles.metaItem}><strong>Hrs/Week:</strong> {item.availabilityHoursPerWeek}</div>
-                                                <div style={styles.metaItem}><strong>End:</strong> {item.projectEndDate}</div>
+                                                <div style={styles.metaItem}><strong>Utilization:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
+                                                <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} year(s)</div>
                                             </div>
                                         </div>
 
                                         <div style={styles.descriptionRow}>
                                             <div style={styles.descCol}>
-                                                <span style={styles.smallLabel}>Job Description :</span>
+                                                <span style={styles.smallLabel}>Role Description :</span>
                                                 <p style={styles.descText}>{item.description}</p>
                                             </div>
                                             <div style={styles.descCol}>
@@ -264,10 +260,34 @@ const ApprovalDashboard = () => {
                     )}
                 </div>
             </main>
+
+            {showRejectModal && (
+                <div style={styles.modalOverlay} onClick={() => setShowRejectModal(false)}>
+                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                        <h3 style={styles.modalTitle}>Reason for Rejection</h3>
+                        <p style={styles.modalSub}>Provide a mandatory reason for this decision.</p>
+                        <textarea 
+                            style={styles.modalTextarea} 
+                            placeholder="Type rejection reason..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                        <div style={styles.modalActions}>
+                            <button style={styles.modalCancel} onClick={() => setShowRejectModal(false)}>Cancel</button>
+                            <button 
+                                style={styles.modalConfirm} 
+                                disabled={!rejectionReason.trim()}
+                                onClick={() => handleDecision(targetRequestId, false, rejectionReason)}
+                            >Confirm Rejection</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
+// ... keep exactly the same styles as previous version ...
 const styles = {
     pageWrapper: { background: '#ffffff', minHeight: '100vh', fontFamily: 'Inter, sans-serif', position: 'relative' },
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
@@ -292,12 +312,10 @@ const styles = {
     priceGroup: { display: 'flex', alignItems: 'center', gap: '18px' },
     wage: { color: '#059669', fontWeight: '800', fontSize: '30px' },
     infoCircle: { width: '28px', height: '28px', borderRadius: '50%', border: '1.5px solid #cbd5e1', background: 'none', color: '#1e293b', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' },
-    floatingTab: { position: 'absolute', top: '40px', right: '0', width: '600px', background: 'white', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px', zIndex: 100 },
-    floatingGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' },
-    infoSection: { padding: '10px' },
-    infoSectionHighlight: { padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' },
-    floatText: { fontSize: '12px', color: '#475569', margin: '6px 0', lineHeight: '1.4' },
-    panelTitle: { fontSize: '11px', letterSpacing: '0.05em', fontWeight: '800', color: '#1e293b', marginBottom: '12px', borderBottom: '2px solid #e2e8f0', paddingBottom: '6px' },
+    floatingTab: { position: 'absolute', top: '40px', right: '0', width: '320px', background: 'white', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', zIndex: 100 },
+    infoSection: { padding: '0px' },
+    floatText: { fontSize: '13px', color: '#475569', margin: '4px 0', lineHeight: '1.4' },
+    panelTitle: { fontSize: '11px', letterSpacing: '0.05em', fontWeight: '800', color: '#1e293b', marginBottom: '10px', borderBottom: '2px solid #e2e8f0', paddingBottom: '4px' },
     metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '25px', background: '#f8fafc', padding: '25px', borderRadius: '12px' },
     metaCol: { display: 'flex', flexDirection: 'column', gap: '8px' },
     metaItem: { fontSize: '13px', color: '#475569' },
@@ -310,7 +328,15 @@ const styles = {
     actionCol: { display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '200px', paddingTop: '10px' },
     btnAccept: { background: '#059669', color: 'white', border: 'none', padding: '18px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' },
     btnReject: { background: 'transparent', color: '#ef4444', border: '1px solid #fee2e2', padding: '17px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' },
-    emptyState: { textAlign: 'center', padding: '100px 0', color: '#94a3b8', fontSize: '18px' }
+    emptyState: { textAlign: 'center', padding: '100px 0', color: '#94a3b8', fontSize: '18px' },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 },
+    modalContent: { background: 'white', padding: '32px', borderRadius: '24px', width: '480px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' },
+    modalTitle: { fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 12px 0' },
+    modalSub: { fontSize: '14px', color: '#64748b', marginBottom: '20px', lineHeight: '1.5' },
+    modalTextarea: { width: '100%', height: '120px', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: '14px', resize: 'none', marginBottom: '24px', boxSizing: 'border-box' },
+    modalActions: { display: 'flex', gap: '12px' },
+    modalCancel: { flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer' },
+    modalConfirm: { flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: 'pointer' }
 };
 
 export default ApprovalDashboard;

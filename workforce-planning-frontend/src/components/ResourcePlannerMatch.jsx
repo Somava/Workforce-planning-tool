@@ -14,9 +14,11 @@ const ResourcePlannerMatch = () => {
 
     const userEmail = localStorage.getItem("email") || "eve@frauas.de"; 
 
+    // FIX: Scroll to top only when the view actually switches
+    // This ensures we land at the top of the Matches page AND the Dashboard page
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-    }, [view, selectedRequest]);
+    }, [view]);
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);
@@ -26,7 +28,6 @@ const ResourcePlannerMatch = () => {
             const list = Array.isArray(data) ? data : [];
             setRequests(list);
 
-            // Set Department Name based on email or first item
             if (list.length > 0 && list[0].department) {
                 setDepartmentName(list[0].department.name);
             } else {
@@ -56,13 +57,19 @@ const ResourcePlannerMatch = () => {
         try {
             const res = await fetch(`http://localhost:8080/api/resource-planner/staffing-requests/matches?requestId=${req.requestId}&topN=10`);
             const data = await res.json();
-            if (data.message || (Array.isArray(data) && data.length === 0)) {
-                setCandidates([]); 
-            } else {
+            
+            if (data && data.matches && Array.isArray(data.matches)) {
+                setCandidates(data.matches);
+            } else if (Array.isArray(data)) {
                 setCandidates(data);
+            } else {
+                setCandidates([]); 
             }
+            
+            // Setting the view here triggers the scroll to top
             setView('matching');
         } catch (err) {
+            setCandidates([]);
             setMessage({ text: "Failed to load candidate matches.", type: 'error' });
         } finally {
             setLoading(false);
@@ -221,7 +228,7 @@ const ResourcePlannerMatch = () => {
                 ) : (
                     <div>
                         <button onClick={() => setView('list')} style={styles.backBtn}><ArrowLeft size={18}/> Back</button>
-                        <h1 style={styles.mainTitle}>Best Matches for Request #{selectedRequest.requestId}</h1>
+                        <h1 style={styles.mainTitle}>Best Matches for Request #{selectedRequest?.requestId}</h1>
                         
                         {candidates.length === 0 ? (
                             <div style={styles.noMatchesFoundCard}>
