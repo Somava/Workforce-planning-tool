@@ -128,6 +128,9 @@ public class RequestEntity {
     @Column(name = "work_location")
     private String workLocation;
 
+    @Column(name= "project_name")
+    private String projectName;
+
     // Add these manually if you aren't using Lombok
     public String getValidationError() {
         return validationError;
@@ -204,6 +207,10 @@ public class RequestEntity {
 
     public void setWorkLocation(String workLocation) {
         this.workLocation = workLocation;
+    }
+
+    public String getProjectName() {
+        return projectName;
     }
     
 }

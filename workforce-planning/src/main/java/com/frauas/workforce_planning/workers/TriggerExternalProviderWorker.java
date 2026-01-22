@@ -1,12 +1,11 @@
 package com.frauas.workforce_planning.workers;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import com.frauas.workforce_planning.config.Team3bConfig;
+import com.frauas.workforce_planning.dto.ExternalWorkforce3BRequestDTO;
+import com.frauas.workforce_planning.repository.RequestRepository;      
 
 import io.camunda.zeebe.client.api.response.ActivatedJob;
 import io.camunda.zeebe.client.api.worker.JobClient;
@@ -17,50 +16,55 @@ public class TriggerExternalProviderWorker {
 
     private final Team3bConfig team3bConfig;
     private final RestTemplate restTemplate;
+    private final RequestRepository requestRepository; // Added Repository
 
-    // Spring automatically injects your Team3bConfig and RestTemplate bean
-    public TriggerExternalProviderWorker(Team3bConfig team3bConfig, RestTemplate restTemplate) {
+    // Spring injects all three dependencies here
+    public TriggerExternalProviderWorker(Team3bConfig team3bConfig, 
+                                          RestTemplate restTemplate, 
+                                          RequestRepository requestRepository) {
         this.team3bConfig = team3bConfig;
         this.restTemplate = restTemplate;
+        this.requestRepository = requestRepository;
     }
 
     @JobWorker(type = "notify-group-3b")
     public void triggerExternalProvider(final JobClient client, final ActivatedJob job) {
-        // 1. Get the target URL from our new YAML config
         String targetUrl = team3bConfig.getFullUrl();
-
-        // 2. Extract process variables sent from the Resource Planner / BPMN
-        Map<String, Object> variables = job.getVariablesAsMap();
         
-        Object idObj = variables.get("requestId");
-        Long requestId = (idObj instanceof Number) ? ((Number) idObj).longValue() : Long.valueOf(idObj.toString());
-        String jobTitle = (String) variables.get("jobTitle");
-        Object skills = variables.get("requiredSkills");
-        Object wage = variables.get("wagePerHour");
+        // Inside TriggerExternalProviderWorker
+        // 1. Get the data from Camunda (This has your projectName if it's in the variables)
+        ExternalWorkforce3BRequestDTO camundaPayload = job.getVariablesAsType(ExternalWorkforce3BRequestDTO.class);
+        Long requestId = camundaPayload.requestId();
 
-        System.out.println(">>> [WORKER] Triggering External Search for Request ID: " + requestId);
-        System.out.println(">>> [WORKER] Sending to Group 3b URL: " + targetUrl);
+        // 2. Try to find the DB record, but don't crash if it's missing
+        var dbEntityOpt = requestRepository.findByRequestId(requestId);
 
-        // 3. Prepare the payload for Group 3b
-        Map<String, Object> requestPayload = new HashMap<>();
-        requestPayload.put("internalRequestId", requestId);
-        requestPayload.put("jobTitle", jobTitle);
-        requestPayload.put("requiredSkills", skills);
-        requestPayload.put("wagePerHour", wage);
-        requestPayload.put("status", "OPEN_FOR_EXTERNAL_PROVISION");
+        // 3. Logic: If DB exists, use its project info. Otherwise, use Camunda's info.
+        Long finalProjectId = dbEntityOpt.isPresent() ? dbEntityOpt.get().getProjectId() : camundaPayload.projectId();
+        String finalProjectName = dbEntityOpt.isPresent() ? dbEntityOpt.get().getProjectName() : camundaPayload.projectName();
 
-        // 4. Perform the REST POST call
+        // 4. Construct the DTO using the "Best Available" data
+        ExternalWorkforce3BRequestDTO enrichedPayload = new ExternalWorkforce3BRequestDTO(
+            requestId,
+            finalProjectId,
+            finalProjectName,
+            camundaPayload.jobTitle(),
+            camundaPayload.description(),
+            camundaPayload.availabilityHoursPerWeek(),
+            camundaPayload.wagePerHour(),
+            camundaPayload.skills(),
+            camundaPayload.experienceYears(),
+            camundaPayload.location(),
+            camundaPayload.projectContext(),
+            camundaPayload.startDate(),
+            camundaPayload.endDate()
+        );
+
+        // 5. Send
         try {
-            // This sends the JSON to Group 3b's API
-            restTemplate.postForEntity(targetUrl, requestPayload, String.class);
-            
-            System.out.println(">>> [WORKER] Successfully notified Group 3b for " + jobTitle);
-            
-            // Task completes automatically because autoComplete=true is default in Spring Zeebe
+            restTemplate.postForEntity(targetUrl, enrichedPayload, String.class);
+            System.out.println(">>> [WORKER] Sent JSON. Data source: " + (dbEntityOpt.isPresent() ? "Database" : "Camunda Variables"));
         } catch (Exception e) {
-            System.err.println(">>> [WORKER] Failed to contact Group 3b: " + e.getMessage());
-            
-            // Throwing an exception here creates an Incident in Camunda Operate for you to see
             throw new RuntimeException("External Provider Communication Failed: " + e.getMessage());
         }
     }
