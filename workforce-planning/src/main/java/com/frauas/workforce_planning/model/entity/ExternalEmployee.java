@@ -27,7 +27,7 @@ public class ExternalEmployee {
     private Long id;
 
     @Column(name = "external_id")
-    private String externalId; // The ID Team 3b uses (externalEmployeeId)
+    private String externalEmployeeId; // The ID Team 3b uses (externalEmployeeId)
 
     @Column(name = "provider")
     private String provider;
