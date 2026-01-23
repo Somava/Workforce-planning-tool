@@ -12,17 +12,6 @@ import com.frauas.workforce_planning.model.entity.ExternalEmployee;
 
 @Repository
 public interface ExternalEmployeeRepository extends JpaRepository<ExternalEmployee, Long> {
-
+    // The part after 'findBy' MUST match the variable name above exactly
     Optional<ExternalEmployee> findByExternalEmployeeId(String externalEmployeeId);
-
-    List<ExternalEmployee> findByProvider(String provider);
-
-    // This traverses ExternalEmployee -> StaffingRequest -> requestId
-    List<ExternalEmployee> findByStaffingRequestId(Long staffingRequestId);
-
-    @Query(value = "SELECT * FROM external_employees WHERE skills @> CAST(:skillsJson AS jsonb)", nativeQuery = true)
-    List<ExternalEmployee> findBySkills(@Param("skillsJson") String skillsJson);
-
-    // Find an employee by the ID provided by Team 3b
-    Optional<ExternalEmployee> findByExternalId(String externalId);
 }
