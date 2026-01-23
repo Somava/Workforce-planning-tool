@@ -53,7 +53,7 @@ public class ExternalResponseController {
         // 4. Save Directly to external_employee Table
         if (found) {
             ExternalEmployee employee = ExternalEmployee.builder()
-                .externalEmployeeId(dto.externalEmployeeId())
+                .externalEmployeeId(dto.externalEmployeeId()) // <--- Change .externalId to .externalEmployeeId
                 .provider(dto.provider())
                 .firstName(dto.firstName())
                 .lastName(dto.lastName())

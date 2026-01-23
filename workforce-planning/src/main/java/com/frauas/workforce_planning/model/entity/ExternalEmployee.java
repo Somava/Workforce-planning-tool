@@ -14,50 +14,26 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "external_employee")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
+@Table(name = "external_employee")
 public class ExternalEmployee {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "external_id")
-    private String externalEmployeeId; // The ID Team 3b uses (externalEmployeeId)
+    private String externalEmployeeId; // <--- MUST BE THIS NAME
 
-    @Column(name = "provider")
     private String provider;
-
-    @Column(name = "first_name")
     private String firstName;
-
-    @Column(name = "last_name")
     private String lastName;
-
-    @Column(name = "email")
     private String email;
-
-    @Column(name = "wage_per_hour")
     private Double wagePerHour;
-
-    @Column(name = "skills", columnDefinition = "TEXT")
     private String skills;
-
-    @Column(name = "experience_years")
     private Float experienceYears;
-
-    @Column(name = "staffing_request_id")
-    private Long staffingRequestId; // Foreign key linking back to your request
-
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
+    private Long staffingRequestId;
 }
