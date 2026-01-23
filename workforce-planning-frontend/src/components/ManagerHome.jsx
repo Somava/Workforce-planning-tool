@@ -32,9 +32,10 @@ const ManagerHome = () => {
     const firstName = localStorage.getItem("firstName");
     const userEmail = localStorage.getItem("email");
 
-    const [activeTab, setActiveTab] = useState('recent'); // 'recent' or 'rejected'
+    const [activeTab, setActiveTab] = useState('recent'); // 'recent', 'rejected', or 'employees'
     const [requests, setRequests] = useState([]);
     const [rejectedRequests, setRejectedRequests] = useState([]);
+    const [employees, setEmployees] = useState([]); // New state for Employee List
     const [selectedRequest, setSelectedRequest] = useState(null); 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
@@ -48,12 +49,14 @@ const ManagerHome = () => {
         if (!userEmail) return;
         setIsRefreshing(true);
         try {
-            const [recentRes, rejectedRes] = await Promise.all([
+            const [recentRes, rejectedRes, empRes] = await Promise.all([
                 axios.get(`http://localhost:8080/api/requests/manager-requests?email=${userEmail}`),
-                axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`)
+                axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`),
+                axios.get(`http://localhost:8080/api/workforce-overview/all-employees`) // Fetch employees
             ]);
             setRequests(recentRes.data);
             setRejectedRequests(rejectedRes.data);
+            setEmployees(empRes.data);
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
             console.error("Fetch failed", err);
@@ -137,6 +140,42 @@ const ManagerHome = () => {
         setResubmitModal(req);
     };
 
+    // Helper to render the employee list tab content
+    const renderEmployeeList = () => (
+        <div style={styles.employeeGrid}>
+            {employees.map(emp => (
+                <div key={emp.id} style={styles.employeeCard}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <h3 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{emp.fullName}</h3>
+                            <span style={styles.empRoleBadge}>{emp.jobRole}</span>
+                        </div>
+                        <span style={{ 
+                            ...styles.availabilityBadge, 
+                            backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
+                            color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
+                        }}>
+                            {emp.availabilityStatus}
+                        </span>
+                    </div>
+                    <div style={{ marginTop: '15px', fontSize: '13px', color: '#4b5563' }}>
+                        <div style={{ marginBottom: '4px' }}>📧 {emp.email}</div>
+                        <div style={{ marginBottom: '4px' }}>⭐ Performance: <strong>{emp.performanceRating}</strong></div>
+                        <div style={{ marginBottom: '4px' }}>📅 Experience: {emp.experienceYears} Years</div>
+                    </div>
+                    <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '5px' }}>Skills</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                            {emp.skills?.map(skill => (
+                                <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <div style={styles.container}>
             <div style={styles.contentWrapper}>
@@ -162,12 +201,18 @@ const ManagerHome = () => {
                     >
                         Rejected Requests ({rejectedRequests.length})
                     </button>
+                    <button 
+                        style={{...styles.tabItem, ...(activeTab === 'employees' ? styles.activeTab : {})}}
+                        onClick={() => setActiveTab('employees')}
+                    >
+                        Employee List ({employees.length})
+                    </button>
                 </div>
 
                 <div style={styles.listSection}>
                     <div style={styles.listHeader}>
                         <h2 style={{ margin: 0, fontSize: '18px' }}>
-                            {activeTab === 'recent' ? 'Recent Activity' : 'Action Required '}
+                            {activeTab === 'recent' ? 'Recent Activity' : activeTab === 'rejected' ? 'Action Required' : 'Internal Workforce'}
                         </h2>
                         <div style={styles.syncContainer}>
                             <span style={styles.syncText}>Last synced: {lastSynced}</span>
@@ -179,41 +224,45 @@ const ManagerHome = () => {
                         </div>
                     </div>
 
-                    <table style={styles.table}>
-                        <thead>
-                            <tr style={styles.tableHeader}>
-                                <th style={styles.th}>Position Title</th>
-                                <th style={styles.th}>Project</th>
-                                <th style={styles.th}>Status</th>
-                                <th style={styles.th}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(activeTab === 'recent' ? requests : rejectedRequests).map((req) => (
-                                <tr key={req.requestId} style={styles.tableRow}>
-                                    <td style={styles.td}>
-                                        <strong>{req.title}</strong>
-                                        {activeTab === 'rejected' && <div style={styles.reasonText}>Reason: {req.rejectionReason}</div>}
-                                    </td>
-                                    <td style={styles.td}>{req.project?.name || req.projectName || 'N/A'}</td>
-                                    <td style={styles.td}>
-                                        <StatusBadge status={req.status} />
-                                    </td>
-                                    <td style={styles.td}>
-                                        <div style={{display: 'flex', gap: '8px'}}>
-                                            <button onClick={() => setSelectedRequest(req)} style={styles.infoBtn}>ⓘ</button>
-                                            {activeTab === 'rejected' && (
-                                                <>
-                                                    <button onClick={() => openResubmitModal(req)} style={styles.resubmitBtn}>Resubmit</button>
-                                                    <button onClick={() => handleDecision(req.requestId, false)} style={styles.cancelBtn}>Cancel</button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </td>
+                    {activeTab === 'employees' ? (
+                        renderEmployeeList()
+                    ) : (
+                        <table style={styles.table}>
+                            <thead>
+                                <tr style={styles.tableHeader}>
+                                    <th style={styles.th}>Position Title</th>
+                                    <th style={styles.th}>Project</th>
+                                    <th style={styles.th}>Status</th>
+                                    <th style={styles.th}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {(activeTab === 'recent' ? requests : rejectedRequests).map((req) => (
+                                    <tr key={req.requestId} style={styles.tableRow}>
+                                        <td style={styles.td}>
+                                            <strong>{req.title}</strong>
+                                            {activeTab === 'rejected' && <div style={styles.reasonText}>Reason: {req.rejectionReason}</div>}
+                                        </td>
+                                        <td style={styles.td}>{req.project?.name || req.projectName || 'N/A'}</td>
+                                        <td style={styles.td}>
+                                            <StatusBadge status={req.status} />
+                                        </td>
+                                        <td style={styles.td}>
+                                            <div style={{display: 'flex', gap: '8px'}}>
+                                                <button onClick={() => setSelectedRequest(req)} style={styles.infoBtn}>ⓘ</button>
+                                                {activeTab === 'rejected' && (
+                                                    <>
+                                                        <button onClick={() => openResubmitModal(req)} style={styles.resubmitBtn}>Resubmit</button>
+                                                        <button onClick={() => handleDecision(req.requestId, false)} style={styles.cancelBtn}>Cancel</button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
 
@@ -276,7 +325,7 @@ const ManagerHome = () => {
                                     type="number" 
                                     min="1" 
                                     max="40" 
-                                    step="0.01" 
+                                    step="1" 
                                     style={styles.input} 
                                     value={editData.wagePerHour} 
                                     onChange={(e) => setEditData({...editData, wagePerHour: e.target.value})} 
@@ -286,7 +335,7 @@ const ManagerHome = () => {
                                 <label style={styles.label}>Work Location</label>
                                 <select style={styles.input} value={editData.workLocation} onChange={(e) => setEditData({...editData, workLocation: e.target.value})}>
                                     <option value="Remote">Remote</option>
-                                    <option value="onsite">Onsite</option>
+                                    <option value="Onsite">Onsite</option>
                                 </select>
                             </div>
                             <div style={styles.inputGroup}>
@@ -355,7 +404,14 @@ const styles = {
     inputGroup: { display: 'flex', flexDirection: 'column', gap: '4px' },
     label: { fontSize: '12px', fontWeight: 'bold', color: '#4b5563' },
     input: { padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' },
-    errorBanner: { background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '12px', marginBottom: '15px', border: '1px solid #fecaca' }
+    errorBanner: { background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '12px', marginBottom: '15px', border: '1px solid #fecaca' },
+    
+    // New Styles for Employee Tab
+    employeeGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '10px' },
+    employeeCard: { background: '#fdfdfd', border: '1px solid #f3f4f6', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    empRoleBadge: { fontSize: '11px', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' },
+    availabilityBadge: { fontSize: '10px', fontWeight: '800', padding: '4px 8px', borderRadius: '6px' },
+    skillTagSmall: { fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 8px', borderRadius: '4px' }
 };
 
 export default ManagerHome;

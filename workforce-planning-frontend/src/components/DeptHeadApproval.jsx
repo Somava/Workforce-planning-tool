@@ -68,7 +68,7 @@ const ApprovalDashboard = () => {
                 requestId: id.toString(),
                 email: userEmail,
                 approved: isApproved.toString(),
-                reason: reason 
+                reason: reason // This now correctly passes the rejection reason to the API
             });
 
             const endpoint = activeTab === 'staffing' 

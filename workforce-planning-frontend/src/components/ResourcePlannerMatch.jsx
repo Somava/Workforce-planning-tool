@@ -14,8 +14,6 @@ const ResourcePlannerMatch = () => {
 
     const userEmail = localStorage.getItem("email") || "eve@frauas.de"; 
 
-    // FIX: Scroll to top only when the view actually switches
-    // This ensures we land at the top of the Matches page AND the Dashboard page
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }, [view]);
@@ -66,7 +64,6 @@ const ResourcePlannerMatch = () => {
                 setCandidates([]); 
             }
             
-            // Setting the view here triggers the scroll to top
             setView('matching');
         } catch (err) {
             setCandidates([]);
@@ -76,14 +73,18 @@ const ResourcePlannerMatch = () => {
         }
     };
 
+    // FIX: Updated to use the /reserve endpoint with query parameters as per API documentation
     const handleDecision = async (employeeDbId, accept) => {
+        setLoading(true);
         try {
-            const payload = accept ? { employeeDbId, accept: true } : { accept: false };
+            // Updated endpoint and query parameters
+            const url = `http://localhost:8080/api/resource-planner/staffing-requests/reserve?requestId=${selectedRequest.requestId}&internalFound=${accept}`;
             
-            const res = await fetch(`http://localhost:8080/api/resource-planner/staffing-requests/decision?requestId=${selectedRequest.requestId}`, {
+            const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                // The body now only contains the employeeDbId
+                body: accept ? JSON.stringify({ employeeDbId }) : JSON.stringify({})
             });
 
             if (res.ok) {
@@ -93,10 +94,13 @@ const ResourcePlannerMatch = () => {
                 });
                 setView('list');
                 fetchRequests();
+            } else {
+                setMessage({ text: "Action failed. Please check API status.", type: 'error' });
             }
         } catch (err) {
-            setMessage({ text: "Action failed.", type: 'error' });
+            setMessage({ text: "Connection error. Action failed.", type: 'error' });
         } finally {
+            setLoading(false);
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
         }
     };
