@@ -1,81 +1,63 @@
 package com.frauas.workforce_planning.model.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonType;
-import jakarta.persistence.*;
-import lombok.Getter;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.Type;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.math.BigDecimal;
-
 
 @Entity
-@Table(
-    name = "external_employees",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uq_external_employee",
-            columnNames = {"provider", "external_employee_id"}
-        )
-    }
-)
-@Getter
-@Setter
+@Table(name = "external_employee")
+@Data
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 public class ExternalEmployee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "external_employee_id", nullable = false, length = 150)
-    private String externalEmployeeId;
+    @Column(name = "external_id")
+    private String externalId; // The ID Team 3b uses (externalEmployeeId)
 
-    @Column(nullable = false, length = 150)
+    @Column(name = "provider")
     private String provider;
 
-    @Column(name = "first_name", nullable = false, length = 100)
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = 100)
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(length = 255)
+    @Column(name = "email")
     private String email;
 
-    @Type(JsonType.class)
-    @Column(name = "skills", columnDefinition = "jsonb")
-    private List<String> skills;
+    @Column(name = "wage_per_hour")
+    private Double wagePerHour;
+
+    @Column(name = "skills", columnDefinition = "TEXT")
+    private String skills;
 
     @Column(name = "experience_years")
-    private Integer experienceYears;
+    private Float experienceYears;
 
-    @Column(name = "wage_per_hour")
-    private BigDecimal wagePerHour;
-    // keep as IDs (fine)
     @Column(name = "staffing_request_id")
-    private Long staffingRequestId;
+    private Long staffingRequestId; // Foreign key linking back to your request
 
-    @Column(name = "project_id")
-    private Long projectId;
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    // let DB fill DEFAULT now()
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ExternalEmployee other = (ExternalEmployee) o;
-        return id != null && id.equals(other.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
     }
 }
