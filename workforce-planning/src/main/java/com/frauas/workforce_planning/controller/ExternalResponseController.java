@@ -10,75 +10,92 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.frauas.workforce_planning.dto.ExternalWorkforceResponseDTO;
+import com.frauas.workforce_planning.model.entity.ExternalEmployee;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
+import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 
 import io.camunda.zeebe.client.ZeebeClient;
 
 @RestController
-@RequestMapping("/api/group1")
+@RequestMapping("/api/group3b")
 public class ExternalResponseController {
 
     private final ZeebeClient zeebeClient;
-    // Inject the repository
     private final StaffingRequestRepository staffingRequestRepository;
+    private final ExternalEmployeeRepository externalEmployeeRepository; // 1. Added Repository
 
-    public ExternalResponseController(ZeebeClient zeebeClient, StaffingRequestRepository staffingRequestRepository) {
+    public ExternalResponseController(ZeebeClient zeebeClient, 
+                                    StaffingRequestRepository staffingRequestRepository,
+                                    ExternalEmployeeRepository externalEmployeeRepository) {
         this.zeebeClient = zeebeClient;
         this.staffingRequestRepository = staffingRequestRepository;
+        this.externalEmployeeRepository = externalEmployeeRepository; // 2. Injected Repository
     }
 
     @PostMapping("/workforce-response")
     public ResponseEntity<Map<String, Object>> receiveExternalResponse(
         @RequestBody ExternalWorkforceResponseDTO dto
     ) {
-        if (dto.internalRequestId() == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "internalRequestId is mandatory"));
+        if (dto.staffingRequestId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "staffingRequestId is mandatory"));
         }
 
-        // 1. Update Status in Supabase
-        staffingRequestRepository.findByRequestId(dto.internalRequestId())
+        // 3. Update Status in Supabase (Staffing Request Table)
+        staffingRequestRepository.findByRequestId(dto.staffingRequestId())
             .ifPresent(request -> {
                 request.setStatus(RequestStatus.EXTERNAL_RESPONSE_RECEIVED);
-                // Optionally save who the provider was in a notes field if you have one
                 staffingRequestRepository.save(request);
             });
 
         boolean found = dto.externalEmployeeId() != null && !dto.externalEmployeeId().isBlank();
 
+        // 4. Save Directly to external_employee Table
+        if (found) {
+            ExternalEmployee employee = ExternalEmployee.builder()
+                .externalId(dto.externalEmployeeId())
+                .provider(dto.provider())
+                .firstName(dto.firstName())
+                .lastName(dto.lastName())
+                .email(dto.email())
+                .wagePerHour(dto.wagePerHour())
+                .skills(dto.skills())
+                .experienceYears(dto.experienceYears())
+                .staffingRequestId(dto.staffingRequestId())
+                .build();
+            
+            externalEmployeeRepository.save(employee);
+        }
+
+        // 5. Prepare Variables for Camunda
         Map<String, Object> vars = new HashMap<>();
-        vars.put("internalRequestId", dto.internalRequestId());
+        vars.put("requestId", dto.staffingRequestId()); 
         vars.put("externalResourceFound", found);
 
         if (found) {
             vars.put("externalEmployeeId", dto.externalEmployeeId());
-            vars.put("externalProvider", dto.provider());
             vars.put("externalFirstName", dto.firstName());
             vars.put("externalLastName", dto.lastName());
             vars.put("externalEmail", dto.email());
-            vars.put("externalWagePerHour", dto.wagePerHour());
-            vars.put("externalSkills", dto.skills());
-            vars.put("externalExperienceYears", dto.experienceYears());
         }
 
-        // 2. Publish to Zeebe
+        // 6. Publish to Zeebe
         try {
             zeebeClient.newPublishMessageCommand()
                 .messageName("ExternalResourceResponse")
-                .correlationKey(String.valueOf(dto.internalRequestId()))
+                .correlationKey(String.valueOf(dto.staffingRequestId()))
                 .variables(vars)
                 .send()
                 .join();
         } catch (Exception e) {
-            // Log error but the DB status already reflects that we got the data
             return ResponseEntity.internalServerError()
-                .body(Map.of("error", "DB_UPDATED_BUT_BPMN_NOTIFIED_FAILED"));
+                .body(Map.of("error", "DB_UPDATED_BUT_BPMN_NOTIFICATION_FAILED"));
         }
 
         return ResponseEntity.ok(Map.of(
             "status", "SUCCESS",
-            "internalRequestId", dto.internalRequestId(),
-            "dbStatus", "EXTERNAL_RESPONSE_RECEIVED"
+            "staffingRequestId", dto.staffingRequestId(),
+            "employeeSaved", found
         ));
     }
 }

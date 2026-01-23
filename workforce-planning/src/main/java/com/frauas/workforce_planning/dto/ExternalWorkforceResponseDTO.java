@@ -7,8 +7,7 @@ public record ExternalWorkforceResponseDTO(
     String lastName,
     String email,
     Double wagePerHour,
-    java.util.List<String> skills,
-    Long internalRequestId,   // this should match your internalRequestId (or they will map it)
-    Double experienceYears,
-    Long projectId
+    String skills,
+    Long staffingRequestId, // Changed from internalRequestId to match Team 3b
+    Float experienceYears
 ) {}
