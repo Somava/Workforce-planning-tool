@@ -235,7 +235,7 @@ const StaffingRequest = () => {
                                 required 
                             >
                                 <option value="">Select Location</option>
-                                <option value="onsite">Onsite</option>
+                                <option value="Onsite">Onsite</option>
                                 <option value="Remote">Remote</option>
                             </select>
                         </div>
