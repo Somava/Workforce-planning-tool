@@ -91,7 +91,7 @@ public class StaffingDecisionService {
             group3bPayload.put("suitableResourceFound", false);
             
             // Core Request Data
-            group3bPayload.put("requestId", request.getRequestId());
+            group3bPayload.put("internalRequestId", request.getRequestId());
             group3bPayload.put("jobTitle", request.getTitle());
             group3bPayload.put("description", request.getDescription());
             group3bPayload.put("availabilityHoursPerWeek", request.getAvailabilityHoursPerWeek());
@@ -99,7 +99,7 @@ public class StaffingDecisionService {
             group3bPayload.put("skills", request.getRequiredSkills());
             group3bPayload.put("experienceYears", request.getExperienceYears());
             group3bPayload.put("location", request.getWorkLocation()); // Remote/Onsite
-            group3bPayload.put("projectContext", request.getProjectContext());
+            // group3bPayload.put("projectContext", request.getProjectContext());
             group3bPayload.put("startDate", request.getProjectStartDate().toString());
             group3bPayload.put("endDate", request.getProjectEndDate().toString());
 

@@ -71,6 +71,7 @@ public class ExternalResponseController {
         Map<String, Object> vars = new HashMap<>();
         vars.put("requestId", dto.staffingRequestId()); 
         vars.put("externalResourceFound", found);
+        vars.put("isExternalCandidate", true);
 
         if (found) {
             vars.put("externalEmployeeId", dto.externalEmployeeId());
