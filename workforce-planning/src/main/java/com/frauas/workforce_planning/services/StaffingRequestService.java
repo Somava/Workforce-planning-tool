@@ -24,6 +24,7 @@ import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.DepartmentRepository;
 import com.frauas.workforce_planning.repository.EmployeeApplicationRepository;
 import com.frauas.workforce_planning.repository.EmployeeRepository;
+import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 
@@ -51,6 +52,9 @@ public class StaffingRequestService {
 
     @Autowired
     private ZeebeClient zeebeClient;
+
+    @Autowired 
+    private ExternalEmployeeRepository externalEmployeeRepository;
 
     /**
      * Entry Point: No @Transactional here. 
@@ -200,85 +204,77 @@ public class StaffingRequestService {
             .join();
         
         log.info("Request {} approved and signaled to Camunda with dataValid=true", requestId);
-}
-
-    @Transactional
-    public void markInternalEmployeeApproved(Long requestId) {
-    
-        StaffingRequest request = repository.findByRequestId(requestId)
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.NOT_FOUND, "Request not found: " + requestId
-        ));
-
-        // Safety: must have someone reserved/assigned
-        if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "No internal employee is linked to this request (assignedUser missing): " + requestId
-            );
-        }
-
-        Employee employee = request.getAssignedUser().getEmployee();
-
-        // Employee accepted -> lock them in
-        employee.setMatchingAvailability(MatchingAvailability.ASSIGNED);
-        employeeRepository.save(employee);
-
-        // Update request status
-        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED_BY_DH); // use your exact enum value
-        repository.save(request);
-
-        // Signal Camunda
-        zeebeClient.newPublishMessageCommand()
-            .messageName("InternalEmployeeDecision") // must match BPMN
-            .correlationKey(requestId.toString())
-            .variables(Map.of("intEmployeeApproved", true))
-            .send()
-            .join();
     }
 
     @Transactional
-    public void markInternalEmployeeRejected(Long requestId,  String reason) {
+    public void markInternalEmployeeApproved(Long requestId) {
         StaffingRequest request = repository.findByRequestId(requestId)
             .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.NOT_FOUND, "Request not found: " + requestId
             ));
 
-        // Safety: must have someone reserved/assigned
         if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "No internal employee is linked to this request (assignedUser missing): " + requestId
-            );
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No internal employee linked.");
         }
 
+        // 1. Update Employee Status
         Employee employee = request.getAssignedUser().getEmployee();
+        employee.setMatchingAvailability(MatchingAvailability.ASSIGNED);
+        employeeRepository.save(employee);
 
-        // Employee rejected -> free them
+        // 2. Update Request Status
+        request.setStatus(RequestStatus.INT_EMPLOYEE_APPROVED_BY_DH);
+        repository.save(request);
+
+        // 3. Signal Camunda - Syncing with the BPMN Receive Task
+        zeebeClient.newPublishMessageCommand()
+            .messageName("EmployeeAssignmentDecision") // Matches your BPMN screenshot
+            .correlationKey(requestId.toString())      // Matches your BPMN screenshot
+            .variables(Map.of(
+                "approved", true,                       // Unified variable name
+                "decisionType", "INTERNAL"
+            ))
+            .send()
+            .join();
+    }
+
+    @Transactional
+    public void markInternalEmployeeRejected(Long requestId, String reason) {
+        StaffingRequest request = repository.findByRequestId(requestId)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "Request not found: " + requestId
+            ));
+
+        if (request.getAssignedUser() == null || request.getAssignedUser().getEmployee() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No internal employee linked.");
+        }
+
+        // 1. Update Employee Status (Free them back to the pool)
+        Employee employee = request.getAssignedUser().getEmployee();
         employee.setMatchingAvailability(MatchingAvailability.AVAILABLE);
         employeeRepository.save(employee);
 
-        // Update request status
+        // 2. Update Request Status
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
-        request.setRejectionType("DEPT_HEAD_ASSIGNMENT_REJECTED"); // ✅ Hardcoded Type
+        request.setRejectionType("DEPT_HEAD_ASSIGNMENT_REJECTED");
         request.setRejectionReason(reason);
         repository.save(request);
 
-        Map<String, Object> variables = Map.of(
-            "intEmployeeApproved", false,
-            "rejectionReason", reason
-        );
-
+        // 3. Signal Camunda - Syncing with the BPMN Receive Task
         zeebeClient.newPublishMessageCommand()
-            .messageName("InternalEmployeeDecision") // must match BPMN
-            .correlationKey(requestId.toString())
-            .variables(Map.of("intEmployeeApproved", false))
+            .messageName("EmployeeAssignmentDecision") // Matches your BPMN screenshot
+            .correlationKey(requestId.toString())      // Matches your BPMN screenshot
+            .variables(Map.of(
+                "approved", false,                      // Unified variable name
+                "rejectionReason", reason,
+                "decisionType", "INTERNAL"
+            ))
             .send()
             .join();
         
         log.info("Dept Head rejected internal assignment for Request {}. Reason: {}", requestId, reason);
     }
-    
+        
 
     private void mapDtoToEntity(WorkforceRequestDTO dto, StaffingRequest entity) {
         entity.setTitle(dto.title());
@@ -505,6 +501,59 @@ public class StaffingRequestService {
 
     public Optional<StaffingRequest> getById(Long requestId) {
         return repository.findById(requestId);
+    }
+
+    @Transactional
+    public void markExternalEmployeeApproved(Long requestId) {
+        StaffingRequest request = repository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+        
+        request.setStatus(RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH);
+        repository.save(request);
+        externalEmployeeRepository.findByStaffingRequestId(requestId)
+            .ifPresent(ee -> {
+                // Assuming you add a 'status' field to your ExternalEmployee model
+                ee.setStatus("APPROVED"); 
+                externalEmployeeRepository.save(ee);
+            });
+
+        // Use the Name and Subscription correlation key from your BPMN screenshot
+        zeebeClient.newPublishMessageCommand()
+                .messageName("EmployeeAssignmentDecision") 
+                .correlationKey(request.getRequestId().toString()) 
+                .variables(Map.of(
+                    "approved", true,
+                    "decisionType", "EXTERNAL"
+                ))
+                .send()
+                .join();
+    }
+
+    @Transactional
+    public void markExternalEmployeeRejected(Long requestId, String reason) {
+        StaffingRequest request = repository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+                
+        request.setStatus(RequestStatus.EXT_EMPLOYEE_REJECTED_BY_DH);
+        request.setRejectionReason(reason);
+        repository.save(request);
+
+        externalEmployeeRepository.findByStaffingRequestId(requestId)
+            .ifPresent(ee -> {
+                ee.setStatus("REJECTED");
+                externalEmployeeRepository.save(ee);
+            });
+
+        zeebeClient.newPublishMessageCommand()
+                .messageName("EmployeeAssignmentDecision")
+                .correlationKey(request.getRequestId().toString())
+                .variables(Map.of(
+                    "approved", false,
+                    "rejectionReason", reason,
+                    "decisionType", "EXTERNAL"
+                ))
+                .send()
+                .join();
     }
 
 }

@@ -1,5 +1,7 @@
 package com.frauas.workforce_planning.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record ExternalWorkforce3BRequestDTO(
@@ -10,7 +12,7 @@ public record ExternalWorkforce3BRequestDTO(
     String description,
     Integer availabilityHoursPerWeek,
     Double wagePerHour,
-    java.util.List<String> skills,
+    List<String> skills,
     Integer experienceYears,
     String location,
     // String projectContext,

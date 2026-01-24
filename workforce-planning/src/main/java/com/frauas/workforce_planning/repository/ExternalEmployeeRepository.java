@@ -1,11 +1,8 @@
 package com.frauas.workforce_planning.repository;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.frauas.workforce_planning.model.entity.ExternalEmployee;
@@ -14,4 +11,6 @@ import com.frauas.workforce_planning.model.entity.ExternalEmployee;
 public interface ExternalEmployeeRepository extends JpaRepository<ExternalEmployee, Long> {
     // The part after 'findBy' MUST match the variable name above exactly
     Optional<ExternalEmployee> findByExternalEmployeeId(String externalEmployeeId);
+
+    Optional<ExternalEmployee> findByStaffingRequestId(Long staffingRequestId);
 }

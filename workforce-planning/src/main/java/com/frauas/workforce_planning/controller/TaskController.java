@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
+import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
 import com.frauas.workforce_planning.services.StaffingRequestService;
@@ -36,6 +37,9 @@ public class TaskController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ExternalEmployeeRepository externalEmployeeRepository;
 
     /**
      * Gets all requests currently waiting for a specific Department Head's approval.
@@ -65,35 +69,40 @@ public class TaskController {
      * Gets all requests waiting for internal employee approval
      * for a specific Department Head's department.
      */
-    @GetMapping("/dept-head/int-employee-approval")
-    public ResponseEntity<?> getPendingIntEmployeeApprovals(@RequestParam String email) {
-
-        log.info("Fetching employee-approval requests for dept head email: {}", email);
-         // Validate + resolve user
+    @GetMapping("/dept-head/employee-approval")
+    public ResponseEntity<List<StaffingRequest>> getFullPendingApprovals(@RequestParam String email) {
+        
         User deptHead = userRepository.findByEmail(email)
-            .orElseThrow(() -> {
-                log.warn("User not found for email={}", email);
-                return new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "User not found for email: " + email
-                );
-            });
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head not found"));
 
-        List<StaffingRequest> pending =
-        staffingRequestRepository.findPendingByDeptHead(
-            RequestStatus.EMPLOYEE_RESERVED,
-            deptHead.getId()
+        // Using "IN" to support Bob managing multiple departments
+        List<StaffingRequest> requests = staffingRequestRepository.findPendingApprovals(
+            deptHead.getId(),
+            List.of(RequestStatus.EMPLOYEE_RESERVED, RequestStatus.EXTERNAL_RESPONSE_RECEIVED)
         );
 
-        // Return empty list (200 OK) if none — this is correct REST behavior
-        return ResponseEntity.ok(pending);
-    }
+        requests.forEach(sr -> {
+            if (sr.getStatus() == RequestStatus.EXTERNAL_RESPONSE_RECEIVED) {
+                // Populate the transient externalEmployee field
+                externalEmployeeRepository.findByStaffingRequestId(sr.getRequestId())
+                    .ifPresent(sr::setExternalEmployee);
+                
+                // Safety: Ensure assignedUser is null so frontend isn't confused
+                sr.setAssignedUser(null); 
+            } else if (sr.getStatus() == RequestStatus.EMPLOYEE_RESERVED) {
+                // The assignedUser is already populated by JPA via EAGER fetch
+                // Safety: Ensure externalEmployee is null
+                sr.setExternalEmployee(null);
+            }
+        });
 
+        return ResponseEntity.ok(requests);
+    }
 
     /**
      * Handles the Approve/Reject decision and signals the Camunda Receive Task.
      */
-    @PostMapping("/dept-head/decision")
+    @PostMapping("/dept-head/request-approval-decision")
     public ResponseEntity<String> handleDeptHeadDecision(
             @RequestParam Long requestId,
             @RequestParam String email, // Changed from Long deptHeadId to String email
@@ -136,47 +145,150 @@ public class TaskController {
      * Handles the INTERNAL EMPLOYEE approval decision (rejected/confirmed by Dept Head)
      * and signals the Camunda Receive Task.
      */
-    @PostMapping("/dept-head/int-employee-decision")
-    public ResponseEntity<String> handleInternalEmployeeDecision(
+    // @PostMapping("/dept-head/int-employee-decision")
+    // public ResponseEntity<String> handleInternalEmployeeDecision(
+    //         @RequestParam Long requestId,
+    //         @RequestParam String email,
+    //         @RequestParam boolean approved,
+    //         @RequestParam(required = false) String reason) {
+
+    //     String finalReason = (reason == null || reason.trim().isEmpty()) 
+    //                      ? "Dept Head rejected the internal employee assignment without specific feedback." 
+    //                      : reason;
+
+    //     // 1) Resolve Dept Head user by email
+    //     User user = userRepository.findByEmail(email)
+    //             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+    //     // 2) Load request
+    //     StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
+    //             .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+    //     // 3) Authorization: Dept Head must own this department
+    //     if (request.getDepartment() == null || request.getDepartment().getDepartmentHeadUserId() == null) {
+    //         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+    //                 .body("Request " + requestId + " has no department/dept head assigned.");
+    //     }
+
+    //     if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+    //         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+    //                 .body("User with email " + email + " is not authorized to update this request.");
+    //     }
+
+    //     // 4) Delegate: service updates DB + signals Camunda
+    //     if (approved) {
+    //         staffingRequestService.markInternalEmployeeApproved(requestId);
+    //         log.info("Internal employee APPROVED request {} (reported by dept head email={})", requestId, email);
+    //     } else {
+    //         staffingRequestService.markInternalEmployeeRejected(requestId, finalReason);
+    //         log.info("Internal employee REJECTED request {} (reported by dept head email={})", requestId, email, finalReason);
+    //     }
+
+    //     String action = approved ? "approved" : "rejected";
+    //     return ResponseEntity.ok("Internal employee has " + action + " request " + requestId + " (reported by " + email + ").");
+    // }
+    // @PostMapping("/dept-head/employee-assigning-decision")
+    // public ResponseEntity<String> handleDecision(
+    //         @RequestParam Long requestId,
+    //         @RequestParam String email,
+    //         @RequestParam boolean approved,
+    //         @RequestParam(required = false) String reason) {
+
+    //     // 1) Resolve Dept Head
+    //     User user = userRepository.findByEmail(email)
+    //             .orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+    //     // 2) Load request
+    //     StaffingRequest request = staffingRequestRepository.findById(requestId)
+    //             .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+
+    //     // 3) Authorization (using the IN clause logic we discussed)
+    //     if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+    //         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Not authorized.");
+    //     }
+
+    //     String finalReason = (reason == null || reason.trim().isEmpty()) 
+    //                         ? "Rejected by Dept Head without specific feedback." : reason;
+
+    //     // 4) Route logic based on current status
+    //     if (request.getStatus() == RequestStatus.EMPLOYEE_RESERVED) {
+    //         // INTERNAL PATH
+    //         if (approved) {
+    //             staffingRequestService.markInternalEmployeeApproved(requestId);
+    //         } else {
+    //             staffingRequestService.markInternalEmployeeRejected(requestId, finalReason);
+    //         }
+    //     } 
+    //     else if (request.getStatus() == RequestStatus.EXTERNAL_RESPONSE_RECEIVED) {
+    //         // EXTERNAL PATH
+    //         if (approved) {
+    //             staffingRequestService.markExternalEmployeeApproved(requestId);
+    //         } else {
+    //             staffingRequestService.markExternalEmployeeRejected(requestId, finalReason);
+    //         }
+    //     } 
+    //     else {
+    //         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+    //                 .body("Request is not in a state awaiting Dept Head approval. Current status: " + request.getStatus());
+    //     }
+
+    //     String type = (request.getStatus() == RequestStatus.EMPLOYEE_RESERVED) ? "Internal" : "External";
+    //     return ResponseEntity.ok(type + " candidate " + (approved ? "approved" : "rejected") + " for request " + requestId);
+    // }
+    // 
+
+    @PostMapping("/dept-head/employee-assigning-decision")
+    public ResponseEntity<String> handleDecision(
             @RequestParam Long requestId,
             @RequestParam String email,
             @RequestParam boolean approved,
             @RequestParam(required = false) String reason) {
 
-        String finalReason = (reason == null || reason.trim().isEmpty()) 
-                         ? "Dept Head rejected the internal employee assignment without specific feedback." 
-                         : reason;
+        log.info("Processing decision for Request ID: {} from Dept Head: {}. Approved: {}", requestId, email, approved);
 
-        // 1) Resolve Dept Head user by email
+        // 1. Resolve User and Request
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head user not found with email: " + email));
+        
+        StaffingRequest request = staffingRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staffing Request not found: " + requestId));
 
-        // 2) Load request
-        StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
-
-        // 3) Authorization: Dept Head must own this department
-        if (request.getDepartment() == null || request.getDepartment().getDepartmentHeadUserId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Request " + requestId + " has no department/dept head assigned.");
-        }
-
+        // 2. Authorization Check (Verify Dept Head owns the department)
         if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+            log.warn("Unauthorized access attempt by {} for Request ID {}", email, requestId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("User with email " + email + " is not authorized to update this request.");
+                    .body("Access Denied: You are not the assigned Head for this department.");
         }
 
-        // 4) Delegate: service updates DB + signals Camunda
-        if (approved) {
-            staffingRequestService.markInternalEmployeeApproved(requestId);
-            log.info("Internal employee APPROVED request {} (reported by dept head email={})", requestId, email);
-        } else {
-            staffingRequestService.markInternalEmployeeRejected(requestId, finalReason);
-            log.info("Internal employee REJECTED request {} (reported by dept head email={})", requestId, email, finalReason);
+        String finalReason = (reason == null || reason.trim().isEmpty()) 
+                ? "No specific feedback provided by Department Head." : reason;
+
+        String candidateType = "";
+
+        // 3. Route Logic based on Request Status
+        if (request.getStatus() == RequestStatus.EMPLOYEE_RESERVED) {
+            candidateType = "Internal";
+            if (approved) {
+                staffingRequestService.markInternalEmployeeApproved(requestId);
+            } else {
+                staffingRequestService.markInternalEmployeeRejected(requestId, finalReason);
+            }
+        } 
+        else if (request.getStatus() == RequestStatus.EXTERNAL_RESPONSE_RECEIVED) {
+            candidateType = "External";
+            if (approved) {
+                staffingRequestService.markExternalEmployeeApproved(requestId);
+            } else {
+                staffingRequestService.markExternalEmployeeRejected(requestId, finalReason);
+            }
+        } 
+        else {
+            return ResponseEntity.badRequest()
+                    .body("Action invalid. Request is currently in '" + request.getStatus() + "' status.");
         }
 
         String action = approved ? "approved" : "rejected";
-        return ResponseEntity.ok("Internal employee has " + action + " request " + requestId + " (reported by " + email + ").");
+        return ResponseEntity.ok(String.format("%s candidate has been %s for Request ID: %d", candidateType, action, requestId));
     }
 
 
