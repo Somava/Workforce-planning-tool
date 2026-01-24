@@ -120,7 +120,7 @@
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_0kkc2i6" sourceRef="Activity_ApproveEmployeeAssignment" targetRef="Gateway_0bnomq5" />
     <bpmn:sequenceFlow id="Flow_1pirhk8" name="No Declined" sourceRef="Gateway_0bnomq5" targetRef="Gateway_0wvuod1">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intEmployeeApproved = false</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:startEvent id="Event_Start" name="Start Event">
       <bpmn:outgoing>Flow_1246sdl</bpmn:outgoing>
@@ -158,7 +158,7 @@
       <bpmn:outgoing>Flow_106vkb0</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1lspl2p" name="Yes Approved" sourceRef="Gateway_0bnomq5" targetRef="Gateway_1kqdpb1">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=intEmployeeApproved = true</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=approved = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_0ogjnw1" name="Internal" sourceRef="Gateway_1kqdpb1" targetRef="Activity_AssignEmployeePlanner">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isExternalCandidate = false</bpmn:conditionExpression>
@@ -233,7 +233,7 @@
       <zeebe:subscription correlationKey="=string(requestId)" />
     </bpmn:extensionElements>
   </bpmn:message>
-  <bpmn:message id="Message_1f2mit1" name="InternalEmployeeDecision">
+  <bpmn:message id="Message_1f2mit1" name="EmployeeAssignmentDecision">
     <bpmn:extensionElements>
       <zeebe:subscription correlationKey="=string(requestId)" />
     </bpmn:extensionElements>

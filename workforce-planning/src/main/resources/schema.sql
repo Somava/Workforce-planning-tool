@@ -114,6 +114,7 @@ CREATE TABLE external_employees (
     wage_per_hour NUMERIC(10,2),
     staffing_request_id BIGINT NULL, -- Will be linked later via ALTER
     project_id BIGINT NULL,
+    status VARCHAR,
     received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_external_employee UNIQUE (provider, external_employee_id),
     CONSTRAINT fk_ext_emp_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL

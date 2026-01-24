@@ -1,13 +1,10 @@
 package com.frauas.workforce_planning.model.entity;
 
-import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,14 +16,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "external_employee")
+@Table(name = "external_employees")
 public class ExternalEmployee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "external_id")
-    private String externalEmployeeId; // <--- MUST BE THIS NAME
+    @Column(name = "external_employee_id", nullable = false)
+    private String externalEmployeeId;
 
     private String provider;
     private String firstName;
@@ -36,4 +33,5 @@ public class ExternalEmployee {
     private String skills;
     private Float experienceYears;
     private Long staffingRequestId;
+    private String status;
 }

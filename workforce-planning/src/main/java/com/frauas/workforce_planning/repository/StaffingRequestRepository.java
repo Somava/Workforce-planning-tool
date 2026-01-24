@@ -104,6 +104,14 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
        ")")
        
     List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
+
+    @Query("SELECT sr FROM StaffingRequest sr WHERE sr.department.id IN " +
+        "(SELECT d.id FROM Department d WHERE d.departmentHeadUserId = :deptHeadId) " +
+        "AND sr.status IN :statuses")
+    List<StaffingRequest> findPendingApprovals(
+        @Param("deptHeadId") Long deptHeadId, 
+        @Param("statuses") List<RequestStatus> statuses
+    );
 }
 
     
