@@ -25,7 +25,6 @@ public record EmployeeProfileDTO(
     List<String> skills,
     java.util.List<String> languages,
     String departmentName,
-    String jobRoleName,
     String supervisorName,
     String supervisorEmail,
     String departmentHeadName,

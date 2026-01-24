@@ -27,8 +27,6 @@ public class Project {
 
     private String description;
     
-    @Column(name = "task_description")
-    private String taskDescription;
 
     @Column(name = "start_date")
     private LocalDate startDate;
@@ -37,9 +35,7 @@ public class Project {
     private LocalDate endDate;
 
     private String location;
-    private String links;
     private String status;
-    private boolean published;
 
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

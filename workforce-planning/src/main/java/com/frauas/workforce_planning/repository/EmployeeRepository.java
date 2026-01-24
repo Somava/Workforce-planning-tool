@@ -56,8 +56,6 @@ List<Object[]> findLanguagesWithProficiency(@Param("employeeId") Long employeeId
     List<Employee> findBySkills(@Param("skillsJson") String skillsJson);
 
     
-    // 🔹 Search for employees with specific job roles
-    List<Employee> findByJobRole_Id(Long jobRoleId);
 
      // search with matching availability filters
     List<Employee> findByMatchingAvailability(MatchingAvailability availability);

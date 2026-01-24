@@ -67,7 +67,6 @@ public EmployeeProfileDTO getProfile(String email) {
         emp.getSkills(),
         languageList, // PASS THE LANGUAGES HERE
         emp.getDepartment() != null ? emp.getDepartment().getName() : "N/A",
-        emp.getJobRole() != null ? emp.getJobRole().getName() : "N/A",
         supervisorName,
         supervisorEmail,
         headName,
@@ -84,7 +83,6 @@ public EmployeeProfileDTO getProfile(String email) {
                 emp.getId(),
                 emp.getEmployeeId(),
                 emp.getFirstName() + " " + emp.getLastName(),
-                emp.getJobRole() != null ? emp.getJobRole().getName() : "N/A",
                 emp.getEmail(),
                 emp.getSkills(),
                 emp.getLanguages().stream()

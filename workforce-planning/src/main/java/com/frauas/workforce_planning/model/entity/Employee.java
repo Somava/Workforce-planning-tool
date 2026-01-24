@@ -98,10 +98,6 @@ public class Employee {
     )
     private MatchingAvailability matchingAvailability = MatchingAvailability.AVAILABLE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "job_role_id")
-    @JsonIgnoreProperties({"staffingRequests", "employees"})
-    private JobRole jobRole;
 
     @Column(name = "project_preferences", columnDefinition = "TEXT")
     private String projectPreferences;
@@ -115,9 +111,6 @@ public class Employee {
 
     // --- Relations with Recursion Breaks ---
 
-    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties("employee")
-    private Set<EmployeeCertification> certifications = new HashSet<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("employee")

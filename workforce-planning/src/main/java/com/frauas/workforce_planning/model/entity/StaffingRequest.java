@@ -51,10 +51,6 @@ public class StaffingRequest {
     @Column(name = "project_name")
     private String projectName;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "job_role_id")
-    @JsonIgnoreProperties({"staffingRequests", "employees"})
-    private JobRole jobRole;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")

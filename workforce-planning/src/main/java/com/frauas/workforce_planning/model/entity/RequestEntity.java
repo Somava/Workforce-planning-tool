@@ -80,11 +80,7 @@ public class RequestEntity {
 
     // 5. Project ID
     @Column(name = "project_id", nullable = false)
-    private Long projectId;
-
-    // 6. Job Role ID (Auto-assigned logic)
-    @Column(name = "job_role_id")
-    private Integer jobRoleId;
+    private Long projectId;    
 
     // 7. Start Date
     @Column(name = "project_start_date")
@@ -151,9 +147,6 @@ public class RequestEntity {
 
     public String getRequiredSkills() { return requiredSkills; }
     public void setRequiredSkills(String requiredSkills) { this.requiredSkills = requiredSkills; }
-
-    public Integer getJobRoleId() { return jobRoleId; }
-    public void setJobRoleId(Integer jobRoleId) { this.jobRoleId = jobRoleId; }
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }

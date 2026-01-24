@@ -10,5 +10,6 @@ import com.frauas.workforce_planning.model.entity.Project;
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long> {
 
-    List<Project> findByPublishedTrue();
+    // 🔹 Find projects by their status
+    List<Project> findByStatus(String status);
 }

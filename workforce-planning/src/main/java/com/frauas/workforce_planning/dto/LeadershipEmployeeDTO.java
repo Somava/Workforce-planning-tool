@@ -6,7 +6,6 @@ public record LeadershipEmployeeDTO(
     Long id,
     String employeeId,
     String fullName,
-    String jobRole,
     String email,
     List<String> skills,
     List<String> languages,

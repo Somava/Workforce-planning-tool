@@ -6,7 +6,6 @@ DROP TABLE IF EXISTS assignments CASCADE;
 DROP TABLE IF EXISTS staffing_requests CASCADE;
 DROP TABLE IF EXISTS user_roles CASCADE;
 DROP TABLE IF EXISTS employee_languages CASCADE;
-DROP TABLE IF EXISTS employee_certifications CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS external_employees CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
@@ -14,30 +13,27 @@ DROP TABLE IF EXISTS departments CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
 DROP TABLE IF EXISTS languages CASCADE;
-DROP TABLE IF EXISTS certifications CASCADE;
-DROP TABLE IF EXISTS job_roles CASCADE;
+DROP TABLE IF EXISTS project_departments CASCADE;
 
 --------------------------------------------------
 -- 1) LOOKUP TABLES
 --------------------------------------------------
-CREATE TABLE job_roles (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(100) NOT NULL UNIQUE
-);
+
 
 CREATE TABLE roles (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE
 );
 
-CREATE TABLE certifications (
-    id      BIGSERIAL PRIMARY KEY,
-    name    VARCHAR(255) NOT NULL UNIQUE
-);
 
 CREATE TABLE languages (
     id      BIGSERIAL PRIMARY KEY,
     name    VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE departments (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE
 );
 
 --------------------------------------------------
@@ -47,26 +43,15 @@ CREATE TABLE projects (
     id                  BIGSERIAL PRIMARY KEY,
     name                VARCHAR(200) NOT NULL,
     description         TEXT,
-    task_description    TEXT,
     start_date          DATE,
     end_date            DATE,
     location            VARCHAR(200),
-    links               TEXT,
-    status              VARCHAR(50) NOT NULL DEFAULT 'PLANNED',
-    published           BOOLEAN NOT NULL DEFAULT FALSE,
+    status              VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     manager_user_id     BIGINT NULL
 );
--- Note: No UNIQUE on name, UNIQUE on department_head_user_id
-CREATE TABLE departments (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(150) NOT NULL, 
-    project_id BIGINT NOT NULL,
-    department_head_user_id BIGINT NULL UNIQUE, 
-    resource_planner_user_id BIGINT NULL UNIQUE,
-    CONSTRAINT fk_dept_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-);
+
 
 CREATE TABLE employees (
     id                       BIGSERIAL PRIMARY KEY,
@@ -83,7 +68,6 @@ CREATE TABLE employees (
     availability_start       DATE,
     availability_end         DATE,
     matching_availability     VARCHAR(50) DEFAULT 'AVAILABLE',  -- AVAILABLE OR RESERVED
-    job_role_id              BIGINT NULL,
     department_id            BIGINT NULL, 
     default_role_id          BIGINT NULL,
     skills                   JSONB,
@@ -92,7 +76,6 @@ CREATE TABLE employees (
     performance_rating DOUBLE PRECISION, 
     project_preferences      TEXT,
     interests                TEXT,
-    CONSTRAINT fk_employee_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
     CONSTRAINT fk_employee_department FOREIGN KEY (department_id) REFERENCES departments(id),
     CONSTRAINT fk_employee_default_role FOREIGN KEY (default_role_id) REFERENCES roles(id),
     CONSTRAINT fk_employee_supervisor FOREIGN KEY (supervisor_id) REFERENCES employees(id)
@@ -114,6 +97,7 @@ CREATE TABLE external_employees (
     wage_per_hour NUMERIC(10,2),
     staffing_request_id BIGINT NULL, -- Will be linked later via ALTER
     project_id BIGINT NULL,
+    status VARCHAR,
     received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_external_employee UNIQUE (provider, external_employee_id),
     CONSTRAINT fk_ext_emp_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
@@ -134,30 +118,38 @@ CREATE TABLE users (
 );
 
 -- Late binding for the circular dependency between departments and users
-ALTER TABLE departments 
-    ADD CONSTRAINT fk_department_head_user 
-        FOREIGN KEY (department_head_user_id) REFERENCES users(id) ON DELETE SET NULL;
+
 
 ALTER TABLE projects
   ADD CONSTRAINT fk_project_manager_user
   FOREIGN KEY (manager_user_id) REFERENCES users(id)
   ON DELETE SET NULL;
 
+CREATE TABLE project_departments (
+    id BIGSERIAL PRIMARY KEY,
+
+    project_id BIGINT NOT NULL,
+    department_id BIGINT NOT NULL,
+
+    department_head_user_id BIGINT NULL,
+    resource_planner_user_id BIGINT NULL,
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    CONSTRAINT fk_pd_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pd_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_pd_dept_head_user FOREIGN KEY (department_head_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_pd_resource_planner_user FOREIGN KEY (resource_planner_user_id) REFERENCES users(id) ON DELETE SET NULL,
+
+    -- 1 department appears at most once per project
+    CONSTRAINT uq_project_department UNIQUE (project_id, department_id)
+);
 
 ------------------------------------------------
 -- 4) MANY-TO-MANY / DETAIL TABLES
 --------------------------------------------------
-CREATE TABLE employee_certifications (
-    id BIGSERIAL PRIMARY KEY,
-    employee_id BIGINT NOT NULL,
-    certification_id BIGINT NOT NULL,
-    issuer VARCHAR(255),
-    date_obtained DATE,
-    valid_until DATE,
-    CONSTRAINT fk_emp_cert_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    CONSTRAINT fk_emp_cert_cert FOREIGN KEY (certification_id) REFERENCES certifications(id) ON DELETE CASCADE,
-    CONSTRAINT uq_emp_cert UNIQUE (employee_id, certification_id)
-);
+
 
 CREATE TABLE employee_languages (
     id BIGSERIAL PRIMARY KEY,
@@ -186,7 +178,6 @@ CREATE TABLE staffing_requests (
     title VARCHAR(200) NOT NULL,
     description TEXT,
     project_id BIGINT NOT NULL,
-    job_role_id BIGINT NULL,
     availability_hours_per_week INTEGER,
     project_start_date DATE,
     project_end_date DATE,
@@ -208,7 +199,6 @@ CREATE TABLE staffing_requests (
     rejection_type TEXT,
 
     CONSTRAINT fk_staffreq_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    CONSTRAINT fk_staffreq_job_role FOREIGN KEY (job_role_id) REFERENCES job_roles(id),
     CONSTRAINT fk_staffreq_creator FOREIGN KEY (created_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
     CONSTRAINT fk_staffreq_department FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE SET NULL,
     CONSTRAINT fk_staffreq_assigned_user FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -256,10 +246,7 @@ CREATE TABLE employee_applications (
     CONSTRAINT uq_app_emp_request UNIQUE (employee_id, staffing_request_id)
 );
 
--- 1. Ensure columns exist without unique constraints
--- 2. If the constraint was already created by Hibernate, drop it:
-ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_department_head_user_id_key;
-ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_resource_planner_user_id_key;
+
 
 -- 3. Fix the external_employees "created_at" error from your logs
 -- Give it a default value so existing rows aren't NULL
