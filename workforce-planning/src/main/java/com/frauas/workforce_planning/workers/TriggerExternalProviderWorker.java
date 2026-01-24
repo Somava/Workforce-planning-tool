@@ -55,7 +55,6 @@ public class TriggerExternalProviderWorker {
             camundaPayload.skills(),
             camundaPayload.experienceYears(),
             camundaPayload.location(),
-            camundaPayload.projectContext(),
             camundaPayload.startDate(),
             camundaPayload.endDate()
         );
