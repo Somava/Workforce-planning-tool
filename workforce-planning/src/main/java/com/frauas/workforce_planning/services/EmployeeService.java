@@ -34,17 +34,6 @@ public EmployeeProfileDTO getProfile(String email) {
         supervisorEmail = emp.getSupervisor().getEmail();
     }
 
-    // 3. Department Head Logic (Bob/Charlie/Diana)
-    String headName = "N/A";
-    String headEmail = "N/A";
-    if (emp.getDepartment() != null && emp.getDepartment().getDepartmentHead() != null) {
-        var headUser = emp.getDepartment().getDepartmentHead();
-        headEmail = headUser.getEmail();
-        // Assuming User is linked back to an Employee for the name
-        if (headUser.getEmployee() != null) {
-            headName = headUser.getEmployee().getFirstName() + " " + headUser.getEmployee().getLastName();
-        }
-    }
 
     return new EmployeeProfileDTO(
         emp.getEmployeeId(),
@@ -68,9 +57,8 @@ public EmployeeProfileDTO getProfile(String email) {
         languageList, // PASS THE LANGUAGES HERE
         emp.getDepartment() != null ? emp.getDepartment().getName() : "N/A",
         supervisorName,
-        supervisorEmail,
-        headName,
-        headEmail
+        supervisorEmail
+
     );
 }
 // NEW Method for Alice/Heads/Planners (Directory View)

@@ -17,6 +17,9 @@ import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.Department;
 import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.model.entity.Project;
+import com.frauas.workforce_planning.model.entity.ProjectDepartment;
+import com.frauas.workforce_planning.repository.ProjectDepartmentRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +29,9 @@ public class NotifyAllPartiesWorker {
 
     private final JavaMailSender emailSender;
     private final StaffingRequestRepository repository;
+
+    @Autowired
+    private ProjectDepartmentRepository pdRepository;
 
     @Value("${spring.mail.username}")
     private String senderEmail;
@@ -47,6 +53,7 @@ public class NotifyAllPartiesWorker {
                 .orElseThrow(() -> new RuntimeException("Request not found for Worker: " + requestId));
 
         Department dept = request.getDepartment();
+        Project project = request.getProject();
 
         // 2. Extract Data
         String projectName = request.getProjectName();
@@ -57,11 +64,13 @@ public class NotifyAllPartiesWorker {
         String managerEmail = (creatorEmployee.getUser() != null) ? creatorEmployee.getUser().getEmail() : "N/A";
         String managerName = creatorEmployee.getFirstName() + " " + creatorEmployee.getLastName();
 
+        ProjectDepartment projDept = pdRepository.findByProject_IdAndDepartment_Id(project.getId(), dept.getId());
+
         // DEPARTMENT HEAD
-        String deptHeadEmail = (dept.getDepartmentHead() != null) ? dept.getDepartmentHead().getEmail() : null;
+        String deptHeadEmail = (projDept.getDepartmentHeadUser() != null) ? projDept.getDepartmentHeadUser().getEmail() : null;
 
         // RESOURCE PLANNER
-        String plannerEmail = (dept.getResourcePlanner() != null) ? dept.getResourcePlanner().getEmail() : null;
+        String plannerEmail = (projDept.getResourcePlannerUser() != null) ? projDept.getResourcePlannerUser().getEmail() : null;
 
         // EMPLOYEE (The Assigned Talent - StaffingRequest.getAssignedUser() returns User)
         String employeeEmail = null;

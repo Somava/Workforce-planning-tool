@@ -35,7 +35,7 @@ public class Project {
     private LocalDate endDate;
 
     private String location;
-    private String status;
+    private String status = "ACTIVE";
 
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -49,13 +49,6 @@ public class Project {
 
     // NOTE: resource_planner_user_id is removed because it is missing from the 'projects' table in your data.sql
 
-    /**
-     * Bidirectional relationship to Departments.
-     * mappedBy must match the 'project' variable name in Department.java
-     */
-    @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore 
-    private List<Department> departments; // Renamed to plural for better code style
 
     @PrePersist
     protected void onCreate() {

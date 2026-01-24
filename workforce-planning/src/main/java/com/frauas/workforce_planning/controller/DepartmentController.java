@@ -29,23 +29,23 @@ public class DepartmentController {
         return departmentRepository.findAll();
     }
 
-    /**
-     * NEW: Get the 3 departments belonging to a specific project.
-     * Usage: GET /api/departments/project/1
-     */
-    @GetMapping("/project/{projectId}")
-    public List<Department> getDepartmentsByProject(@PathVariable Long projectId) {
-        return departmentRepository.findByProjectId(projectId);
-    }
+    // /**
+    //  * NEW: Get the 3 departments belonging to a specific project.
+    //  * Usage: GET /api/departments/project/1
+    //  */
+    // @GetMapping("/project/{projectId}")
+    // public List<Department> getDepartmentsByProject(@PathVariable Long projectId) {
+    //     return departmentRepository.findByProjectId(projectId);
+    // }
 
-    /**
-     * NEW: Find department by its Head.
-     * Useful for the "Department Head" dashboard.
-     */
-    @GetMapping("/head/{userId}")
-    public ResponseEntity<Department> getDepartmentByHead(@PathVariable Long userId) {
-        return departmentRepository.findByDepartmentHeadUserId(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+    // /**
+    //  * NEW: Find department by its Head.
+    //  * Useful for the "Department Head" dashboard.
+    //  */
+    // @GetMapping("/head/{userId}")
+    // public ResponseEntity<Department> getDepartmentByHead(@PathVariable Long userId) {
+    //     return departmentRepository.findByDepartmentHeadUserId(userId)
+    //             .map(ResponseEntity::ok)
+    //             .orElse(ResponseEntity.notFound().build());
+    // }
 }

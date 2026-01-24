@@ -11,6 +11,4 @@ import com.frauas.workforce_planning.model.entity.Department;
 @Repository
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
-    List<Department> findByProjectId(Long projectId);
-    Optional<Department> findByDepartmentHeadUserId(Long userId);
 }

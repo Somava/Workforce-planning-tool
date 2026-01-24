@@ -23,26 +23,6 @@ public class Department {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
-    @JsonIgnoreProperties("departments")
-    private Project project;
-
-    @Column(name = "department_head_user_id")
-    private Long departmentHeadUserId;
-
-    @Column(name = "resource_planner_user_id")
-    private Long resourcePlannerUserId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_head_user_id", insertable = false, updatable = false)
-    @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
-    private User departmentHead;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resource_planner_user_id", insertable = false, updatable = false)
-    @JsonIgnoreProperties({"employee", "externalEmployee", "roles", "passwordHash", "password"})
-    private User resourcePlanner;
 
     @OneToMany(mappedBy = "department")
     @JsonIgnore 

@@ -86,7 +86,7 @@ public class StaffingRequestService {
         try {
             Map<String, Object> variables = new HashMap<>();
             variables.put("requestId", saved.getRequestId());
-            variables.put("deptHeadUserId", dept.getDepartmentHeadUserId());
+            // variables.put("deptHeadUserId", dept.getDepartmentHeadUserId());
             variables.put("managerName", manager.getFirstName() + " " + manager.getLastName());
             variables.put("requesterEmail", manager.getEmail());
 

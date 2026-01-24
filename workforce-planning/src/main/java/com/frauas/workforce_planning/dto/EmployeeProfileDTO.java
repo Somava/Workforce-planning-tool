@@ -26,7 +26,5 @@ public record EmployeeProfileDTO(
     java.util.List<String> languages,
     String departmentName,
     String supervisorName,
-    String supervisorEmail,
-    String departmentHeadName,
-    String departmentHeadEmail
+    String supervisorEmail
 ) {}

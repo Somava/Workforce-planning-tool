@@ -44,7 +44,6 @@ public class ProjectService {
         
         // Requirements: Always ACTIVE and Published
         project.setStatus("ACTIVE");
-        project.setPublished(true);
         
         // 3. Link the project to the User entity (NOT just the ID)
         project.setManagerUser(manager.getUser());

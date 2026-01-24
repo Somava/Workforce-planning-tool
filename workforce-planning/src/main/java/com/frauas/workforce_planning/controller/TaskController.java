@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.repository.ProjectDepartmentRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
 import com.frauas.workforce_planning.services.StaffingRequestService;
 
@@ -36,6 +38,9 @@ public class TaskController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ProjectDepartmentRepository projectDepartmentRepository;
 
     /**
      * Gets all requests currently waiting for a specific Department Head's approval.
@@ -112,8 +117,14 @@ public class TaskController {
         StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
 
+        ProjectDepartment projDept = projectDepartmentRepository
+            .findByProject_IdAndDepartment_Id(
+                request.getProject().getId(),
+                request.getDepartment().getId()
+            );
+
         // 3. AUTHORIZATION: Use the ID we found from the email
-        if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+        if (!projDept.getDepartmentHeadUser().getId().equals(user.getId())) {
             log.warn("Unauthorized access attempt by {} for request {}", email, requestId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("User with email " + email + " is not authorized to approve this request.");
@@ -154,14 +165,22 @@ public class TaskController {
         // 2) Load request
         StaffingRequest request = staffingRequestRepository.findByRequestId(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
+        
+        ProjectDepartment projDept = projectDepartmentRepository
+            .findByProject_IdAndDepartment_Id(
+                request.getProject().getId(),
+                request.getDepartment().getId()
+            );
+
+        var departmentHeadUser = projDept.getDepartmentHeadUser(); 
 
         // 3) Authorization: Dept Head must own this department
-        if (request.getDepartment() == null || request.getDepartment().getDepartmentHeadUserId() == null) {
+        if (request.getDepartment() == null || departmentHeadUser == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Request " + requestId + " has no department/dept head assigned.");
         }
 
-        if (!request.getDepartment().getDepartmentHeadUserId().equals(user.getId())) {
+        if (!departmentHeadUser.getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("User with email " + email + " is not authorized to update this request.");
         }

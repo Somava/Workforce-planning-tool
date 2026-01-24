@@ -48,25 +48,28 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     @Query("""
     SELECT sr
-    FROM StaffingRequest sr
-    JOIN sr.department d
+    FROM StaffingRequest sr, ProjectDepartment pd
     WHERE sr.status = :status
-      AND d.departmentHeadUserId = :departmentHeadUserId
+    AND pd.project.id = sr.project.id
+    AND pd.department.id = sr.department.id
+    AND pd.departmentHeadUser.id = :departmentHeadUserId
     """)
     List<StaffingRequest> findPendingByDeptHead(
         @Param("status") RequestStatus status,
         @Param("departmentHeadUserId") Long departmentHeadUserId
     );
+
+
     // Navigation: Employee (createdBy) -> User (user) -> Email (email)
     List<StaffingRequest> findByCreatedBy_User_Email(String email);
 
     @Query("""
     SELECT sr
-    FROM StaffingRequest sr
-    JOIN sr.department d
-    JOIN d.resourcePlanner u
+    FROM StaffingRequest sr, ProjectDepartment pd
     WHERE sr.status = :status
-    AND u.email = :email
+    AND pd.project.id = sr.project.id
+    AND pd.department.id = sr.department.id
+    AND pd.resourcePlannerUser.email = :email
     """)
     List<StaffingRequest> findApprovedForResourcePlanner(
         @Param("status") RequestStatus status,
@@ -84,26 +87,31 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         @Param("userId") Long userId
     );
 
- /**
+    /**
      * Dashboard Query: Fetches requests where the status is 'INT_EMPLOYEE_ASSIGNED'
      * and the logged-in user is either the Manager, Dept Head, Planner, or the Assigned Employee.
      */
-    @Query("SELECT DISTINCT s FROM StaffingRequest s " +
-       "LEFT JOIN s.assignedUser au " + 
-       "LEFT JOIN s.createdBy cb " +
-       "LEFT JOIN cb.user cbu " +
-       "LEFT JOIN s.department d " +
-       "LEFT JOIN d.departmentHead dh " +
-       "LEFT JOIN d.resourcePlanner rp " +
-       "WHERE s.status = com.frauas.workforce_planning.model.enums.RequestStatus.INT_EMPLOYEE_ASSIGNED " +
-       "AND (" +
-       "   cbu.email = :email " +   // Manager check
-       "   OR dh.email = :email " + // Dept Head check
-       "   OR rp.email = :email " + // Planner check
-       "   OR au.email = :email" +  // Assigned Employee check
-       ")")
-       
+    @Query("""
+    SELECT DISTINCT s
+    FROM StaffingRequest s
+    LEFT JOIN s.assignedUser au
+    LEFT JOIN s.createdBy cb
+    LEFT JOIN cb.user cbu,
+        ProjectDepartment pd
+    LEFT JOIN pd.departmentHeadUser dh
+    LEFT JOIN pd.resourcePlannerUser rp
+    WHERE s.status = com.frauas.workforce_planning.model.enums.RequestStatus.INT_EMPLOYEE_ASSIGNED
+    AND pd.project.id = s.project.id
+    AND pd.department.id = s.department.id
+    AND (
+        cbu.email = :email
+        OR dh.email = :email
+        OR rp.email = :email
+        OR au.email = :email
+    )
+    """)
     List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
+
 }
 
     
