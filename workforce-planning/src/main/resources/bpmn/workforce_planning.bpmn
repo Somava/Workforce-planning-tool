@@ -16,7 +16,7 @@
         <bpmn:flowNodeRef>Gateway_ExternalResourceOutcome</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>EndEvent_AssignmentComplete</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_1kqdpb1</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Activity_035p8yb</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_ExternalAccepted</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_AssignEmployeePlanner</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_00a9ynf</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_FinalNotification</bpmn:flowNodeRef>
@@ -29,7 +29,7 @@
         <bpmn:flowNodeRef>Activity_DepartmentHeadApproval</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_Approved</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Activity_ApproveEmployeeAssignment</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>Activity_127m3pi</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Activity_ExternalRejected</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_0wvuod1</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>Gateway_0bnomq5</bpmn:flowNodeRef>
       </bpmn:lane>
@@ -138,9 +138,9 @@
       <bpmn:outgoing>Flow_0ogjnw1</bpmn:outgoing>
       <bpmn:outgoing>Flow_003v31q</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="Activity_035p8yb" name="Notify External Group (Accepted)">
+    <bpmn:serviceTask id="Activity_ExternalAccepted" name="Notify External Group (Accepted)">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="notify-external-accepted" />
+        <zeebe:taskDefinition type="notify-external-group" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_003v31q</bpmn:incoming>
       <bpmn:outgoing>Flow_0gkef42</bpmn:outgoing>
@@ -150,9 +150,9 @@
       <bpmn:outgoing>Flow_10jsmfd</bpmn:outgoing>
       <bpmn:outgoing>Flow_0qjar78</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="Activity_127m3pi" name="Notify External Group (Rejected)">
+    <bpmn:serviceTask id="Activity_ExternalRejected" name="Notify External Group (Rejected)">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="notify-external-rejected" />
+        <zeebe:taskDefinition type="notify-external-group" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_10jsmfd</bpmn:incoming>
       <bpmn:outgoing>Flow_106vkb0</bpmn:outgoing>
@@ -163,10 +163,10 @@
     <bpmn:sequenceFlow id="Flow_0ogjnw1" name="Internal" sourceRef="Gateway_1kqdpb1" targetRef="Activity_AssignEmployeePlanner">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isExternalCandidate = false</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_003v31q" name="External" sourceRef="Gateway_1kqdpb1" targetRef="Activity_035p8yb">
+    <bpmn:sequenceFlow id="Flow_003v31q" name="External" sourceRef="Gateway_1kqdpb1" targetRef="Activity_ExternalAccepted">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isExternalCandidate = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_10jsmfd" name="External" sourceRef="Gateway_0wvuod1" targetRef="Activity_127m3pi">
+    <bpmn:sequenceFlow id="Flow_10jsmfd" name="External" sourceRef="Gateway_0wvuod1" targetRef="Activity_ExternalRejected">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isExternalCandidate = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1v1v9d0_Success" name="Yes" sourceRef="Gateway_Approved" targetRef="Activity_1dnw9bo">
@@ -195,7 +195,7 @@
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=isExternalCandidate = false
 </bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_106vkb0" sourceRef="Activity_127m3pi" targetRef="Activity_ReviewExternalFailure" />
+    <bpmn:sequenceFlow id="Flow_106vkb0" sourceRef="Activity_ExternalRejected" targetRef="Activity_ReviewExternalFailure" />
     <bpmn:exclusiveGateway id="Gateway_00a9ynf" name="Employee Confirm ?">
       <bpmn:incoming>Flow_14pqgmk</bpmn:incoming>
       <bpmn:outgoing>Flow_1wxlpx1</bpmn:outgoing>
@@ -209,7 +209,7 @@
       <bpmn:incoming>Flow_12qt3bx</bpmn:incoming>
       <bpmn:outgoing>Flow_ManagerReviewToDecision</bpmn:outgoing>
     </bpmn:receiveTask>
-    <bpmn:sequenceFlow id="Flow_0gkef42" sourceRef="Activity_035p8yb" targetRef="Activity_FinalNotification" />
+    <bpmn:sequenceFlow id="Flow_0gkef42" sourceRef="Activity_ExternalAccepted" targetRef="Activity_FinalNotification" />
     <bpmn:sequenceFlow id="Flow_1wxlpx1" name="Yes" sourceRef="Gateway_00a9ynf" targetRef="Activity_FinalNotification">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=confirm = true</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
@@ -259,6 +259,7 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Planner_di" bpmnElement="Lane_Planner" isHorizontal="true">
         <omgdc:Bounds x="160" y="320" width="1820" height="120" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Employee_di" bpmnElement="Lane_Employee" isHorizontal="true">
         <omgdc:Bounds x="160" y="440" width="1820" height="270" />
@@ -335,7 +336,7 @@
           <omgdc:Bounds x="1265" y="456" width="50" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_035p8yb_di" bpmnElement="Activity_035p8yb">
+      <bpmndi:BPMNShape id="Activity_035p8yb_di" bpmnElement="Activity_ExternalAccepted">
         <omgdc:Bounds x="1200" y="580" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
@@ -345,7 +346,7 @@
           <omgdc:Bounds x="1645" y="306" width="50" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_127m3pi_di" bpmnElement="Activity_127m3pi">
+      <bpmndi:BPMNShape id="Activity_127m3pi_di" bpmnElement="Activity_ExternalRejected">
         <omgdc:Bounds x="1840" y="210" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
