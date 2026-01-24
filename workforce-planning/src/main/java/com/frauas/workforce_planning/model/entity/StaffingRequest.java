@@ -22,6 +22,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -105,6 +106,10 @@ public class StaffingRequest {
     @JsonIgnoreProperties({"password", "roles"})
     private User assignedUser;
 
+    public void setAssignedUser(User assignedUser) {
+    this.assignedUser = assignedUser;
+    }
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -113,5 +118,8 @@ public class StaffingRequest {
 
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
+
+    @Transient
+    private ExternalEmployee externalEmployee;
 
 }

@@ -1,13 +1,15 @@
 package com.frauas.workforce_planning.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record ExternalWorkforceResponseDTO(
-    String externalEmployeeId,
-    String provider,
-    String firstName,
-    String lastName,
-    String email,
-    Double wagePerHour,
-    String skills,
-    Long staffingRequestId, // Changed from internalRequestId to match Team 3b
-    Float experienceYears
+    @JsonProperty("staffingRequestId") Long staffingRequestId,
+    @JsonProperty("externalEmployeeId") String externalEmployeeId,
+    @JsonProperty("provider") String provider,
+    @JsonProperty("firstName") String firstName,
+    @JsonProperty("lastName") String lastName,
+    @JsonProperty("email") String email,
+    @JsonProperty("wagePerHour") Double wagePerHour,
+    @JsonProperty("experienceYears") Float experienceYears,
+    @JsonProperty("skills") java.util.List<String> skills // Change from String to List<String>
 ) {}

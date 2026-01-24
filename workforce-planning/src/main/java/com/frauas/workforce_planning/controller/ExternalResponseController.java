@@ -52,19 +52,21 @@ public class ExternalResponseController {
 
         // 4. Save Directly to external_employee Table
         if (found) {
+            String skillsCsv = (dto.skills() != null) ? String.join(", ", dto.skills()) : "";
+
             ExternalEmployee employee = ExternalEmployee.builder()
-                .externalEmployeeId(dto.externalEmployeeId()) // <--- Change .externalId to .externalEmployeeId
-                .provider(dto.provider())
-                .firstName(dto.firstName())
-                .lastName(dto.lastName())
-                .email(dto.email())
-                .wagePerHour(dto.wagePerHour())
-                .skills(dto.skills())
-                .experienceYears(dto.experienceYears())
-                .staffingRequestId(dto.staffingRequestId())
-                .build();
-            
-            externalEmployeeRepository.save(employee);
+            .externalEmployeeId(dto.externalEmployeeId())
+            .provider(dto.provider())
+            .firstName(dto.firstName())
+            .lastName(dto.lastName())
+            .email(dto.email())
+            .wagePerHour(dto.wagePerHour())
+            .skills(skillsCsv) // Store as CSV string in DB
+            .experienceYears(dto.experienceYears())
+            .staffingRequestId(dto.staffingRequestId())
+            .build();
+    
+    externalEmployeeRepository.save(employee);
         }
 
         // 5. Prepare Variables for Camunda
