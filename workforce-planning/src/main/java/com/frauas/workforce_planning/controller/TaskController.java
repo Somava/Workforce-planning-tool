@@ -2,7 +2,6 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -19,8 +18,8 @@ import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
-import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.ProjectDepartmentRepository;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
 import com.frauas.workforce_planning.services.StaffingRequestService;
 
@@ -32,18 +31,26 @@ import lombok.extern.slf4j.Slf4j;
 @CrossOrigin(originPatterns = "*", allowCredentials = "true")
 public class TaskController {
 
-    @Autowired
-    private StaffingRequestService staffingRequestService; // Fixed: Use Autowired
+    private final StaffingRequestService staffingRequestService;
+    private final StaffingRequestRepository staffingRequestRepository;
+    private final UserRepository userRepository;
+    private final ProjectDepartmentRepository projectDepartmentRepository;
+    private final ExternalEmployeeRepository externalEmployeeRepository; // Now being used!
 
-    @Autowired
-    private StaffingRequestRepository staffingRequestRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ProjectDepartmentRepository projectDepartmentRepository;
-    private ExternalEmployeeRepository externalEmployeeRepository;
+    // Using Constructor Injection (Recommended)
+    public TaskController(
+            StaffingRequestService staffingRequestService,
+            StaffingRequestRepository staffingRequestRepository,
+            UserRepository userRepository,
+            ProjectDepartmentRepository projectDepartmentRepository,
+            ExternalEmployeeRepository externalEmployeeRepository
+    ) {
+        this.staffingRequestService = staffingRequestService;
+        this.staffingRequestRepository = staffingRequestRepository;
+        this.userRepository = userRepository;
+        this.projectDepartmentRepository = projectDepartmentRepository;
+        this.externalEmployeeRepository = externalEmployeeRepository;
+    }
 
     /**
      * Gets all requests currently waiting for a specific Department Head's approval.
@@ -68,21 +75,19 @@ public class TaskController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             });
     }
-
-    /**
-     * Gets all requests waiting for internal employee approval
-     * for a specific Department Head's department.
-     */
+    
     @GetMapping("/dept-head/employee-approval")
     public ResponseEntity<List<StaffingRequest>> getFullPendingApprovals(@RequestParam String email) {
         
         User deptHead = userRepository.findByEmail(email)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head not found"));
+        
         if(!deptHead.getEmployee().getDefaultRole().getName().equals("ROLE_DEPT_HEAD")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Department Head");
         }
+
         Department department = deptHead.getEmployee().getDepartment();
-        // Using "IN" to support Bob managing multiple departments
+
         List<StaffingRequest> requests = staffingRequestRepository.findPendingApprovals(
             department.getId(),
             List.of(RequestStatus.EMPLOYEE_RESERVED, RequestStatus.EXTERNAL_RESPONSE_RECEIVED)
@@ -90,15 +95,12 @@ public class TaskController {
 
         requests.forEach(sr -> {
             if (sr.getStatus() == RequestStatus.EXTERNAL_RESPONSE_RECEIVED) {
-                // Populate the transient externalEmployee field
+                // This will no longer throw NullPointerException!
                 externalEmployeeRepository.findByStaffingRequestId(sr.getRequestId())
                     .ifPresent(sr::setExternalEmployee);
                 
-                // Safety: Ensure assignedUser is null so frontend isn't confused
                 sr.setAssignedUser(null); 
             } else if (sr.getStatus() == RequestStatus.EMPLOYEE_RESERVED) {
-                // The assignedUser is already populated by JPA via EAGER fetch
-                // Safety: Ensure externalEmployee is null
                 sr.setExternalEmployee(null);
             }
         });

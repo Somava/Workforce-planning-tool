@@ -97,13 +97,10 @@ public class MatchingService {
     }
 
     private boolean passesDepartmentGroup(Employee e, StaffingRequest r) {
-        if (r.getDepartment() == null || e.getDepartment() == null) return false;
-        Long rId = r.getDepartment().getId();
-        Long eId = e.getDepartment().getId();
-        if (rId >= 1 && rId <= 4) return (eId >= 1 && eId <= 4);
-        if (rId >= 5 && rId <= 8) return (eId >= 5 && eId <= 8);
-        if (rId >= 9 && rId <= 12) return (eId >= 9 && eId <= 12);
-        return Objects.equals(rId, eId);
+        if (r.getDepartment() == null || e.getDepartment() == null) {
+            return false;
+        }
+        return Objects.equals(r.getDepartment().getId(), e.getDepartment().getId());
     }
 
     private boolean passesHoursStrict(Employee e, StaffingRequest r) {
