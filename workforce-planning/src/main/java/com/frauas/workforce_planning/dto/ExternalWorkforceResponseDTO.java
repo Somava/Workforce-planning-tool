@@ -9,7 +9,10 @@ public record ExternalWorkforceResponseDTO(
     @JsonProperty("firstName") String firstName,
     @JsonProperty("lastName") String lastName,
     @JsonProperty("email") String email,
+    @JsonProperty("skills") String skills,
+    @JsonProperty("contractId") String contractId,
+    @JsonProperty("evaluationScore") Double evaluationScore,
+    @JsonProperty("experienceYears") Integer experienceYears,
     @JsonProperty("wagePerHour") Double wagePerHour,
-    @JsonProperty("experienceYears") Float experienceYears,
-    @JsonProperty("skills") java.util.List<String> skills // Change from String to List<String>
+    @JsonProperty("projectId") Long projectId
 ) {}

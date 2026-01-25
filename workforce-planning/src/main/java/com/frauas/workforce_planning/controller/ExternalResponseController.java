@@ -1,6 +1,9 @@
 package com.frauas.workforce_planning.controller;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
@@ -52,17 +55,27 @@ public class ExternalResponseController {
 
         // 4. Save Directly to external_employee Table
         if (found) {
+            List<String> skillsList = (dto.skills() != null && !dto.skills().isBlank())
+            ? Arrays.stream(dto.skills().split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList()
+            : Collections.emptyList();
 
             ExternalEmployee employee = ExternalEmployee.builder()
             .externalEmployeeId(dto.externalEmployeeId())
             .provider(dto.provider())
+            .contractId(dto.contractId())
             .firstName(dto.firstName())
             .lastName(dto.lastName())
             .email(dto.email())
-            .wagePerHour(dto.wagePerHour())
-            .skills(dto.skills())
+            .skills(skillsList)
+            .evaluationScore(dto.evaluationScore())
             .experienceYears(dto.experienceYears())
+            .wagePerHour(dto.wagePerHour())
             .staffingRequestId(dto.staffingRequestId())
+            .projectId(dto.projectId())
+            .status("PENDING")
             .build();
     
     externalEmployeeRepository.saveAndFlush(employee);
