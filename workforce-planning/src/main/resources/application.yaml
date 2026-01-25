@@ -15,16 +15,24 @@ spring:
     username: postgres.qxcvxtbxdhhixagimhak
     password: 'FRAU@20242025'
     driver-class-name: org.postgresql.Driver
+    hikari:
+        maximum-pool-size: 5       # Keep this low for Supabase Free Tier
+        minimum-idle: 2
+        idle-timeout: 30000
+        max-lifetime: 1800000
+        connection-timeout: 30000
 
 
   jpa:
    
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     defer-datasource-initialization: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        temp:
+          use_jdbc_metadata_defaults: false
     show-sql: true 
     
   mail:
