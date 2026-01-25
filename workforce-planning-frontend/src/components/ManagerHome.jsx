@@ -32,10 +32,12 @@ const ManagerHome = () => {
     const firstName = localStorage.getItem("firstName");
     const userEmail = localStorage.getItem("email");
 
-    const [activeTab, setActiveTab] = useState('recent'); // 'recent', 'rejected', or 'employees'
+    const [activeTab, setActiveTab] = useState('recent'); 
     const [requests, setRequests] = useState([]);
     const [rejectedRequests, setRejectedRequests] = useState([]);
-    const [employees, setEmployees] = useState([]); // New state for Employee List
+    const [employees, setEmployees] = useState([]); 
+    const [projects, setProjects] = useState([]); 
+    const [successAssignments, setSuccessAssignments] = useState([]); // New state for API
     const [selectedRequest, setSelectedRequest] = useState(null); 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
@@ -45,18 +47,33 @@ const ManagerHome = () => {
     const [editData, setEditData] = useState({});
     const [error, setError] = useState("");
 
+    // Create Project Modal States
+    const [showProjectModal, setShowProjectModal] = useState(false);
+    const [projectError, setProjectError] = useState(""); 
+    const [newProject, setNewProject] = useState({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        location: ""
+    });
+
     const fetchRequests = useCallback(async () => {
         if (!userEmail) return;
         setIsRefreshing(true);
         try {
-            const [recentRes, rejectedRes, empRes] = await Promise.all([
+            const [recentRes, rejectedRes, empRes, projRes, successRes] = await Promise.all([
                 axios.get(`http://localhost:8080/api/requests/manager-requests?email=${userEmail}`),
                 axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`),
-                axios.get(`http://localhost:8080/api/workforce-overview/all-employees`) // Fetch employees
+                axios.get(`http://localhost:8080/api/workforce-overview/all-employees`),
+                axios.get(`http://localhost:8080/api/projects`),
+                axios.get(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`) // New API Call
             ]);
             setRequests(recentRes.data);
             setRejectedRequests(rejectedRes.data);
             setEmployees(empRes.data);
+            setProjects(projRes.data);
+            setSuccessAssignments(successRes.data);
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
             console.error("Fetch failed", err);
@@ -70,6 +87,43 @@ const ManagerHome = () => {
         const interval = setInterval(fetchRequests, 30000);
         return () => clearInterval(interval);
     }, [fetchRequests]);
+
+    const handleCreateProject = async () => {
+        setProjectError(""); 
+        const { name, startDate, endDate, description, location } = newProject;
+
+        if (!name || !startDate || !endDate || !description || !location) {
+            setProjectError("All fields are required.");
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (start < today) {
+            setProjectError("Start date cannot be in the past.");
+            return;
+        }
+
+        const minEndDate = new Date(start);
+        minEndDate.setFullYear(start.getFullYear() + 1);
+
+        if (end < minEndDate) {
+            setProjectError("Project duration must be at least 1 year (12 months).");
+            return;
+        }
+
+        try {
+            await axios.post(`http://localhost:8080/api/projects/create?managerEmail=${userEmail}`, newProject);
+            setShowProjectModal(false);
+            setNewProject({ name: "", description: "", startDate: "", endDate: "", location: "" });
+            fetchRequests(); 
+        } catch (err) {
+            setProjectError("Failed to create project. Technical error occurred.");
+        }
+    };
 
     const validateResubmission = (data, originalReq) => {
         const wage = parseFloat(data.wagePerHour);
@@ -140,7 +194,6 @@ const ManagerHome = () => {
         setResubmitModal(req);
     };
 
-    // Helper to render the employee list tab content
     const renderEmployeeList = () => (
         <div style={styles.employeeGrid}>
             {employees.map(emp => (
@@ -176,16 +229,102 @@ const ManagerHome = () => {
         </div>
     );
 
+    const renderProjectList = () => (
+        <div style={styles.projectListContainer}>
+            {projects.map(proj => (
+                <div key={proj.id} style={styles.projectRow}>
+                    <div style={styles.projectMainInfo}>
+                        <h3 style={styles.projectTitleText}>{proj.name}</h3>
+                        <p style={styles.projectDescriptionText}>{proj.description}</p>
+                    </div>
+                    <div style={styles.projectMetaInfo}>
+                        <div style={styles.metaItem}>
+                            <span style={styles.metaLabel}>Location</span>
+                            <span style={styles.metaValue}>📍 {proj.location}</span>
+                        </div>
+                        <div style={styles.metaItem}>
+                            <span style={styles.metaLabel}>Timeline</span>
+                            <span style={styles.metaValue}>📅 {proj.startDate} — {proj.endDate}</span>
+                        </div>
+                        <div style={styles.metaItem}>
+                            <span style={styles.metaLabel}>Status</span>
+                            <div style={{ marginTop: '4px' }}>
+                                {new Date(proj.endDate) > new Date() ? (
+                                    <span style={{...styles.badge, backgroundColor: '#ecfdf5', color: '#047857'}}>Active</span>
+                                ) : (
+                                    <span style={{...styles.badge, backgroundColor: '#f3f4f6', color: '#6b7280'}}>Closed</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Updated render function for Successful Assignments with horizontal detail bar
+            const renderSuccessAssignments = () => (
+            /* Column container for wide horizontal rows */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+                {successAssignments.map(item => (
+                    <div key={item.requestId} style={{
+                        ...styles.projectRow,display: 'flex',flexDirection: 'row',alignItems: 'stretch', padding: '24px',borderLeft: '5px solid #10b981',backgroundColor: '#fff',borderRadius: '12px',boxShadow: '0 1px 3px rgba(0,0,0,0.1)'}}>
+                        {/* Left Section: Name, Performance, and Info */}
+                        <div style={{ flex: '1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                                <span style={{ background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800',display: 'flex',alignItems: 'center',gap: '4px'}}>
+                                    ⭐ PERFORMANCE: {item.performanceRating}
+                                </span>
+                            </div>
+                            {/* Success Message Banner */}
+                            <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '13px', marginBottom: '16px',lineHeight: '1.4'}}>
+                                ✨ {item.congratsMessage}
+                            </div>
+                            {/* Project/Role Subline */}
+                            <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                                <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                                <span style={{ color: '#d1d5db' }}>|</span>
+                                <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                            </div>
+                            {/* Grey Metadata Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.5fr', gap: '20px', background: '#f8fafc', padding: '16px', borderRadius: '8px',border: '1px solid #f1f5f9'}}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                    {item.employeeSkills?.map(skill => (
+                                        <span key={skill} style={{ background: '#e0e7ff', color: '#4338ca', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                ))}
+            </div>
+        );
+
     return (
         <div style={styles.container}>
             <div style={styles.contentWrapper}>
-                
                 <div style={styles.welcomeBox}>
                     <h1 style={{ margin: 0 }}>Hello, {firstName}! 👋</h1>
                     <p style={{ color: '#6b7280', margin: '10px 0 25px 0' }}>Manage your department staffing and track requests in real-time.</p>
-                    <button onClick={() => navigate("/create-request")} style={styles.createBtn}>
-                         New Staffing Request
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                        <button onClick={() => navigate("/create-request")} style={styles.createBtn}>
+                             New Staffing Request
+                        </button>
+                        <button onClick={() => { setProjectError(""); setShowProjectModal(true); }} style={{...styles.createBtn, background: '#10b981'}}>
+                             Create New Project
+                        </button>
+                    </div>
                 </div>
 
                 <div style={styles.tabBar}>
@@ -207,12 +346,27 @@ const ManagerHome = () => {
                     >
                         Employee List ({employees.length})
                     </button>
+                    <button 
+                        style={{...styles.tabItem, ...(activeTab === 'projects' ? styles.activeTab : {})}}
+                        onClick={() => setActiveTab('projects')}
+                    >
+                        Project List ({projects.length})
+                    </button>
+                    <button 
+                        style={{...styles.tabItem, ...(activeTab === 'success' ? styles.activeTab : {})}}
+                        onClick={() => setActiveTab('success')}
+                    >
+                        Successful Assignments ({successAssignments.length})
+                    </button>
                 </div>
 
                 <div style={styles.listSection}>
                     <div style={styles.listHeader}>
                         <h2 style={{ margin: 0, fontSize: '18px' }}>
-                            {activeTab === 'recent' ? 'Recent Activity' : activeTab === 'rejected' ? 'Action Required' : 'Internal Workforce'}
+                            {activeTab === 'recent' ? 'Recent Activity' : 
+                             activeTab === 'rejected' ? 'Action Required' : 
+                             activeTab === 'employees' ? 'Internal Workforce' : 
+                             activeTab === 'projects' ? 'Current Projects' : 'Successfully Staffed'}
                         </h2>
                         <div style={styles.syncContainer}>
                             <span style={styles.syncText}>Last synced: {lastSynced}</span>
@@ -226,6 +380,10 @@ const ManagerHome = () => {
 
                     {activeTab === 'employees' ? (
                         renderEmployeeList()
+                    ) : activeTab === 'projects' ? (
+                        renderProjectList()
+                    ) : activeTab === 'success' ? (
+                        renderSuccessAssignments()
                     ) : (
                         <table style={styles.table}>
                             <thead>
@@ -266,6 +424,45 @@ const ManagerHome = () => {
                 </div>
             </div>
 
+            {/* Create Project Modal */}
+            {showProjectModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={{...styles.modalContent, width: '500px'}}>
+                        <div style={styles.modalHeader}>
+                            <h3 style={{ margin: 0 }}>Create New Project</h3>
+                            <button onClick={() => setShowProjectModal(false)} style={styles.closeBtn}>×</button>
+                        </div>
+                        {projectError && <div style={styles.errorBanner}>{projectError}</div>}
+                        <div style={{...styles.modalBody, display: 'flex', flexDirection: 'column', gap: '15px'}}>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Project Name *</label>
+                                <input style={styles.input} value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Description *</label>
+                                <textarea style={{...styles.input, height: '60px'}} value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
+                            </div>
+                            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Start Date *</label>
+                                    <input type="date" min={new Date().toISOString().split("T")[0]} style={styles.input} value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} />
+                                </div>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>End Date *</label>
+                                    <input type="date" min={newProject.startDate || new Date().toISOString().split("T")[0]} style={styles.input} value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} />
+                                </div>
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Location *</label>
+                                <input style={styles.input} value={newProject.location} onChange={e => setNewProject({...newProject, location: e.target.value})} />
+                            </div>
+                            <button onClick={handleCreateProject} style={{...styles.createBtn, marginTop: '10px', background: '#10b981'}}>Save Project</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Request Detail Modal */}
             {selectedRequest && (
                 <div style={styles.modalOverlay} onClick={() => setSelectedRequest(null)}>
                     <div style={{...styles.modalContent, width: '450px'}} onClick={e => e.stopPropagation()}>
@@ -291,6 +488,7 @@ const ManagerHome = () => {
                 </div>
             )}
 
+            {/* Resubmit Modal */}
             {resubmitModal && (
                 <div style={styles.modalOverlay}>
                     <div style={{...styles.modalContent, width: '550px'}}>
@@ -372,7 +570,6 @@ const DetailRow = ({ label, value }) => (
         <span style={{ color: '#111827', fontSize: '13px', fontWeight: '600' }}>{value || 'N/A'}</span>
     </div>
 );
-
 const styles = {
     container: { padding: '50px 20px', backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', justifyContent: 'center' },
     contentWrapper: { maxWidth: '1000px', width: '100%' },
@@ -397,7 +594,7 @@ const styles = {
     cancelBtn: { background: '#fff1f2', color: '#e11d48', border: '1px solid #fecaca', padding: '4px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' },
     reasonText: { fontSize: '11px', color: '#ef4444', marginTop: '4px', fontStyle: 'italic' },
     modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { background: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 20px 25px rgba(0,0,0,0.1)' },
+    modalContent: { background: 'white', borderRadius: '16px', padding: '25px', boxShadow: '0 20px 25px rgba(0,0,0,0.1)', maxHeight: '90vh', overflowY: 'auto' },
     modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px' },
     closeBtn: { background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af' },
     hr: { border: '0', borderTop: '1px solid #f3f4f6', margin: '15px 0' },
@@ -405,13 +602,24 @@ const styles = {
     label: { fontSize: '12px', fontWeight: 'bold', color: '#4b5563' },
     input: { padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', outline: 'none' },
     errorBanner: { background: '#fee2e2', color: '#b91c1c', padding: '10px', borderRadius: '8px', fontSize: '12px', marginBottom: '15px', border: '1px solid #fecaca' },
-    
-    // New Styles for Employee Tab
-    employeeGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', marginTop: '10px' },
-    employeeCard: { background: '#fdfdfd', border: '1px solid #f3f4f6', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    projectListContainer: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' },
+    projectRow: { display: 'flex', alignItems: 'center', background: '#fff', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '24px', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    projectMainInfo: { flex: '1.5', display: 'flex', flexDirection: 'column', gap: '4px', paddingRight: '20px' },
+    projectTitleText: { margin: 0, fontSize: '18px', color: '#111827', fontWeight: '700' },
+    projectDescriptionText: { fontSize: '13px', color: '#6b7280', margin: 0, lineHeight: '1.5' },
+    projectMetaInfo: { flex: '2.5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '1px solid #f3f4f6', paddingLeft: '30px' },
+    metaItem: { display: 'flex', flexDirection: 'column', gap: '6px', flex: '1' },
+    metaLabel: { fontSize: '10px', textTransform: 'uppercase', color: '#9ca3af', fontWeight: '800', letterSpacing: '0.05em' },
+    metaValue: { fontSize: '13px', color: '#374151', fontWeight: '600' },
+    employeeGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', marginTop: '10px' },
+    employeeCard: { background: '#fdfdfd', border: '1px solid #f3f4f6', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', position: 'relative' },
     empRoleBadge: { fontSize: '11px', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' },
     availabilityBadge: { fontSize: '10px', fontWeight: '800', padding: '4px 8px', borderRadius: '6px' },
-    skillTagSmall: { fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 8px', borderRadius: '4px' }
+    skillTagSmall: { fontSize: '11px', background: '#f3f4f6', color: '#4b5563', padding: '2px 8px', borderRadius: '4px' },
+    detailBar: { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%',padding: '10px 0', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6', marginTop: '12px', marginBottom: '12px' },
+    detailColumn: { display: 'flex', flexDirection: 'column', gap: '2px', flex: '1' },
+    detailLabel: { fontSize: '9px', textTransform: 'uppercase', color: '#9ca3af', fontWeight: '800' },
+    detailValue: { fontSize: '12px', color: '#374151', fontWeight: '600', whiteSpace: 'nowrap' },
+    assignmentHighlight: { background: '#f0fdf4', padding: '12px', borderRadius: '8px', marginBottom: '12px', borderLeft: '3px solid #10b981', border: '1px solid #bbf7d0' }
 };
-
 export default ManagerHome;
