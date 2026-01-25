@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle } from 'lucide-react';
+import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle, CheckCircle } from 'lucide-react';
 
 const ResourcePlannerMatch = () => {
     const [view, setView] = useState('list'); 
     const [requests, setRequests] = useState([]);
+    const [successAssignments, setSuccessAssignments] = useState([]); // New State
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -36,7 +37,6 @@ const ResourcePlannerMatch = () => {
                     default: setDepartmentName("Department");
                 }
             }
-
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
             setMessage({ text: "Error connecting to Planner API.", type: 'error' });
@@ -45,9 +45,24 @@ const ResourcePlannerMatch = () => {
         }
     }, [userEmail]);
 
+    // New function to fetch success notifications
+    const fetchSuccess = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`);
+            const data = await response.json();
+            setSuccessAssignments(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch success notifications");
+        } finally {
+            setLoading(false);
+        }
+    }, [userEmail]);
+
     useEffect(() => {
         fetchRequests();
-    }, [fetchRequests]);
+        fetchSuccess();
+    }, [fetchRequests, fetchSuccess]);
 
     const handleLoadMatches = async (req) => {
         setLoading(true);
@@ -73,17 +88,13 @@ const ResourcePlannerMatch = () => {
         }
     };
 
-    // FIX: Updated to use the /reserve endpoint with query parameters as per API documentation
     const handleDecision = async (employeeDbId, accept) => {
         setLoading(true);
         try {
-            // Updated endpoint and query parameters
             const url = `http://localhost:8080/api/resource-planner/staffing-requests/reserve?requestId=${selectedRequest.requestId}&internalFound=${accept}`;
-            
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // The body now only contains the employeeDbId
                 body: accept ? JSON.stringify({ employeeDbId }) : JSON.stringify({})
             });
 
@@ -94,6 +105,7 @@ const ResourcePlannerMatch = () => {
                 });
                 setView('list');
                 fetchRequests();
+                fetchSuccess(); // Refresh success list
             } else {
                 setMessage({ text: "Action failed. Please check API status.", type: 'error' });
             }
@@ -104,6 +116,56 @@ const ResourcePlannerMatch = () => {
             setTimeout(() => setMessage({ text: '', type: '' }), 3000);
         }
     };
+
+    // JSX for the new Success Assignments list
+    const renderSuccessAssignments = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {successAssignments.length === 0 ? (
+                <div style={styles.emptyState}>No successful assignments recorded yet.</div>
+            ) : (
+                successAssignments.map(item => (
+                    <div key={item.requestId} style={styles.successRow}>
+                        <div style={{ flex: '1' }}>
+                            <div style={styles.headerRow}>
+                                <h3 style={styles.projectTitleText}>{item.employeeName}</h3>
+                                <span style={styles.performanceBadge}>
+                                    ⭐ PERFORMANCE: {item.performanceRating}
+                                </span>
+                            </div>
+
+                            <div style={styles.congratsBanner}>
+                                ✨ {item.congratsMessage}
+                            </div>
+
+                            <div style={styles.projectSubline}>
+                                <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                                <span style={{ color: '#d1d5db' }}>|</span>
+                                <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                            </div>
+
+                            <div style={styles.metaGridSuccess}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                    {item.employeeSkills?.map(skill => (
+                                        <span key={skill} style={styles.skillTagSmallSuccess}>
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+    );
 
     return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
@@ -126,13 +188,29 @@ const ResourcePlannerMatch = () => {
                     </div>
                     <div style={styles.syncGroup}>
                         <span style={styles.syncText}>Last synced: {lastSynced}</span>
-                        <button onClick={(e) => { e.stopPropagation(); fetchRequests(); }} style={styles.refreshBtn} disabled={loading}>
+                        <button onClick={(e) => { e.stopPropagation(); fetchRequests(); fetchSuccess(); }} style={styles.refreshBtn} disabled={loading}>
                             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                         </button>
                     </div>
                 </div>
 
-                {view === 'list' ? (
+                {/* Tab Bar Navigation */}
+                <div style={styles.tabBar}>
+                    <button 
+                        style={{...styles.tabItem, ...(view === 'list' ? styles.activeTab : {})}} 
+                        onClick={() => setView('list')}
+                    >
+                        Pending Approvals ({requests.length})
+                    </button>
+                    <button 
+                        style={{...styles.tabItem, ...(view === 'success' ? styles.activeTab : {})}} 
+                        onClick={() => setView('success')}
+                    >
+                        Successful Assignments ({successAssignments.length})
+                    </button>
+                </div>
+
+                {view === 'list' && (
                     <div style={styles.list}>
                         {requests.length === 0 ? (
                             <div style={styles.emptyState}>No approved requests awaiting matchmaking.</div>
@@ -229,7 +307,11 @@ const ResourcePlannerMatch = () => {
                             ))
                         )}
                     </div>
-                ) : (
+                )}
+
+                {view === 'success' && renderSuccessAssignments()}
+
+                {view === 'matching' && (
                     <div>
                         <button onClick={() => setView('list')} style={styles.backBtn}><ArrowLeft size={18}/> Back</button>
                         <h1 style={styles.mainTitle}>Best Matches for Request #{selectedRequest?.requestId}</h1>
@@ -309,12 +391,18 @@ const styles = {
     pageWrapper: { background: '#ffffff', minHeight: '100vh', fontFamily: 'Inter, sans-serif' },
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
     container: { maxWidth: '1200px', margin: '0 auto', padding: '60px 40px' },
-    titleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' },
+    titleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' },
     mainTitle: { fontSize: '38px', fontWeight: '800', color: '#1e293b', margin: 0 },
     subTitle: { color: '#64748b', fontSize: '16px', marginTop: '6px' },
     syncGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
     syncText: { fontSize: '13px', color: '#94a3b8' },
     refreshBtn: { background: 'white', border: '1px solid #e2e8f0', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    
+    // Tab Bar Styles
+    tabBar: { display: 'flex', gap: '20px', marginBottom: '40px', borderBottom: '1px solid #e5e7eb' },
+    tabItem: { padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: '600', transition: '0.2s', fontSize: '15px' },
+    activeTab: { color: '#4f46e5', borderBottom: '2px solid #4f46e5' },
+
     cardlessRow: { display: 'flex', justifyContent: 'space-between', gap: '50px', marginBottom: '60px', paddingBottom: '40px', borderBottom: '1px solid #f1f5f9' }, 
     cardMain: { flex: 1 },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' },
@@ -362,59 +450,24 @@ const styles = {
     langList: { display: 'flex', flexDirection: 'column', gap: '4px' },
     langText: { fontSize: '13px', color: '#475569' },
     detailText: { fontSize: '13px', color: '#475569', margin: '4px 0' },
-    decisionStrip: { 
-        display: 'flex', 
-        flexDirection: 'row',
-        gap: '12px', 
-        alignItems: 'center',
-        paddingLeft: '20px' 
-    },
-    btnReserve: {
-        background: '#10b981',
-        color: 'white',
-        border: 'none',
-        padding: '10px 24px',
-        borderRadius: '8px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '14px',
-        transition: 'all 0.2s ease',
-    },
-    btnExternalSmall: {
-        background: 'transparent',
-        color: '#ef4444',
-        border: '1px solid #fecaca',
-        padding: '10px 24px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-    },
-    noMatchesFoundCard: { 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        padding: '60px', 
-        background: '#fffbeb', 
-        border: '2px dashed #f59e0b', 
-        borderRadius: '16px', 
-        textAlign: 'center',
-        marginTop: '20px'
-    },
-    btnExternalTriggerLarge: { 
-        background: '#ef4444', 
-        color: 'white', 
-        border: 'none', 
-        padding: '16px 32px', 
-        borderRadius: '12px', 
-        fontWeight: 'bold', 
-        fontSize: '16px', 
-        cursor: 'pointer',
-        marginTop: '20px',
-        boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)'
-    }
+    decisionStrip: { display: 'flex', flexDirection: 'row',gap: '12px', alignItems: 'center',paddingLeft: '20px' },
+    btnReserve: {background: '#10b981',color: 'white',border: 'none',padding: '10px 24px',borderRadius: '8px',fontWeight: '600',cursor: 'pointer',fontSize: '14px',transition: 'all 0.2s ease',},
+    btnExternalSmall: {background: 'transparent',color: '#ef4444',border: '1px solid #fecaca',padding: '10px 24px',borderRadius: '8px',fontSize: '14px',fontWeight: '600',cursor: 'pointer',transition: 'all 0.2s ease',},
+    noMatchesFoundCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', background: '#fffbeb', border: '2px dashed #f59e0b', borderRadius: '16px', textAlign: 'center',marginTop: '20px'},
+    btnExternalTriggerLarge: { background: '#ef4444', color: 'white', border: 'none', padding: '16px 32px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer',marginTop: '20px',boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)'},
+
+    /* --- SUCCESS VIEW SPECIFIC STYLES --- */
+    successRow: { display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '24px', borderLeft: '5px solid #10b981', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px' },
+    headerRow: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' },
+    projectTitleText: { margin: 0, fontSize: '24px', color: '#1e293b', fontWeight: '700' },
+    performanceBadge: { background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' },
+    congratsBanner: { background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '13px', marginBottom: '16px', lineHeight: '1.4' },
+    projectSubline: { display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' },
+    metaGridSuccess: { display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.5fr', gap: '20px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9' },
+    skillTagSmallSuccess: { background: '#e0e7ff', color: '#4338ca', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' },
+    statusBox: { minWidth: '160px', marginLeft: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', height: 'fit-content', alignSelf: 'center' },
+    statusLabel: { fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '4px', letterSpacing: '0.05em' },
+    statusValue: { fontSize: '18px', fontWeight: 'bold', color: '#059669' }
 };
 
 export default ResourcePlannerMatch;

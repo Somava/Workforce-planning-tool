@@ -4,6 +4,7 @@ const ApprovalDashboard = () => {
     const [activeTab, setActiveTab] = useState('staffing'); 
     const [staffingTasks, setStaffingTasks] = useState([]);
     const [assignmentTasks, setAssignmentTasks] = useState([]);
+    const [completedAssignments, setCompletedAssignments] = useState([]); // NEW: State for third tab
     const [departmentName, setDepartmentName] = useState("Loading..."); 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -26,16 +27,20 @@ const ApprovalDashboard = () => {
     const fetchAllData = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            const [staffingRes, assignmentRes] = await Promise.all([
+            // NEW: Added the third endpoint for success notifications
+            const [staffingRes, assignmentRes, successRes] = await Promise.all([
                 fetch(`http://localhost:8080/api/tasks/dept-head?email=${userEmail}`),
-                fetch(`http://localhost:8080/api/tasks/dept-head/int-employee-approval?email=${userEmail}`)
+                fetch(`http://localhost:8080/api/tasks/dept-head/employee-approval?email=${userEmail}`),
+                fetch(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`)
             ]);
 
             const staffingData = await staffingRes.json();
             const assignmentData = await assignmentRes.json();
+            const successData = await successRes.json();
 
             setStaffingTasks(Array.isArray(staffingData) ? staffingData.filter(t => t.status === 'PENDING_APPROVAL') : []);
             setAssignmentTasks(Array.isArray(assignmentData) ? assignmentData : []);
+            setCompletedAssignments(Array.isArray(successData) ? successData : []);
 
             const names = { 
                 "charlie@frauas.de": "Research & Development", 
@@ -68,12 +73,12 @@ const ApprovalDashboard = () => {
                 requestId: id.toString(),
                 email: userEmail,
                 approved: isApproved.toString(),
-                reason: reason // This now correctly passes the rejection reason to the API
+                reason: reason 
             });
 
             const endpoint = activeTab === 'staffing' 
-                ? 'api/tasks/dept-head/decision' 
-                : 'api/tasks/dept-head/int-employee-decision';
+                ? 'api/tasks/dept-head/request-approval-decision' 
+                : 'api/tasks/dept-head/employee-assigning-decision';
 
             const response = await fetch(`http://localhost:8080/${endpoint}?${queryParams.toString()}`, { 
                 method: 'POST', 
@@ -99,7 +104,46 @@ const ApprovalDashboard = () => {
         }
     };
 
-    const currentTasks = activeTab === 'staffing' ? staffingTasks : assignmentTasks;
+    // NEW: UI Renderer for the Success tab
+    const renderSuccessList = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {completedAssignments.map(item => (
+                <div key={item.requestId} style={{ ...styles.cardlessRow, borderLeft: '6px solid #10b981', paddingLeft: '30px' }}>
+                    <div style={styles.cardMain}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+                            <h2 style={styles.jobTitle}>{item.employeeName}</h2>
+                            <span style={{ ...styles.matchBadge, background: '#dcfce7', color: '#166534' }}>⭐ Performance: {item.performanceRating}</span>
+                        </div>
+                        <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '14px', fontWeight: '500' }}>
+                            ✨ {item.congratsMessage}
+                        </div>
+                        <p style={styles.subHeader}>
+                            <span style={styles.projectLink}>{item.projectName}</span>
+                            <span style={styles.separator}>|</span>
+                            <span>{item.jobTitle}</span>
+                        </p>
+                        <div style={styles.metaGrid}>
+                            <div style={styles.metaCol}>
+                                <div style={styles.metaItem}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                <div style={styles.metaItem}><strong>Location:</strong> {item.projectLocation}</div>
+                            </div>
+                            <div style={styles.metaCol}>
+                                <div style={styles.metaItem}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                <div style={styles.metaItem}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                            </div>
+                            <div style={styles.metaCol}>
+                                <div style={styles.skillRow}>
+                                    {item.employeeSkills?.map(skill => (
+                                        <span key={skill} style={styles.skillBadge}>{skill}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
@@ -135,128 +179,136 @@ const ApprovalDashboard = () => {
                     <button style={{...styles.tab, ...(activeTab === 'assignment' ? styles.activeTab : {})}} onClick={() => setActiveTab('assignment')}>
                         Employee Assignments ({assignmentTasks.length})
                     </button>
+                    {/* NEW: Added the third Tab Button */}
+                    <button style={{...styles.tab, ...(activeTab === 'success' ? styles.activeTab : {})}} onClick={() => setActiveTab('success')}>
+                        Successful Assignments ({completedAssignments.length})
+                    </button>
                 </div>
 
                 <div style={styles.list}>
-                    {currentTasks.length > 0 ? (
-                        currentTasks.map((item) => {
-                            const itemId = item.requestId;
-                            const emp = item.assignedUser?.employee;
-                            const manager = item.project?.managerUser?.employee || item.createdBy;
-                            const planner = item.department?.resourcePlanner;
-                            const matchScore = calculateMatch(item.requiredSkills, emp?.skills);
-
-                            return (
-                                <div key={itemId} style={styles.cardlessRow}>
-                                    <div style={styles.cardMain}>
-                                        <div style={styles.cardHeader}>
-                                            <div>
-                                                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                                                    <h2 style={styles.jobTitle}>{item.title}</h2>
-                                                    {activeTab === 'assignment' && (
-                                                        <span style={{
-                                                            ...styles.matchBadge, 
-                                                            background: matchScore > 75 ? '#dcfce7' : '#fef9c3',
-                                                            color: matchScore > 75 ? '#166534' : '#854d0e'
-                                                        }}>
-                                                            {matchScore}% Match
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p style={styles.subHeader}>
-                                                    <span style={styles.projectLink}>{item.project?.name || item.projectName}</span>
-                                                    <span style={styles.separator}>|</span>
-                                                    <span style={{fontWeight: '700', color: activeTab === 'staffing' ? '#64748b' : '#4338ca'}}>
-                                                        {activeTab === 'staffing' ? (item.department?.name || "Pending") : `Candidate: ${emp?.firstName} ${emp?.lastName}`}
-                                                    </span>
-                                                </p>
-                                            </div>
-                                            <div style={styles.priceGroup}>
-                                                <span style={styles.wage}>€{item.wagePerHour}/hr</span>
-                                                <div style={{ position: 'relative' }}>
-                                                    <button 
-                                                        style={styles.infoCircle} 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setExpandedInfo(expandedInfo === itemId ? null : itemId);
-                                                        }}
-                                                    >i</button>
-                                                    
-                                                    {expandedInfo === itemId && (
-                                                        <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
-                                                            <div style={styles.infoSection}>
-                                                                <h5 style={styles.panelTitle}>STAKEHOLDERS</h5>
-                                                                <p style={styles.floatText}><strong>Project Manager:</strong> {manager?.firstName} {manager?.lastName} ({manager?.email})</p>
-                                                                <p style={styles.floatText}><strong>Resource Planner:</strong> {planner?.email || 'Not Assigned'}</p>
-                                                                
-                                                                <h5 style={{...styles.panelTitle, marginTop: '12px'}}>PROJECT CONTEXT</h5>
-                                                                <p style={styles.floatText}>{item.project?.description || item.projectContext}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div style={styles.metaGrid}>
-                                            <div style={styles.metaCol}>
-                                                <div style={styles.metaItem}><strong>ID:</strong> {itemId}</div>
-                                                <div style={styles.metaItem}><strong>Project Location:</strong> {item.projectLocation || item.project?.location}</div>
-                                            </div>
-                                            <div style={styles.metaCol}>
-                                                <div style={styles.metaItem}><strong>Mode:</strong> {item.workLocation}</div>
-                                                <div style={styles.metaItem}><strong>Schedule:</strong> {item.projectStartDate} to {item.projectEndDate}</div>
-                                            </div>
-                                            <div style={styles.metaCol}>
-                                                <div style={styles.metaItem}><strong>Utilization:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                                <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} year(s)</div>
-                                            </div>
-                                        </div>
-
-                                        <div style={styles.descriptionRow}>
-                                            <div style={styles.descCol}>
-                                                <span style={styles.smallLabel}>Role Description :</span>
-                                                <p style={styles.descText}>{item.description}</p>
-                                            </div>
-                                            <div style={styles.descCol}>
-                                                <span style={styles.smallLabel}>
-                                                    {activeTab === 'staffing' ? 'Required Skills :' : 'Candidate Skills :'}
-                                                </span>
-                                                <div style={styles.skillRow}>
-                                                    {(activeTab === 'staffing' ? item.requiredSkills : emp?.skills || []).map(skill => (
-                                                        <span key={skill} style={{
-                                                            ...styles.skillBadge,
-                                                            border: (activeTab === 'assignment' && item.requiredSkills?.includes(skill)) ? '1.5px solid #4338ca' : 'none'
-                                                        }}>
-                                                            {skill}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={styles.actionCol}>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleDecision(itemId, true); }} 
-                                            style={styles.btnAccept}
-                                            disabled={pendingAction !== null}
-                                        >
-                                            {pendingAction === `true-${itemId}` ? "..." : "Approve"}
-                                        </button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleDecision(itemId, false); }} 
-                                            style={styles.btnReject}
-                                            disabled={pendingAction !== null}
-                                        >
-                                            {pendingAction === `false-${itemId}` ? "..." : "Reject"}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })
+                    {activeTab === 'success' ? (
+                        completedAssignments.length > 0 ? renderSuccessList() : <div style={styles.emptyState}>No successful assignments found.</div>
                     ) : (
-                        <div style={styles.emptyState}>No pending tasks in this category.</div>
+                        (activeTab === 'staffing' ? staffingTasks : assignmentTasks).length > 0 ? (
+                            (activeTab === 'staffing' ? staffingTasks : assignmentTasks).map((item) => {
+                                const itemId = item.requestId;
+                                const emp = item.assignedUser?.employee;
+                                const manager = item.project?.managerUser?.employee || item.createdBy;
+                                const planner = item.department?.resourcePlanner;
+                                const matchScore = calculateMatch(item.requiredSkills, emp?.skills);
+
+                                return (
+                                    <div key={itemId} style={styles.cardlessRow}>
+                                        <div style={styles.cardMain}>
+                                            <div style={styles.cardHeader}>
+                                                <div>
+                                                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                                                        <h2 style={styles.jobTitle}>{item.title}</h2>
+                                                        {activeTab === 'assignment' && (
+                                                            <span style={{
+                                                                ...styles.matchBadge, 
+                                                                background: matchScore > 75 ? '#dcfce7' : '#fef9c3',
+                                                                color: matchScore > 75 ? '#166534' : '#854d0e'
+                                                            }}>
+                                                                {matchScore}% Match
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p style={styles.subHeader}>
+                                                        <span style={styles.projectLink}>{item.project?.name || item.projectName}</span>
+                                                        <span style={styles.separator}>|</span>
+                                                        <span style={{fontWeight: '700', color: activeTab === 'staffing' ? '#64748b' : '#4338ca'}}>
+                                                            {activeTab === 'staffing' ? (item.department?.name || "Pending") : `Candidate: ${emp?.firstName} ${emp?.lastName}`}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                                <div style={styles.priceGroup}>
+                                                    <span style={styles.wage}>€{item.wagePerHour}/hr</span>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <button 
+                                                            style={styles.infoCircle} 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedInfo(expandedInfo === itemId ? null : itemId);
+                                                            }}
+                                                        >i</button>
+                                                        
+                                                        {expandedInfo === itemId && (
+                                                            <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
+                                                                <div style={styles.infoSection}>
+                                                                    <h5 style={styles.panelTitle}>STAKEHOLDERS</h5>
+                                                                    <p style={styles.floatText}><strong>Project Manager:</strong> {manager?.firstName} {manager?.lastName} ({manager?.email})</p>
+                                                                    <p style={styles.floatText}><strong>Resource Planner:</strong> {planner?.email || 'Not Assigned'}</p>
+                                                                    
+                                                                    <h5 style={{...styles.panelTitle, marginTop: '12px'}}>PROJECT CONTEXT</h5>
+                                                                    <p style={styles.floatText}>{item.project?.description || item.projectContext}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.metaGrid}>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><strong>ID:</strong> {itemId}</div>
+                                                    <div style={styles.metaItem}><strong>Project Location:</strong> {item.projectLocation || item.project?.location}</div>
+                                                </div>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><strong>Mode:</strong> {item.workLocation}</div>
+                                                    <div style={styles.metaItem}><strong>Schedule:</strong> {item.projectStartDate} to {item.projectEndDate}</div>
+                                                </div>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><strong>Utilization:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
+                                                    <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} year(s)</div>
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.descriptionRow}>
+                                                <div style={styles.descCol}>
+                                                    <span style={styles.smallLabel}>Role Description :</span>
+                                                    <p style={styles.descText}>{item.description}</p>
+                                                </div>
+                                                <div style={styles.descCol}>
+                                                    <span style={styles.smallLabel}>
+                                                        {activeTab === 'staffing' ? 'Required Skills :' : 'Candidate Skills :'}
+                                                    </span>
+                                                    <div style={styles.skillRow}>
+                                                        {(activeTab === 'staffing' ? item.requiredSkills : emp?.skills || []).map(skill => (
+                                                            <span key={skill} style={{
+                                                                ...styles.skillBadge,
+                                                                border: (activeTab === 'assignment' && item.requiredSkills?.includes(skill)) ? '1.5px solid #4338ca' : 'none'
+                                                            }}>
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.actionCol}>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDecision(itemId, true); }} 
+                                                style={styles.btnAccept}
+                                                disabled={pendingAction !== null}
+                                            >
+                                                {pendingAction === `true-${itemId}` ? "..." : "Approve"}
+                                            </button>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); handleDecision(itemId, false); }} 
+                                                style={styles.btnReject}
+                                                disabled={pendingAction !== null}
+                                            >
+                                                {pendingAction === `false-${itemId}` ? "..." : "Reject"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div style={styles.emptyState}>No pending tasks in this category.</div>
+                        )
                     )}
                 </div>
             </main>
@@ -287,7 +339,7 @@ const ApprovalDashboard = () => {
     );
 };
 
-// ... keep exactly the same styles as previous version ...
+// Styles remain identical to your source
 const styles = {
     pageWrapper: { background: '#ffffff', minHeight: '100vh', fontFamily: 'Inter, sans-serif', position: 'relative' },
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
