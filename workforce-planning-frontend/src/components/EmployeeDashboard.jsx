@@ -15,91 +15,70 @@ const styles = {
     mainTab: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: '#64748b', cursor: 'pointer', position: 'relative' },
     mainTabActive: { padding: '12px 0', background: 'none', border: 'none', fontSize: '16px', fontWeight: '700', color: '#4f46e5', cursor: 'pointer', borderBottom: '2px solid #4f46e5', position: 'relative' },
     notifDot: { position: 'absolute', top: '10px', right: '-15px', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' },
-    
     profileHeader: { background: 'white', padding: '30px', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' },
     profileName: { fontSize: '32px', fontWeight: '800', color: '#1e293b', margin: 0 },
     ratingBadge: { background: '#fef9c3', color: '#854d0e', padding: '4px 10px', borderRadius: '8px', fontSize: '14px', fontWeight: '700' },
     profileSub: { color: '#6366f1', fontWeight: '600', marginTop: '4px' },
-    wageHighlight: { fontSize: '28px', fontWeight: '800', color: '#10b981' },
+    wageBox: { textAlign: 'right', background: '#f0fdf4', padding: '10px 15px', borderRadius: '12px', border: '1px solid #dcfce7' },
+    wageText: { fontSize: '22px', fontWeight: '800', color: '#166534', display: 'block' },
+    wageUnit: { fontSize: '14px', color: '#166534', fontWeight: '600' },
     availabilityStatus: { display: 'block', color: '#059669', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', marginTop: '4px' },
     profileStatsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginTop: '25px', padding: '20px', background: '#f8fafc', borderRadius: '16px' },
     statItem: { fontSize: '13px', color: '#64748b' },
     skillBadge: { background: '#e0e7ff', color: '#4338ca', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginRight: '8px', marginBottom: '8px', display: 'inline-block' },
-    langBadge: { background: '#f1f5f9', color: '#475569', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginRight: '8px', marginBottom: '8px', display: 'inline-block' },
-    orgInfoBox: { background: '#fcfdff', padding: '15px', borderRadius: '12px', border: '1px solid #eff2ff' },
-    orgDetail: { fontSize: '13px', color: '#475569', marginBottom: '4px' },
-
-    congratsBox: {
-        background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-        padding: '30px',
-        borderRadius: '20px',
-        marginBottom: '30px',
-        color: 'white',
-        boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.2)'
-    },
+    skillList: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
+    skill: { background: '#eef2ff', color: '#4338ca', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
+    congratsBox: { background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', padding: '30px', borderRadius: '20px', marginBottom: '30px', color: 'white' },
     congratsTitle: { margin: '0 0 10px 0', fontSize: '24px', fontWeight: '800' },
-    congratsText: { margin: 0, fontSize: '16px', opacity: 0.9, lineHeight: '1.5' },
-    statusLabelBadge: { marginTop: '8px', display: 'inline-block', padding: '6px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '13px', fontWeight: '700', border: '1px solid #fde68a' },
-    wageBox: { textAlign: 'right', background: '#f0fdf4', padding: '10px 15px', borderRadius: '12px', border: '1px solid #dcfce7' },
-    wageText: { fontSize: '22px', fontWeight: '800', color: '#166534', display: 'block' },
-    wageUnit: { fontSize: '14px', color: '#166534', fontWeight: '600' },
+    congratsText: { margin: 0, fontSize: '16px', opacity: 0.9 },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
     tabBar: { display: 'flex', background: '#e2e8f0', padding: '4px', borderRadius: '12px' },
     tab: { padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '600', color: '#64748b' },
-    activeTab: { padding: '10px 20px', border: 'none', background: 'white', borderRadius: '8px', color: '#4f46e5', fontWeight: '700', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
-    alert: { padding: '15px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: '600' },
+    activeTab: { padding: '10px 20px', border: 'none', background: 'white', borderRadius: '8px', color: '#4f46e5', fontWeight: '700' },
     grid: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    card: { background: 'white', padding: '30px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
+    card: { background: 'white', padding: '30px', borderRadius: '20px', border: '1px solid #e2e8f0' },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' },
-    deptBadge: { fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6366f1', fontWeight: '700' },
+    deptBadge: { fontSize: '11px', textTransform: 'uppercase', color: '#6366f1', fontWeight: '700' },
     jobTitle: { fontSize: '22px', margin: '4px 0 0 0', color: '#1e293b', fontWeight: '700' },
     priceTag: { fontSize: '24px', fontWeight: '800', color: '#10b981' },
-    descriptionSection: { marginBottom: '20px' },
-    requestDesc: { fontSize: '15px', color: '#475569', lineHeight: '1.6', margin: '5px 0 0 0' },
-    metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' },
-    metaItem: { fontSize: '14px', color: '#64748b' },
     desc: { fontSize: '15px', color: '#475569', lineHeight: '1.6', background: '#f8fafc', padding: '15px', borderRadius: '12px' },
     footer: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' },
-    skillList: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-    skill: { background: '#eef2ff', color: '#4338ca', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
     applyBtn: { padding: '12px 24px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' },
     tableWrap: { background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden' },
     table: { width: '100%', borderCollapse: 'collapse' },
     thead: { background: '#f8fafc', textAlign: 'left' },
     th: { padding: '18px', color: '#64748b', fontSize: '13px' },
-    td: { padding: '18px', borderBottom: '1px solid #f1f5f9', fontSize: '14px' },
+    td: { padding: '18px', borderBottom: '1px solid #f1f5f9' },
     status: { padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700' },
     withdrawBtn: { color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' },
     disabledBtn: { color: '#cbd5e1', background: 'none', border: 'none', cursor: 'not-allowed' },
-    infoBoxBlue: { background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #e0f2fe', marginBottom: '10px' },
-    infoBoxGray: { background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #f1f5f9', marginBottom: '20px' },
-    sectionLabel: { fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', margin: '0 0 8px 0', letterSpacing: '0.05em' },
-    stakeholderTable: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-    sTh: { textAlign: 'left', fontSize: '12px', color: '#94a3b8', paddingBottom: '8px' },
-    sTd: { padding: '8px 0', fontSize: '14px', color: '#1e293b', borderBottom: '1px solid #f1f5f9' },
+    infoBoxBlue: { background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #e0f2fe' },
+    metaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' },
+    metaItem: { fontSize: '14px', color: '#64748b' },
     emptyState: { textAlign: 'center', padding: '60px', background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0' },
-    
-    // Success View Additions
-    successContainer: { background: 'white', borderRadius: '24px', padding: '40px', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', textAlign: 'center' },
+    successContainer: { background: 'white', borderRadius: '24px', padding: '40px', textAlign: 'center' },
     congratsBanner: { color: 'white', padding: '30px', borderRadius: '20px', marginBottom: '30px' },
-    successDetailsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '30px', textAlign: 'left' },
-    successCard: { background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' },
-    backBtn: { padding: '12px 30px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' },
-    reasonInputBox: { marginTop: '15px', padding: '15px', background: '#fff1f2', borderRadius: '8px', border: '1px solid #fecdd3' },
-    textArea: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #fda4af', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }
+    backBtn: { padding: '12px 30px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: '700' },
+    
+    // NEW ACTIVE PROJECT STYLES
+    activeProjectCard: { background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
+    activeCardSidebar: { width: '8px', background: '#10b981' },
+    activeSuccessBanner: { background: '#f0fdfa', border: '1px solid #ccfbf1', color: '#134e4a', padding: '15px', borderRadius: '12px', marginTop: '15px', fontSize: '14px' },
+    activeStatusBox: { border: '1px solid #e2e8f0', padding: '20px', borderRadius: '16px', textAlign: 'center', minWidth: '140px', background: '#fcfdff' },
+    sectionLabel: { fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8', margin: '0 0 8px 0', letterSpacing: '0.05em' },
+    statusLabelBadge: { padding: '4px 10px', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '13px', fontWeight: '700' }
 };
 
-// --- COMPONENT SECTION ---
 const EmployeeDashboard = () => {
     // State Management
     const [mainTab, setMainTab] = useState('career');
     const [activeTab, setActiveTab] = useState('browse');
-   
+    
     const [userProfile, setUserProfile] = useState(null);
     const [openPositions, setOpenPositions] = useState([]);
     const [myApplications, setMyApplications] = useState([]);
     const [assignedRequests, setAssignedRequests] = useState([]);
-   
+    
     const [message, setMessage] = useState({ text: '', type: '', visible: false });
     const [pendingAction, setPendingAction] = useState(null);
     const [decisionMessage, setDecisionMessage] = useState(null);
@@ -126,6 +105,14 @@ const EmployeeDashboard = () => {
         const startStr = d1.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         const endStr = d2.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         return `${months} Months (${startStr} — ${endStr})`;
+    };
+
+    // Status Styles for Table
+    const statusStyles = {
+        'APPLIED': { backgroundColor: '#e0f2fe', color: '#0369a1' },
+        'ASSIGNED': { backgroundColor: '#dcfce7', color: '#166534' },
+        'WITHDRAWN': { backgroundColor: '#f1f5f9', color: '#475569' },
+        'REJECTED': { backgroundColor: '#fee2e2', color: '#991b1b' }
     };
 
     // Global Styles & Animations
@@ -238,6 +225,8 @@ const EmployeeDashboard = () => {
         !myApplications.some(app => String(app.requestId) === String(pos.requestId) && app.status !== 'WITHDRAWN')
     );
 
+    const activeProjects = myApplications.filter(app => app.status === 'ASSIGNED');
+
     return (
         <div style={styles.page}>
             <div style={styles.container}>
@@ -302,6 +291,9 @@ const EmployeeDashboard = () => {
                     <button onClick={() => setMainTab('assignments')} style={mainTab === 'assignments' ? styles.mainTabActive : styles.mainTab}>
                         Project Assignment Confirmation {assignedRequests.length > 0 && <span style={styles.notifDot}></span>}
                     </button>
+                    <button onClick={() => setMainTab('active')} style={mainTab === 'active' ? styles.mainTabActive : styles.mainTab}>
+                        Active Projects {activeProjects.length > 0 && `(${activeProjects.length})`}
+                    </button>
                 </div>
 
                 {/* Notifications */}
@@ -312,47 +304,96 @@ const EmployeeDashboard = () => {
                     </div>
                 )}
 
+                {/* Active Projects Section */}
+                {mainTab === 'active' && (
+                    <div className="alert-fade-in">
+                        {activeProjects.length > 0 ? (
+                            activeProjects.map(project => (
+                                <div key={project.applicationId} style={styles.activeProjectCard}>
+                                    <div style={styles.activeCardSidebar} />
+                                    <div style={{ flex: 1, padding: '24px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <h2 style={styles.profileName}>{userProfile?.firstName} {userProfile?.lastName}</h2>
+                                                    <span style={styles.performanceMiniBadge}>★ PERFORMANCE: {userProfile?.performanceRating}</span>
+                                                </div>
+                                                
+                                                <div style={styles.successBannerSmall}>
+                                                    ✨ Success! {userProfile?.firstName} {userProfile?.lastName} (ID: {userProfile?.employeeId}) 
+                                                    has accepted the offer for '{project.jobTitle}' in project '{project.projectTitle}'.
+                                                </div>
+
+                                                <div style={{ marginTop: '15px', color: '#4f46e5', fontWeight: '600' }}>
+                                                    {project.projectTitle} <span style={{ color: '#cbd5e1', margin: '0 8px' }}>|</span> 
+                                                    <span style={{ color: '#64748b' }}>{project.jobTitle}</span>
+                                                </div>
+
+                                                <div style={styles.activeDetailsGrid}>
+                                                    <div style={styles.activeDetailItem}>
+                                                        <strong>Employee ID:</strong> {userProfile?.employeeId}
+                                                    </div>
+                                                    <div style={styles.activeDetailItem}>
+                                                        <strong>Wage:</strong> €{userProfile?.wagePerHour}/hr
+                                                    </div>
+                                                    <div style={styles.activeDetailItem}>
+                                                        <strong>Location:</strong> {userProfile?.primaryLocation}
+                                                    </div>
+                                                    <div style={styles.activeDetailItem}>
+                                                        <strong>Applied Date:</strong> {new Date(project.appliedAt).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.statusBoxActive}>
+                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>STATUS</div>
+                                                <div style={{ fontSize: '18px', fontWeight: '800', color: '#059669' }}>ASSIGNED</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={styles.emptyState}>No active projects found.</div>
+                        )}
+                    </div>
+                )}
+
                 {/* Assignment Confirmation Section */}
                 {mainTab === 'assignments' && (
                     <div className="alert-fade-in">
-                        {/* CASE 1: Action just completed (Success View) */}
                         {!assignedRequests.length && decisionMessage ? (
                             <div style={styles.successContainer} className="alert-fade-in">
                                 <div style={{...styles.congratsBanner, background: decisionMessage.type === 'success' ? '#10b981' : '#64748b'}}>
                                     <h2 style={{ margin: 0, fontSize: '24px' }}>{decisionMessage.title}</h2>
                                     <p style={{ margin: '8px 0 0 0', opacity: 0.9 }}>{decisionMessage.text}</p>
                                 </div>
-
                                 {decisionMessage.type === 'success' && (
                                     <div style={styles.successDetailsGrid}>
                                         <div style={styles.successCard}>
                                             <p style={styles.sectionLabel}>Next Steps</p>
                                             <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
-                                                Your profile has been officially linked to the project. You will receive an onboarding email from your Project Manager shortly regarding the kickoff meeting and resource access.
+                                                Your profile has been officially linked to the project. You will receive an onboarding email from your Project Manager shortly.
                                             </p>
                                         </div>
                                         <div style={styles.successCard}>
                                             <p style={styles.sectionLabel}>Quick Actions</p>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <div style={{ fontSize: '13px', color: '#4f46e5', fontWeight: '600', cursor: 'pointer' }}>📅 Add to Calendar</div>
-                                                <div style={{ fontSize: '13px', color: '#4f46e5', fontWeight: '600', cursor: 'pointer' }}>📄 Download Assignment PDF</div>
+                                                <div style={{ fontSize: '13px', color: '#4f46e5', fontWeight: '600', cursor: 'pointer' }}>📄 Download PDF</div>
                                             </div>
                                         </div>
                                     </div>
                                 )}
-
                                 <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                                    <button onClick={() => setDecisionMessage(null)} style={styles.backBtn}>
-                                        Return to Portal
-                                    </button>
+                                    <button onClick={() => setDecisionMessage(null)} style={styles.backBtn}>Return to Portal</button>
                                 </div>
                             </div>
                         ) : assignedRequests.length > 0 ? (
-                            /* CASE 2: Pending Assignments List */
                             <>
                                 <div style={styles.congratsBox}>
                                     <h2 style={styles.congratsTitle}>Congratulations! 🎉</h2>
-                                    <p style={styles.congratsText}>Here are a few opportunities awaiting for you! Please review the details below and confirm your participation.</p>
+                                    <p style={styles.congratsText}>Review details below and confirm your participation.</p>
                                 </div>
                                 <div style={styles.grid}>
                                     {assignedRequests.map(item => (
@@ -361,89 +402,45 @@ const EmployeeDashboard = () => {
                                                 <div>
                                                     <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
                                                     <h2 style={styles.jobTitle}>{item.title}</h2>
-                                                    <div style={styles.statusLabelBadge}>Approved by dept head, awaiting employee confirmation</div>
+                                                    <div style={styles.statusLabelBadge}>Awaiting employee confirmation</div>
                                                 </div>
                                                 <div style={styles.wageBox}>
                                                     <span style={styles.wageText}>€{item.wagePerHour}</span>
                                                     <span style={styles.wageUnit}>/hr</span>
                                                 </div>
                                             </div>
-
                                             <div style={styles.descriptionSection}>
-                                                <h4 style={styles.sectionLabel}>Description of the Staffing Request</h4>
+                                                <h4 style={styles.sectionLabel}>Description</h4>
                                                 <p style={styles.requestDesc}>{item.description || "No description provided."}</p>
                                             </div>
-
                                             <div style={styles.infoBoxBlue}>
-                                                <h4 style={styles.sectionLabel}>Project Context</h4>
                                                 <p style={{fontSize: '17px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0'}}>{item.project?.name}</p>
-                                                <p style={{fontSize: '14px', color: '#475569', lineHeight: '1.6', marginBottom: '15px'}}>{item.project?.description}</p>
                                                 <div style={styles.metaGrid}>
-                                                    <div style={styles.metaItem}><strong>📍 Work Location:</strong> {item.workLocation || item.project?.location }</div>
-                                                    <div style={styles.metaItem}><strong>🕒 Engagement:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                                    <div style={styles.metaItem}><strong>📅 Start:</strong> {item.project?.startDate}</div>
-                                                    <div style={styles.metaItem}><strong>📅 End:</strong> {item.project?.endDate}</div>
+                                                    <div style={styles.metaItem}>📍 {item.workLocation || item.project?.location}</div>
+                                                    <div style={styles.metaItem}>🕒 {item.availabilityHoursPerWeek} hrs/week</div>
                                                 </div>
                                             </div>
-
-                                            <div style={styles.infoBoxGray}>
-                                                <h4 style={styles.sectionLabel}>Stakeholders</h4>
-                                                <table style={styles.stakeholderTable}>
-                                                    <thead>
-                                                        <tr>
-                                                            <th style={styles.sTh}>Role</th>
-                                                            <th style={styles.sTh}>Name</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <tr>
-                                                            <td style={styles.sTd}>Project Manager</td>
-                                                            <td style={styles.sTd}>{item.project?.managerUser?.email}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style={styles.sTd}>Dept. Head</td>
-                                                            <td style={styles.sTd}>{item.department?.departmentHead?.email || "Internal Approved"}</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style={styles.sTd}>Resource Planner</td>
-                                                            <td style={styles.sTd}>{item.department?.resourcePlanner?.email || "Eve (HR)"}</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            
                                             {showReasonInput[item.requestId] && (
                                                 <div style={styles.reasonInputBox}>
-                                                    <label style={{fontSize: '13px', fontWeight: '600', color: '#991b1b', display: 'block', marginBottom: '8px'}}>Reason for Declining:</label>
                                                     <textarea
                                                         style={styles.textArea}
-                                                        placeholder="Please explain why you cannot join this project..."
+                                                        placeholder="Reason for declining..."
                                                         value={declineReason[item.requestId] || ""}
                                                         onChange={(e) => setDeclineReason({...declineReason, [item.requestId]: e.target.value})}
                                                     />
                                                 </div>
                                             )}
-
                                             <div style={styles.footer}>
                                                 <div style={styles.skillList}>
                                                     {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
                                                 </div>
                                                 <div style={{display: 'flex', gap: '12px'}}>
-                                                    <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>
-                                                        {pendingAction === item.requestId ? '...' : 'Accept Assignment'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!showReasonInput[item.requestId]) {
-                                                                setShowReasonInput({...showReasonInput, [item.requestId]: true});
-                                                            } else {
-                                                                handleEmployeeDecision(item.requestId, false);
-                                                            }
-                                                        }}
-                                                        style={{...styles.applyBtn, background: showReasonInput[item.requestId] ? '#991b1b' : '#ef4444'}}
-                                                        disabled={pendingAction !== null}
-                                                    >
-                                                        {showReasonInput[item.requestId] ? 'Confirm Decline' : 'Decline'}
+                                                    <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>Accept</button>
+                                                    <button onClick={() => {
+                                                        if (!showReasonInput[item.requestId]) setShowReasonInput({...showReasonInput, [item.requestId]: true});
+                                                        else handleEmployeeDecision(item.requestId, false);
+                                                    }} style={{...styles.applyBtn, background: '#ef4444'}} disabled={pendingAction !== null}>
+                                                        {showReasonInput[item.requestId] ? 'Confirm' : 'Decline'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -452,10 +449,7 @@ const EmployeeDashboard = () => {
                                 </div>
                             </>
                         ) : (
-                            /* CASE 3: Empty State */
-                            <div style={styles.emptyState}>
-                                <p style={{color: '#64748b', fontSize: '16px'}}>No pending project assignments found.</p>
-                            </div>
+                            <div style={styles.emptyState}>No pending project assignments found.</div>
                         )}
                     </div>
                 )}
@@ -482,10 +476,10 @@ const EmployeeDashboard = () => {
                                             <div style={styles.priceTag}>€{job.wagePerHour}<small>/hr</small></div>
                                         </div>
                                         <div style={styles.metaGrid}>
-                                            <div style={styles.metaItem}><strong>📍 Location:</strong> {job.workLocation}</div>
-                                            <div style={styles.metaItem}><strong>⏳ Engagement:</strong> {getDurationInfo(job.projectStartDate, job.projectEndDate)}</div>
-                                            <div style={styles.metaItem}><strong>💪 Experience:</strong> {job.experienceYears} year(s)</div>
-                                            <div style={styles.metaItem}><strong>🕒 Weekly:</strong> {job.availabilityHoursPerWeek} hrs/week</div>
+                                            <div style={styles.metaItem}>📍 {job.workLocation}</div>
+                                            <div style={styles.metaItem}>⏳ {getDurationInfo(job.projectStartDate, job.projectEndDate)}</div>
+                                            <div style={styles.metaItem}>💪 {job.experienceYears} year(s)</div>
+                                            <div style={styles.metaItem}>🕒 {job.availabilityHoursPerWeek} hrs/week</div>
                                         </div>
                                         <p style={styles.desc}>{job.description}</p>
                                         <div style={styles.footer}>
