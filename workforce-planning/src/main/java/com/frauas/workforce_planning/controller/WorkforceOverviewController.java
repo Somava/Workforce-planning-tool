@@ -28,11 +28,11 @@ public class WorkforceOverviewController {
     private StaffingRequestService staffingRequestService;
 
     @GetMapping("/all-employees")
-    public ResponseEntity<List<LeadershipEmployeeDTO>> getGlobalEmployeePool() {
-        // Calls the service logic to filter for Role ID 4 and exclude department info
-        List<LeadershipEmployeeDTO> employeePool = employeeService.getEmployeePoolForLeadership();
-        return ResponseEntity.ok(employeePool);
-    }
+public ResponseEntity<List<LeadershipEmployeeDTO>> getGlobalEmployeePool(@RequestParam String email) {
+    // Pass the email to the service so it can check if the user is Alice, Bob, or Charlie
+    List<LeadershipEmployeeDTO> employeePool = employeeService.getEmployeePoolForLeadership(email);
+    return ResponseEntity.ok(employeePool);
+}
 
     /**
      * Endpoint representing the "Notify All Parties" outcome in the BPMN diagram.

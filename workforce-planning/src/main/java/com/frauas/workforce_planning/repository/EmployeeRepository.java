@@ -55,6 +55,9 @@ List<Object[]> findLanguagesWithProficiency(@Param("employeeId") Long employeeId
         """, nativeQuery = true)
     List<Employee> findBySkills(@Param("skillsJson") String skillsJson);
 
+    // 🔹 Find employees belonging to any of the departments in the provided list
+List<Employee> findByDepartment_IdIn(List<Long> departmentIds);
+
     
 
      // search with matching availability filters
