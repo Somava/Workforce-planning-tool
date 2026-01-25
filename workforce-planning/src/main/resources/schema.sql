@@ -87,14 +87,16 @@ CREATE TABLE employees (
 -- Must be created before 'users' table because 'users' references it
 CREATE TABLE external_employees (
     id BIGSERIAL PRIMARY KEY,
-    external_employee_id VARCHAR(150) NOT NULL,
+    external_employee_id TEXT NOT NULL,
     provider VARCHAR(150) NOT NULL,
+    contract_id TEXT NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name  VARCHAR(100) NOT NULL,
     email VARCHAR(255),
     skills JSONB,
-    experience_years INTEGER,
-    wage_per_hour NUMERIC(10,2),
+    evaluation_score DOUBLE PRECISION,
+    experience_years REAL,
+    wage_per_hour DOUBLE PRECISION,
     staffing_request_id BIGINT NULL, -- Will be linked later via ALTER
     project_id BIGINT NULL,
     status VARCHAR,

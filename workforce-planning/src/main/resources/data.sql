@@ -356,8 +356,8 @@ ON CONFLICT (request_id) DO NOTHING;
 --------------------------------------------------
 -- 6) EXTERNAL EMPLOYEES & USERS
 --------------------------------------------------
-INSERT INTO external_employees (id, external_employee_id, provider, first_name, last_name, staffing_request_id, project_id, skills) VALUES 
-(1, 'EXT-001', 'FreelanceHub', 'John', 'Doe', 1, 1, '["Java", "Microservices"]') ON CONFLICT (id) DO NOTHING;
+INSERT INTO external_employees (id, external_employee_id, provider, contract_id,first_name, last_name, staffing_request_id, project_id, skills) VALUES 
+(1, 'EXT-001', 'FreelanceHub', 'CONTRACT-001', 'John', 'Doe', 1, 1, '["Java", "Microservices"]') ON CONFLICT (id) DO NOTHING;
 
 -- Freelancer User ID set to 50 to avoid any conflict with Dept Heads
 INSERT INTO users (id, email, password_hash, external_employee_id) 
