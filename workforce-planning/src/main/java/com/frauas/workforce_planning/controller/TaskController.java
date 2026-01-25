@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.frauas.workforce_planning.model.entity.Department;
 import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.User;
@@ -58,7 +59,7 @@ public class TaskController {
                 // 2. Use the ID from the found user to query the requests
                 List<StaffingRequest> pending = staffingRequestRepository.findPendingByDeptHead(
                     RequestStatus.PENDING_APPROVAL, 
-                    user.getId()
+                    user.getEmployee().getDepartment().getId()
                 );
                 return ResponseEntity.ok(pending);
             })
@@ -77,10 +78,13 @@ public class TaskController {
         
         User deptHead = userRepository.findByEmail(email)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head not found"));
-
+        if(!deptHead.getEmployee().getDefaultRole().getName().equals("ROLE_DEPT_HEAD")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Department Head");
+        }
+        Department department = deptHead.getEmployee().getDepartment();
         // Using "IN" to support Bob managing multiple departments
         List<StaffingRequest> requests = staffingRequestRepository.findPendingApprovals(
-            deptHead.getId(),
+            department.getId(),
             List.of(RequestStatus.EMPLOYEE_RESERVED, RequestStatus.EXTERNAL_RESPONSE_RECEIVED)
         );
 
@@ -322,10 +326,18 @@ public class TaskController {
     public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam String email) {
         log.info("Fetching approved requests for resource planner email: {}", email);
 
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found for email: " + email
+                ));
+        if(!user.getEmployee().getDefaultRole().getName().equals("ROLE_RESOURCE_PLANNER")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Resource Planner");
+        }
+        Department department = user.getEmployee().getDepartment();                
         
         List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(
             RequestStatus.APPROVED,
-            email
+            department.getId()
         );
 
         if (pending.isEmpty()) {

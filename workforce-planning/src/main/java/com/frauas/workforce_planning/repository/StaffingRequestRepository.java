@@ -48,15 +48,13 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     @Query("""
     SELECT sr
-    FROM StaffingRequest sr, ProjectDepartment pd
+    FROM StaffingRequest sr
     WHERE sr.status = :status
-    AND pd.project.id = sr.project.id
-    AND pd.department.id = sr.department.id
-    AND pd.departmentHeadUser.id = :departmentHeadUserId
+    AND sr.department.id = :departmentId
     """)
     List<StaffingRequest> findPendingByDeptHead(
         @Param("status") RequestStatus status,
-        @Param("departmentHeadUserId") Long departmentHeadUserId
+        @Param("departmentId") Long departmentId
     );
 
 
@@ -65,15 +63,13 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     @Query("""
     SELECT sr
-    FROM StaffingRequest sr, ProjectDepartment pd
+    FROM StaffingRequest sr
     WHERE sr.status = :status
-    AND pd.project.id = sr.project.id
-    AND pd.department.id = sr.department.id
-    AND pd.resourcePlannerUser.email = :email
+    AND sr.department.id = :deptId
     """)
     List<StaffingRequest> findApprovedForResourcePlanner(
         @Param("status") RequestStatus status,
-        @Param("email") String email
+        @Param("deptId") Long deptId
     );
 
     @Query("""
@@ -114,16 +110,12 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
 
     @Query("""
         SELECT sr
-        FROM StaffingRequest sr, ProjectDepartment pd
+        FROM StaffingRequest sr
         WHERE sr.status IN :statuses
-        AND sr.project IS NOT NULL
-        AND sr.department IS NOT NULL
-        AND pd.project.id = sr.project.id
-        AND pd.department.id = sr.department.id
-        AND pd.departmentHeadUser.id = :deptHeadId
+        AND sr.department.id = :deptId
     """)
     List<StaffingRequest> findPendingApprovals(
-        @Param("deptHeadId") Long deptHeadId, 
+        @Param("deptId") Long deptId, 
         @Param("statuses") List<RequestStatus> statuses
     );
 }
