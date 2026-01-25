@@ -1,5 +1,10 @@
 package com.frauas.workforce_planning.model.entity;
 
+import java.util.List;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 
 @Data
 @Builder
@@ -24,13 +30,14 @@ public class ExternalEmployee {
 
     @Column(name = "external_employee_id", nullable = false)
     private String externalEmployeeId;
-
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "skills", columnDefinition = "jsonb")
+    private List<String> skills;
     private String provider;
     private String firstName;
     private String lastName;
     private String email;
     private Double wagePerHour;
-    private String skills;
     private Float experienceYears;
     private Long staffingRequestId;
     private String status;
