@@ -20,7 +20,7 @@ INSERT INTO projects (id, name, description, status, start_date, end_date, locat
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO departments (id, name) VALUES 
-(1, 'IT BACKEND'), (2, 'IT FRONTEND'), (3, 'FINANCE AND MANAGEMENT')
+(1, 'IT Backend'), (2, 'IT Frontend'), (3, 'Finance AND Management')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO employees (
@@ -360,7 +360,10 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (31, 1, 'B2'),
 (32, 1, 'C1'),
 (33, 1, 'B2'),
-(34, 1, 'B2')
+(34, 1, 'B2'),(37, 1, 'A2'),(39, 1, 'A1'),(40, 1, 'C2'),(43, 1, 'C1'),(44, 1, 'C2'),(47, 1, 'A2'),(49, 1, 'B2'),(50, 1, 'B1'),
+(54, 1, 'B2'),(55, 1, 'C2'),(56, 1, 'A2'),(59, 1, 'B2'),(65, 1, 'B1'),(64, 1, 'A2'),(62, 1, 'C2'),(69, 1, 'A1'),(68, 1, 'C2'),
+(70, 1, 'C1'),(74, 1, 'A2'),(75, 1, 'B2'),(76, 1, 'C1'),(78, 1, 'B2'),(80, 1, 'A2'),(82, 1, 'B2'),(83, 1, 'C2'),(84, 1, 'B2'),
+(85, 1, 'C2'),(88, 1, 'A2'),(90, 1, 'C2'),(92, 1, 'B1'),(93, 1, 'A1'),(94, 1, 'C1')
 ON CONFLICT DO NOTHING;
 
 -- Many employees also know German
@@ -386,8 +389,11 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (19, 2, 'B1'),
 (20,2,'B2'),(21,2,'B1'),(22,2,'B2'),(23,2,'B1'),(24,2,'B2'),
 (25,2,'B2'),(26,2,'B1'),(27,2,'B1'),(28,2,'B2'),(29,2,'B2'),
-(30,2,'B1'),(31,2,'B1'),(32,2,'B2'),(33,2,'B1'),(34,2,'B2')
-ON CONFLICT DO NOTHING;
+(30,2,'B1'),(31,2,'B1'),(32,2,'B2'),(33,2,'B1'),(34,2,'B2'),(36, 1, 'C2'),(39, 1, 'A2'),(40, 1, 'B2'),(42, 1, 'A2'),(44, 1, 'C1'),
+(46, 1, 'B1'),(47, 1, 'C2'),(49, 1, 'A1'),(50, 1, 'C1'),(52, 1, 'C2'),(53, 1, 'A1'),(55, 1, 'C2'),(57, 1, 'C2'),(58, 1, 'C1'),
+(60, 1, 'C1'),(63, 1, 'B2'),(64, 1, 'C1'),(66, 1, 'B2'),(68, 1, 'A2'),(69, 1, 'B2'),(71, 1, 'A2'),(73, 1, 'C1'),(75, 1, 'B2'),
+(76, 1, 'B2'),(78, 1, 'C2'),(79, 1, 'C1'),(81, 1, 'B2'),(83, 1, 'A2'),(84, 1, 'A1'),(86, 1, 'C2'),(87, 1, 'C1'),(88, 1, 'B2'),
+(92, 1, 'A2'),(93, 1, 'B2'),(94, 1, 'C2')
 
 -- Some employees also know Spanish
 INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VALUES
@@ -399,7 +405,9 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (25, 3, 'B1'),
 (28, 3, 'A2'),
 (31, 3, 'B1'),
-(34, 3, 'A2')
+(34, 3, 'A2'),(37, 1, 'C2'),(39, 1, 'B2'),(43, 1, 'A2'),(44, 1, 'B1'),(49, 1, 'C1'),(54, 1, 'A1'),(57, 1, 'B2'),(59, 1, 'B2'),
+(63, 1, 'B2'),(66, 1, 'A2'),(67, 1, 'B2'),(72, 1, 'C2'),(75, 1, 'B2'),(77, 1, 'C1'),(81, 1, 'A2'),(87, 1, 'C2'),(89, 1, 'B1'),
+(92, 1, 'C2'),(94, 1, 'A1')
 ON CONFLICT DO NOTHING;
 
 

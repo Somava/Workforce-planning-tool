@@ -76,5 +76,5 @@ app:
 integration: 
   team3b:
     base-url: "https://webhook.site/"
-    request-path: "b20971f6-0d6f-4142-9e82-9b4e8a4a1420"
-    decision-path: "b20971f6-0d6f-4142-9e82-9b4e8a4a1420"
+    request-path: "412ec4be-ccdf-463b-ab44-828fa311974c"
+    decision-path: "412ec4be-ccdf-463b-ab44-828fa311974c"
