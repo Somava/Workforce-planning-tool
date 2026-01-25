@@ -394,6 +394,7 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (60, 1, 'C1'),(63, 1, 'B2'),(64, 1, 'C1'),(66, 1, 'B2'),(68, 1, 'A2'),(69, 1, 'B2'),(71, 1, 'A2'),(73, 1, 'C1'),(75, 1, 'B2'),
 (76, 1, 'B2'),(78, 1, 'C2'),(79, 1, 'C1'),(81, 1, 'B2'),(83, 1, 'A2'),(84, 1, 'A1'),(86, 1, 'C2'),(87, 1, 'C1'),(88, 1, 'B2'),
 (92, 1, 'A2'),(93, 1, 'B2'),(94, 1, 'C2')
+ON CONFLICT DO NOTHING;
 
 -- Some employees also know Spanish
 INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VALUES
