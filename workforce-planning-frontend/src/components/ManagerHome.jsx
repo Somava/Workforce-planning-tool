@@ -37,17 +37,15 @@ const ManagerHome = () => {
     const [rejectedRequests, setRejectedRequests] = useState([]);
     const [employees, setEmployees] = useState([]); 
     const [projects, setProjects] = useState([]); 
-    const [successAssignments, setSuccessAssignments] = useState([]); // New state for API
+    const [successAssignments, setSuccessAssignments] = useState([]); 
     const [selectedRequest, setSelectedRequest] = useState(null); 
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastSynced, setLastSynced] = useState(new Date().toLocaleTimeString());
 
-    // Resubmit Modal States
     const [resubmitModal, setResubmitModal] = useState(null);
     const [editData, setEditData] = useState({});
     const [error, setError] = useState("");
 
-    // Create Project Modal States
     const [showProjectModal, setShowProjectModal] = useState(false);
     const [projectError, setProjectError] = useState(""); 
     const [newProject, setNewProject] = useState({
@@ -59,27 +57,34 @@ const ManagerHome = () => {
     });
 
     const fetchRequests = useCallback(async () => {
-        if (!userEmail) return;
-        setIsRefreshing(true);
-        try {
-            const [recentRes, rejectedRes, empRes, projRes, successRes] = await Promise.all([
-                axios.get(`http://localhost:8080/api/requests/manager-requests?email=${userEmail}`),
-                axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`),
-                axios.get(`http://localhost:8080/api/workforce-overview/all-employees`),
-                axios.get(`http://localhost:8080/api/projects`),
-                axios.get(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`) // New API Call
-            ]);
-            setRequests(recentRes.data);
-            setRejectedRequests(rejectedRes.data);
-            setEmployees(empRes.data);
-            setProjects(projRes.data);
-            setSuccessAssignments(successRes.data);
-            setLastSynced(new Date().toLocaleTimeString());
-        } catch (err) {
-            console.error("Fetch failed", err);
-        } finally {
-            setIsRefreshing(false);
-        }
+    if (!userEmail) return;
+    setIsRefreshing(true);
+    try {
+        const [recentRes, rejectedRes, empRes, projRes, successRes] = await Promise.all([
+            axios.get(`http://localhost:8080/api/requests/manager-requests?email=${userEmail}`),
+            axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`),
+            axios.get(`http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}`),
+            axios.get(`http://localhost:8080/api/projects`),
+            axios.get(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`)
+        ]);
+
+        // Using || [] fallbacks to prevent ".map is not a function" errors
+        setRequests(recentRes.data || []);
+        setRejectedRequests(rejectedRes.data || []);
+        setEmployees(empRes.data || []);
+        setProjects(projRes.data || []);
+        setSuccessAssignments(successRes.data || []);
+        
+        setLastSynced(new Date().toLocaleTimeString());
+    } catch (err) {
+        console.error("Fetch failed", err);
+        // Optional: Set states to empty arrays on error to clear old data
+        setRequests([]);
+        setRejectedRequests([]);
+        setSuccessAssignments([]);
+    } finally {
+        setIsRefreshing(false);
+    }
     }, [userEmail]);
 
     useEffect(() => {
@@ -194,38 +199,69 @@ const ManagerHome = () => {
         setResubmitModal(req);
     };
 
+    // Components like DetailRow and StatusBadge should be defined or used here
+    const DetailRow = ({ label, value }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <span style={{ color: '#6b7280', fontSize: '13px' }}>{label}:</span>
+            <span style={{ fontWeight: '600', fontSize: '13px', color: '#111827' }}>{value || 'N/A'}</span>
+        </div>
+    );
+
     const renderEmployeeList = () => (
-        <div style={styles.employeeGrid}>
-            {employees.map(emp => (
-                <div key={emp.id} style={styles.employeeCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                            <h3 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{emp.fullName}</h3>
-                            <span style={styles.empRoleBadge}>{emp.jobRole}</span>
-                        </div>
-                        <span style={{ 
-                            ...styles.availabilityBadge, 
-                            backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
-                            color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
-                        }}>
-                            {emp.availabilityStatus}
-                        </span>
-                    </div>
-                    <div style={{ marginTop: '15px', fontSize: '13px', color: '#4b5563' }}>
-                        <div style={{ marginBottom: '4px' }}>📧 {emp.email}</div>
-                        <div style={{ marginBottom: '4px' }}>⭐ Performance: <strong>{emp.performanceRating}</strong></div>
-                        <div style={{ marginBottom: '4px' }}>📅 Experience: {emp.experienceYears} Years</div>
-                    </div>
-                    <div style={{ marginTop: '12px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '5px' }}>Skills</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                            {emp.skills?.map(skill => (
-                                <span key={skill} style={styles.skillTagSmall}>{skill}</span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            ))}
+        <div style={{ overflowX: 'auto', marginTop: '10px' }}>
+            <table style={styles.table}>
+                <thead>
+                    <tr style={styles.tableHeader}>
+                        <th style={styles.th}>ID & Name</th>
+                        <th style={styles.th}>Languages</th>
+                        <th style={styles.th}>Skills & Experience</th>
+                        <th style={styles.th}>Rating</th>
+                        <th style={styles.th}>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {employees.map(emp => (
+                        <tr key={emp.id} style={styles.tableRow}>
+                            <td style={styles.td}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1' }}>{emp.employeeId}</div>
+                                <div style={{ fontWeight: 'bold', color: '#111827' }}>{emp.fullName}</div>
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>{emp.email}</div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.languages?.map(lang => (
+                                        <span key={lang} style={styles.skillTagSmall}> {lang}</span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.skills?.map(skill => (
+                                        <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                                    📅 {emp.experienceYears} Years Experience
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>⭐ {emp.performanceRating}</span>
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <span style={{ 
+                                    ...styles.statusPill, 
+                                    backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
+                                    color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
+                                }}>
+                                    {emp.availabilityStatus}
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 
@@ -262,54 +298,121 @@ const ManagerHome = () => {
         </div>
     );
 
-    // Updated render function for Successful Assignments with horizontal detail bar
-            const renderSuccessAssignments = () => (
-            /* Column container for wide horizontal rows */
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-                {successAssignments.map(item => (
-                    <div key={item.requestId} style={{
-                        ...styles.projectRow,display: 'flex',flexDirection: 'row',alignItems: 'stretch', padding: '24px',borderLeft: '5px solid #10b981',backgroundColor: '#fff',borderRadius: '12px',boxShadow: '0 1px 3px rgba(0,0,0,0.1)'}}>
-                        {/* Left Section: Name, Performance, and Info */}
-                        <div style={{ flex: '1' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
-                                <span style={{ background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800',display: 'flex',alignItems: 'center',gap: '4px'}}>
-                                    ⭐ PERFORMANCE: {item.performanceRating}
-                                </span>
-                            </div>
-                            {/* Success Message Banner */}
-                            <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '13px', marginBottom: '16px',lineHeight: '1.4'}}>
-                                ✨ {item.congratsMessage}
-                            </div>
-                            {/* Project/Role Subline */}
-                            <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
-                                <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
-                                <span style={{ color: '#d1d5db' }}>|</span>
-                                <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
-                            </div>
-                            {/* Grey Metadata Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.5fr', gap: '20px', background: '#f8fafc', padding: '16px', borderRadius: '8px',border: '1px solid #f1f5f9'}}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
-                                    {item.employeeSkills?.map(skill => (
-                                        <span key={skill} style={{ background: '#e0e7ff', color: '#4338ca', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
-                                            {skill}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                        </div>
-                ))}
+   const renderSuccessAssignments = () => {
+    // Safety check: Ensure successAssignments is an array to prevent .map() errors
+    const assignments = Array.isArray(successAssignments) ? successAssignments : [];
+
+    // Empty state: Show this when no assignments are found
+    if (assignments.length === 0) {
+        return (
+            <div style={{
+                textAlign: 'center',
+                padding: '50px 20px',
+                background: '#f9fafb',
+                borderRadius: '12px',
+                border: '2px dashed #e5e7eb',
+                marginTop: '10px'
+            }}>
+                <h3 style={{ color: '#111827', margin: '0 0 8px 0', fontSize: '18px' }}>
+                    No Successful Assignments Yet
+                </h3>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '14px', maxWidth: '500px', marginInline: 'auto' }}>
+                    Once employees are successfully matched to Requests, their details will appear here.
+                </p>
             </div>
         );
+    }
+
+    // Data state: Render the list if assignments exist
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+            {assignments.map(item => (
+                <div key={item.requestId} style={{
+                    ...styles.projectRow, 
+                    display: 'flex', 
+                    flexDirection: 'row', 
+                    alignItems: 'stretch', 
+                    padding: '24px', 
+                    borderLeft: '5px solid #10b981', 
+                    backgroundColor: '#fff', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{ flex: '1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                            <span style={{ 
+                                background: '#dcfce7', 
+                                color: '#166534', 
+                                padding: '4px 10px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px', 
+                                fontWeight: '800', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px'
+                            }}>
+                                ⭐ PERFORMANCE: {item.performanceRating}
+                            </span>
+                        </div>
+                        
+                        <div style={{ 
+                            background: '#f0fdf4', 
+                            padding: '12px 16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #bbf7d0', 
+                            color: '#166534', 
+                            fontSize: '13px', 
+                            marginBottom: '16px', 
+                            lineHeight: '1.4'
+                        }}>
+                            ✨ {item.congratsMessage}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                            <span style={{ color: '#d1d5db' }}>|</span>
+                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                        </div>
+
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
+                            gap: '20px', 
+                            background: '#f8fafc', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                {item.employeeSkills?.map(skill => (
+                                    <span key={skill} style={{ 
+                                        background: '#e0e7ff', 
+                                        color: '#4338ca', 
+                                        padding: '4px 10px', 
+                                        borderRadius: '6px', 
+                                        fontSize: '11px', 
+                                        fontWeight: '700' 
+                                    }}>
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
     return (
         <div style={styles.container}>
@@ -328,36 +431,11 @@ const ManagerHome = () => {
                 </div>
 
                 <div style={styles.tabBar}>
-                    <button 
-                        style={{...styles.tabItem, ...(activeTab === 'recent' ? styles.activeTab : {})}}
-                        onClick={() => setActiveTab('recent')}
-                    >
-                        All Requests ({requests.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(activeTab === 'rejected' ? styles.activeTab : {})}}
-                        onClick={() => setActiveTab('rejected')}
-                    >
-                        Rejected Requests ({rejectedRequests.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(activeTab === 'employees' ? styles.activeTab : {})}}
-                        onClick={() => setActiveTab('employees')}
-                    >
-                        Employee List ({employees.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(activeTab === 'projects' ? styles.activeTab : {})}}
-                        onClick={() => setActiveTab('projects')}
-                    >
-                        Project List ({projects.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(activeTab === 'success' ? styles.activeTab : {})}}
-                        onClick={() => setActiveTab('success')}
-                    >
-                        Successful Assignments ({successAssignments.length})
-                    </button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'recent' ? styles.activeTab : {})}} onClick={() => setActiveTab('recent')}>All Requests ({requests.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'rejected' ? styles.activeTab : {})}} onClick={() => setActiveTab('rejected')}>Rejected Requests ({rejectedRequests.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'employees' ? styles.activeTab : {})}} onClick={() => setActiveTab('employees')}>Employee List ({employees.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'projects' ? styles.activeTab : {})}} onClick={() => setActiveTab('projects')}>Project List ({projects.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'success' ? styles.activeTab : {})}} onClick={() => setActiveTab('success')}>Successful Assignments ({successAssignments.length})</button>
                 </div>
 
                 <div style={styles.listSection}>
@@ -370,21 +448,13 @@ const ManagerHome = () => {
                         </h2>
                         <div style={styles.syncContainer}>
                             <span style={styles.syncText}>Last synced: {lastSynced}</span>
-                            <button 
-                                onClick={fetchRequests} 
-                                style={isRefreshing ? styles.refreshBtnSpin : styles.refreshBtn}
-                                disabled={isRefreshing}
-                            >↻</button>
+                            <button onClick={fetchRequests} style={isRefreshing ? styles.refreshBtnSpin : styles.refreshBtn} disabled={isRefreshing}>↻</button>
                         </div>
                     </div>
 
-                    {activeTab === 'employees' ? (
-                        renderEmployeeList()
-                    ) : activeTab === 'projects' ? (
-                        renderProjectList()
-                    ) : activeTab === 'success' ? (
-                        renderSuccessAssignments()
-                    ) : (
+                    {activeTab === 'employees' ? renderEmployeeList() : 
+                     activeTab === 'projects' ? renderProjectList() : 
+                     activeTab === 'success' ? renderSuccessAssignments() : (
                         <table style={styles.table}>
                             <thead>
                                 <tr style={styles.tableHeader}>
@@ -402,9 +472,7 @@ const ManagerHome = () => {
                                             {activeTab === 'rejected' && <div style={styles.reasonText}>Reason: {req.rejectionReason}</div>}
                                         </td>
                                         <td style={styles.td}>{req.project?.name || req.projectName || 'N/A'}</td>
-                                        <td style={styles.td}>
-                                            <StatusBadge status={req.status} />
-                                        </td>
+                                        <td style={styles.td}><StatusBadge status={req.status} /></td>
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', gap: '8px'}}>
                                                 <button onClick={() => setSelectedRequest(req)} style={styles.infoBtn}>ⓘ</button>
@@ -462,7 +530,7 @@ const ManagerHome = () => {
                 </div>
             )}
 
-            {/* Request Detail Modal */}
+            {/* Detail Modal */}
             {selectedRequest && (
                 <div style={styles.modalOverlay} onClick={() => setSelectedRequest(null)}>
                     <div style={{...styles.modalContent, width: '450px'}} onClick={e => e.stopPropagation()}>
@@ -479,11 +547,9 @@ const ManagerHome = () => {
                             <DetailRow label="Experience" value={`${selectedRequest.experienceYears} Years`} />
                             <DetailRow label="Hours/Week" value={selectedRequest.availabilityHoursPerWeek} />
                             <DetailRow label="Wage Budget" value={selectedRequest.wagePerHour ? `${Number(selectedRequest.wagePerHour).toFixed(2)} €/h` : 'N/A'} />
+                            <DetailRow label="Required Skills:" value={selectedRequest.requiredSkills?.join(", ")} />
 
-                            <hr style={styles.hr} />
-                            <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '4px'}}>Required Skills:</div>
-                            <div style={{fontSize: '13px', fontWeight: '600'}}>{selectedRequest.requiredSkills?.join(", ")}</div>
-                        </div>
+                            </div>
                     </div>
                 </div>
             )}
@@ -507,27 +573,12 @@ const ManagerHome = () => {
                                 <textarea style={{...styles.input, height: '70px'}} value={editData.description} onChange={(e) => setEditData({...editData, description: e.target.value})} />
                             </div>
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Exp. Years (1-25)</label>
-                                <input 
-                                    type="number" 
-                                    min="1" 
-                                    max="25" 
-                                    style={styles.input} 
-                                    value={editData.experienceYears} 
-                                    onChange={(e) => setEditData({...editData, experienceYears: e.target.value})} 
-                                />
+                                <label style={styles.label}>Exp. Years</label>
+                                <input type="number" style={styles.input} value={editData.experienceYears} onChange={(e) => setEditData({...editData, experienceYears: e.target.value})} />
                             </div>
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Wage (€/h, 1-40)</label>
-                                <input 
-                                    type="number" 
-                                    min="1" 
-                                    max="40" 
-                                    step="1" 
-                                    style={styles.input} 
-                                    value={editData.wagePerHour} 
-                                    onChange={(e) => setEditData({...editData, wagePerHour: e.target.value})} 
-                                />
+                                <label style={styles.label}>Wage</label>
+                                <input type="number" style={styles.input} value={editData.wagePerHour} onChange={(e) => setEditData({...editData, wagePerHour: e.target.value})} />
                             </div>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Work Location</label>
@@ -544,7 +595,7 @@ const ManagerHome = () => {
                                 </select>
                             </div>
                             <div style={{gridColumn: 'span 2', ...styles.inputGroup}}>
-                                <label style={styles.label}>Skills (Comma Separated)</label>
+                                <label style={styles.label}>Skills </label>
                                 <input style={styles.input} value={editData.requiredSkills} onChange={(e) => setEditData({...editData, requiredSkills: e.target.value})} />
                             </div>
                         </div>
@@ -560,10 +611,25 @@ const ManagerHome = () => {
 };
 
 const StatusBadge = ({ status }) => {
-    const config = STATUS_CONFIG[status] || { color: '#f3f4f6', textColor: '#1f2937', label: status?.replace(/_/g, ' ') };
-    return <span style={{ ...styles.badge, backgroundColor: config.color, color: config.textColor }}>{config.label}</span>;
-};
+    // Force the status to uppercase to match the STATUS_CONFIG keys
+    const lookupKey = status?.toUpperCase(); 
+    
+    const config = STATUS_CONFIG[lookupKey] || { 
+        color: '#f3f4f6', 
+        textColor: '#1f2937', 
+        label: status?.replace(/_/g, ' ') 
+    };
 
+    return (
+        <span style={{ 
+            ...styles.badge,           
+            backgroundColor: config.color, 
+            color: config.textColor        
+        }}>
+            {config.label}
+        </span>
+    );
+};
 const DetailRow = ({ label, value }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
         <span style={{ color: '#6b7280', fontSize: '13px' }}>{label}:</span>
