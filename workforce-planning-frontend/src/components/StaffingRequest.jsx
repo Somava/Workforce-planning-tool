@@ -49,6 +49,7 @@ const StaffingRequest = () => {
         const id = e.target.value;
         const selectedProj = projects.find(p => p.id.toString() === id);
         
+        // KEEPING YOUR EXACT LOGIC: Reset departments and set form data
         setDepartments([]);
         setFormData({
             ...formData,
@@ -60,14 +61,18 @@ const StaffingRequest = () => {
 
         if (id) {
             try {
-                const deptRes = await fetch(`http://localhost:8080/api/departments/project/${id}`);
+                // FIXED: Using the new simplified endpoint that matches your Swagger
+                const deptRes = await fetch(`http://localhost:8080/api/departments`);
                 if (deptRes.ok) {
-                    const deptData = await deptRes.json();
+                    const deptData = await deptRes.ok ? await deptRes.json() : [];
+                    
+                    // KEEPING YOUR EXACT LOGIC: The reduce function to ensure uniqueness
                     const uniqueDepts = deptData.reduce((acc, current) => {
                         const exists = acc.find(item => item.name === current.name);
                         if (!exists) return acc.concat([current]);
                         return acc;
                     }, []);
+                    
                     setDepartments(uniqueDepts);
                 }
             } catch (err) {
@@ -147,7 +152,7 @@ const StaffingRequest = () => {
 
             if (response.ok) {
                 setIsSubmitted(true);
-                window.scrollTo(0, 0); // Scroll to top on success
+                window.scrollTo(0, 0); 
             } else {
                 setMessage({ type: 'error', text: 'Backend rejected the request.' });
             }
@@ -308,23 +313,8 @@ const StaffingRequest = () => {
 };
 
 const styles = {
-    container: { 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'flex-start', // Changed from center to push to top
-        justifyContent: 'center', 
-        background: '#f3f4f6', 
-        padding: '30px 20px' // Reduced top padding
-    },
-    glassCard: { 
-        background: '#fff', 
-        padding: '30px', 
-        borderRadius: '12px', 
-        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', 
-        width: '100%', 
-        maxWidth: '850px',
-        marginTop: '10px' // Small margin for aesthetic breathing room
-    },
+    container: { minHeight: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: '#f3f4f6', padding: '30px 20px' },
+    glassCard: { background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '850px', marginTop: '10px' },
     header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     msgBox: { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' },

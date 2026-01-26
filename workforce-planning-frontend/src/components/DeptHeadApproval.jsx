@@ -4,7 +4,8 @@ const ApprovalDashboard = () => {
     const [activeTab, setActiveTab] = useState('staffing'); 
     const [staffingTasks, setStaffingTasks] = useState([]);
     const [assignmentTasks, setAssignmentTasks] = useState([]);
-    const [completedAssignments, setCompletedAssignments] = useState([]); // NEW: State for third tab
+    const [completedAssignments, setCompletedAssignments] = useState([]); 
+    const [employees, setEmployees] = useState([]); // NEW: Employee state
     const [departmentName, setDepartmentName] = useState("Loading..."); 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -27,20 +28,36 @@ const ApprovalDashboard = () => {
     const fetchAllData = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            // NEW: Added the third endpoint for success notifications
-            const [staffingRes, assignmentRes, successRes] = await Promise.all([
-                fetch(`http://localhost:8080/api/tasks/dept-head?email=${userEmail}`),
-                fetch(`http://localhost:8080/api/tasks/dept-head/employee-approval?email=${userEmail}`),
-                fetch(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`)
-            ]);
+            const endpoints = [
+                `http://localhost:8080/api/tasks/dept-head?email=${userEmail}`,
+                `http://localhost:8080/api/tasks/dept-head/employee-approval?email=${userEmail}`,
+                `http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`,
+                `http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}` // NEW: Employee endpoint
+            ];
 
-            const staffingData = await staffingRes.json();
-            const assignmentData = await assignmentRes.json();
-            const successData = await successRes.json();
+            const results = await Promise.allSettled(endpoints.map(url => fetch(url)));
+
+            const getSafeData = async (result) => {
+                if (result.status === 'fulfilled' && result.value.ok) {
+                    try {
+                        return await result.value.json();
+                    } catch (e) {
+                        console.error("JSON parsing error:", e);
+                        return [];
+                    }
+                }
+                return [];
+            };
+
+            const staffingData = await getSafeData(results[0]);
+            const assignmentData = await getSafeData(results[1]);
+            const successData = await getSafeData(results[2]);
+            const employeeData = await getSafeData(results[3]); // NEW: Employee data
 
             setStaffingTasks(Array.isArray(staffingData) ? staffingData.filter(t => t.status === 'PENDING_APPROVAL') : []);
             setAssignmentTasks(Array.isArray(assignmentData) ? assignmentData : []);
             setCompletedAssignments(Array.isArray(successData) ? successData : []);
+            setEmployees(Array.isArray(employeeData) ? employeeData : []); // NEW: Update employee state
 
             const names = { 
                 "charlie@frauas.de": "Research & Development", 
@@ -49,8 +66,11 @@ const ApprovalDashboard = () => {
             };
             setDepartmentName(names[userEmail] || "Department Dashboard");
             setLastSynced(new Date().toLocaleTimeString());
+            
+            setMessage({ text: '', type: '' });
         } catch (err) {
-            setMessage({ text: "Error connecting to backend services.", type: 'error' });
+            console.error("Critical fetch error:", err);
+            setMessage({ text: "Critical error connecting to backend.", type: 'error' });
         } finally {
             setIsRefreshing(false);
         }
@@ -104,7 +124,6 @@ const ApprovalDashboard = () => {
         }
     };
 
-    // NEW: UI Renderer for the Success tab
     const renderSuccessList = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {completedAssignments.map(item => (
@@ -145,6 +164,65 @@ const ApprovalDashboard = () => {
         </div>
     );
 
+    // NEW: Employee List Renderer (Table View)
+    const renderEmployeeList = () => (
+        <div style={{ overflowX: 'auto', marginTop: '10px' }}>
+            <table style={styles.table}>
+                <thead>
+                    <tr style={styles.tableHeader}>
+                        <th style={styles.th}>ID & Name</th>
+                        <th style={styles.th}>Languages</th>
+                        <th style={styles.th}>Skills & Experience</th>
+                        <th style={styles.th}>Rating</th>
+                        <th style={styles.th}>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {employees.map(emp => (
+                        <tr key={emp.employeeId} style={styles.tableRow}>
+                            <td style={styles.td}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1' }}>{emp.employeeId}</div>
+                                <div style={{ fontWeight: 'bold', color: '#111827' }}>{emp.fullName}</div>
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>{emp.email}</div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.languages?.map(lang => (
+                                        <span key={lang} style={styles.skillTagSmall}> {lang}</span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.skills?.map(skill => (
+                                        <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                                    📅 {emp.experienceYears} Years Experience
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>⭐ {emp.performanceRating}</span>
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <span style={{ 
+                                    ...styles.statusPill, 
+                                    backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
+                                    color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
+                                }}>
+                                    {emp.availabilityStatus}
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+
     return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
             <main style={styles.container}>
@@ -179,7 +257,9 @@ const ApprovalDashboard = () => {
                     <button style={{...styles.tab, ...(activeTab === 'assignment' ? styles.activeTab : {})}} onClick={() => setActiveTab('assignment')}>
                         Employee Assignments ({assignmentTasks.length})
                     </button>
-                    {/* NEW: Added the third Tab Button */}
+                    <button style={{...styles.tab, ...(activeTab === 'employees' ? styles.activeTab : {})}} onClick={() => setActiveTab('employees')}>
+                        Employee List ({employees.length})
+                    </button>
                     <button style={{...styles.tab, ...(activeTab === 'success' ? styles.activeTab : {})}} onClick={() => setActiveTab('success')}>
                         Successful Assignments ({completedAssignments.length})
                     </button>
@@ -188,6 +268,8 @@ const ApprovalDashboard = () => {
                 <div style={styles.list}>
                     {activeTab === 'success' ? (
                         completedAssignments.length > 0 ? renderSuccessList() : <div style={styles.emptyState}>No successful assignments found.</div>
+                    ) : activeTab === 'employees' ? (
+                        employees.length > 0 ? renderEmployeeList() : <div style={styles.emptyState}>No employees found in this department.</div>
                     ) : (
                         (activeTab === 'staffing' ? staffingTasks : assignmentTasks).length > 0 ? (
                             (activeTab === 'staffing' ? staffingTasks : assignmentTasks).map((item) => {
@@ -339,7 +421,6 @@ const ApprovalDashboard = () => {
     );
 };
 
-// Styles remain identical to your source
 const styles = {
     pageWrapper: { background: '#ffffff', minHeight: '100vh', fontFamily: 'Inter, sans-serif', position: 'relative' },
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
@@ -388,7 +469,16 @@ const styles = {
     modalTextarea: { width: '100%', height: '120px', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'inherit', fontSize: '14px', resize: 'none', marginBottom: '24px', boxSizing: 'border-box' },
     modalActions: { display: 'flex', gap: '12px' },
     modalCancel: { flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', fontWeight: '600', cursor: 'pointer' },
-    modalConfirm: { flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: 'pointer' }
+    modalConfirm: { flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: 'pointer' },
+    
+    // NEW TABLE STYLES
+    table: { width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', borderRadius: '12px', overflow: 'hidden' },
+    tableHeader: { backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' },
+    th: { textAlign: 'left', padding: '16px', fontSize: '13px', fontWeight: '700', color: '#475569', textTransform: 'uppercase' },
+    tableRow: { borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' },
+    td: { padding: '16px', verticalAlign: 'middle' },
+    skillTagSmall: { backgroundColor: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', border: '1px solid #e2e8f0' },
+    statusPill: { padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', display: 'inline-block', textAlign: 'center', minWidth: '80px' }
 };
 
 export default ApprovalDashboard;
