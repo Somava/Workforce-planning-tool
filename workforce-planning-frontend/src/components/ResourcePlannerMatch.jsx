@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle, CheckCircle } from 'lucide-react';
+import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle, CheckCircle, Users, Mail, MapPin, Briefcase } from 'lucide-react';
 
 const ResourcePlannerMatch = () => {
     const [view, setView] = useState('list'); 
     const [requests, setRequests] = useState([]);
-    const [successAssignments, setSuccessAssignments] = useState([]); // New State
+    const [successAssignments, setSuccessAssignments] = useState([]);
+    const [employees, setEmployees] = useState([]); // New state for Employee List
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -18,6 +19,20 @@ const ResourcePlannerMatch = () => {
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }, [view]);
+
+    // Fetch Employee List (from the Swagger endpoint)
+    const fetchEmployees = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}`);
+            const data = await response.json();
+            setEmployees(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("Failed to fetch employee list");
+        } finally {
+            setLoading(false);
+        }
+    }, [userEmail]);
 
     const fetchRequests = useCallback(async () => {
         setLoading(true);
@@ -45,7 +60,6 @@ const ResourcePlannerMatch = () => {
         }
     }, [userEmail]);
 
-    // New function to fetch success notifications
     const fetchSuccess = useCallback(async () => {
         setLoading(true);
         try {
@@ -62,7 +76,8 @@ const ResourcePlannerMatch = () => {
     useEffect(() => {
         fetchRequests();
         fetchSuccess();
-    }, [fetchRequests, fetchSuccess]);
+        fetchEmployees(); // Initialize employee list
+    }, [fetchRequests, fetchSuccess, fetchEmployees]);
 
     const handleLoadMatches = async (req) => {
         setLoading(true);
@@ -105,7 +120,8 @@ const ResourcePlannerMatch = () => {
                 });
                 setView('list');
                 fetchRequests();
-                fetchSuccess(); // Refresh success list
+                fetchSuccess(); 
+                fetchEmployees();
             } else {
                 setMessage({ text: "Action failed. Please check API status.", type: 'error' });
             }
@@ -117,7 +133,65 @@ const ResourcePlannerMatch = () => {
         }
     };
 
-    // JSX for the new Success Assignments list
+    // --- NEW: RENDER EMPLOYEE LIST ---
+    const renderEmployeeList = () => (
+        <div style={{ overflowX: 'auto', marginTop: '10px' }}>
+            <table style={styles.table}>
+                <thead>
+                    <tr style={styles.tableHeader}>
+                        <th style={styles.th}>ID & Name</th>
+                        <th style={styles.th}>Languages</th>
+                        <th style={styles.th}>Skills & Experience</th>
+                        <th style={styles.th}>Rating</th>
+                        <th style={styles.th}>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {employees.map(emp => (
+                        <tr key={emp.employeeId} style={styles.tableRow}>
+                            <td style={styles.td}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1' }}>{emp.employeeId}</div>
+                                <div style={{ fontWeight: 'bold', color: '#111827' }}>{emp.fullName}</div>
+                                <div style={{ fontSize: '12px', color: '#6b7280' }}>{emp.email}</div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.languages?.map(lang => (
+                                        <span key={lang} style={styles.skillTagSmall}> {lang}</span>
+                                    ))}
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                                    {emp.skills?.map(skill => (
+                                        <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                                    📅 {emp.experienceYears} Years Experience
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>⭐ {emp.performanceRating}</span>
+                                </div>
+                            </td>
+                            <td style={styles.td}>
+                                <span style={{ 
+                                    ...styles.statusPill, 
+                                    backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
+                                    color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
+                                }}>
+                                    {emp.availabilityStatus}
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+
     const renderSuccessAssignments = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {successAssignments.length === 0 ? (
@@ -132,17 +206,12 @@ const ResourcePlannerMatch = () => {
                                     ⭐ PERFORMANCE: {item.performanceRating}
                                 </span>
                             </div>
-
-                            <div style={styles.congratsBanner}>
-                                ✨ {item.congratsMessage}
-                            </div>
-
+                            <div style={styles.congratsBanner}>✨ {item.congratsMessage}</div>
                             <div style={styles.projectSubline}>
                                 <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
                                 <span style={{ color: '#d1d5db' }}>|</span>
                                 <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
                             </div>
-
                             <div style={styles.metaGridSuccess}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
@@ -154,9 +223,7 @@ const ResourcePlannerMatch = () => {
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
                                     {item.employeeSkills?.map(skill => (
-                                        <span key={skill} style={styles.skillTagSmallSuccess}>
-                                            {skill}
-                                        </span>
+                                        <span key={skill} style={styles.skillTagSmallSuccess}>{skill}</span>
                                     ))}
                                 </div>
                             </div>
@@ -188,13 +255,12 @@ const ResourcePlannerMatch = () => {
                     </div>
                     <div style={styles.syncGroup}>
                         <span style={styles.syncText}>Last synced: {lastSynced}</span>
-                        <button onClick={(e) => { e.stopPropagation(); fetchRequests(); fetchSuccess(); }} style={styles.refreshBtn} disabled={loading}>
+                        <button onClick={(e) => { e.stopPropagation(); fetchRequests(); fetchSuccess(); fetchEmployees(); }} style={styles.refreshBtn} disabled={loading}>
                             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                         </button>
                     </div>
                 </div>
 
-                {/* Tab Bar Navigation */}
                 <div style={styles.tabBar}>
                     <button 
                         style={{...styles.tabItem, ...(view === 'list' ? styles.activeTab : {})}} 
@@ -207,6 +273,12 @@ const ResourcePlannerMatch = () => {
                         onClick={() => setView('success')}
                     >
                         Successful Assignments ({successAssignments.length})
+                    </button>
+                    <button 
+                        style={{...styles.tabItem, ...(view === 'employees' ? styles.activeTab : {})}} 
+                        onClick={() => setView('employees')}
+                    >
+                        Employee List ({employees.length})
                     </button>
                 </div>
 
@@ -238,7 +310,6 @@ const ResourcePlannerMatch = () => {
                                                             setExpandedInfo(expandedInfo === item.requestId ? null : item.requestId);
                                                         }}
                                                     >i</button>
-                                                    
                                                     {expandedInfo === item.requestId && (
                                                         <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
                                                             <div style={styles.floatingGrid}>
@@ -263,7 +334,6 @@ const ResourcePlannerMatch = () => {
                                                 </div>
                                             </div>
                                         </div>
-
                                         <div style={styles.metaGrid}>
                                             <div style={styles.metaCol}>
                                                 <div style={styles.metaItem}><strong>Request ID:</strong> {item.requestId}</div>
@@ -279,7 +349,6 @@ const ResourcePlannerMatch = () => {
                                                 <div style={styles.metaItem}><strong>End:</strong> {item.projectEndDate}</div>
                                             </div>
                                         </div>
-
                                         <div style={styles.descriptionRow}>
                                             <div style={styles.descCol}>
                                                 <span style={styles.smallLabel}>Request Description:</span>
@@ -290,14 +359,12 @@ const ResourcePlannerMatch = () => {
                                                 <p style={styles.descText}>{item.project?.description}</p>
                                             </div>
                                         </div>
-
                                         <div style={styles.skillRow}>
                                             {item.requiredSkills?.map(skill => (
                                                 <span key={skill} style={styles.skillBadge}>{skill}</span>
                                             ))}
                                         </div>
                                     </div>
-
                                     <div style={styles.actionCol}>
                                         <button onClick={() => handleLoadMatches(item)} style={styles.btnMatchLarge}>
                                             Find Best Matches <ChevronRight size={20} />
@@ -310,12 +377,12 @@ const ResourcePlannerMatch = () => {
                 )}
 
                 {view === 'success' && renderSuccessAssignments()}
+                {view === 'employees' && renderEmployeeList()}
 
                 {view === 'matching' && (
                     <div>
                         <button onClick={() => setView('list')} style={styles.backBtn}><ArrowLeft size={18}/> Back</button>
                         <h1 style={styles.mainTitle}>Best Matches for Request #{selectedRequest?.requestId}</h1>
-                        
                         {candidates.length === 0 ? (
                             <div style={styles.noMatchesFoundCard}>
                                 <AlertCircle size={48} color="#f59e0b" />
@@ -344,7 +411,6 @@ const ResourcePlannerMatch = () => {
                                                 <span style={styles.scoreLab}>Match</span>
                                             </div>
                                         </div>
-
                                         <div style={styles.dataGrid}>
                                             <div style={styles.dataColProfile}>
                                                 <h4 style={styles.sectionLabel}><Zap size={14}/> Technical Skills</h4>
@@ -372,7 +438,6 @@ const ResourcePlannerMatch = () => {
                                             </div>
                                         </div>
                                     </div>
-
                                     <div style={styles.decisionStrip}>
                                         <button onClick={() => handleDecision(emp.employeeDbId, true)} style={styles.btnReserve}>Reserve Internal</button>
                                         <button onClick={() => handleDecision(null, false)} style={styles.btnExternalSmall}>Trigger External</button>
@@ -388,7 +453,7 @@ const ResourcePlannerMatch = () => {
 };
 
 const styles = {
-    pageWrapper: { background: '#ffffff', minHeight: '100vh', fontFamily: 'Inter, sans-serif' },
+    pageWrapper: { background: '#f8fafc', minHeight: '100vh', fontFamily: 'Inter, sans-serif', position: 'relative' },
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
     container: { maxWidth: '1200px', margin: '0 auto', padding: '60px 40px' },
     titleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' },
@@ -397,12 +462,9 @@ const styles = {
     syncGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
     syncText: { fontSize: '13px', color: '#94a3b8' },
     refreshBtn: { background: 'white', border: '1px solid #e2e8f0', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    
-    // Tab Bar Styles
     tabBar: { display: 'flex', gap: '20px', marginBottom: '40px', borderBottom: '1px solid #e5e7eb' },
     tabItem: { padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: '600', transition: '0.2s', fontSize: '15px' },
     activeTab: { color: '#4f46e5', borderBottom: '2px solid #4f46e5' },
-
     cardlessRow: { display: 'flex', justifyContent: 'space-between', gap: '50px', marginBottom: '60px', paddingBottom: '40px', borderBottom: '1px solid #f1f5f9' }, 
     cardMain: { flex: 1 },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '25px' },
@@ -450,24 +512,31 @@ const styles = {
     langList: { display: 'flex', flexDirection: 'column', gap: '4px' },
     langText: { fontSize: '13px', color: '#475569' },
     detailText: { fontSize: '13px', color: '#475569', margin: '4px 0' },
-    decisionStrip: { display: 'flex', flexDirection: 'row',gap: '12px', alignItems: 'center',paddingLeft: '20px' },
-    btnReserve: {background: '#10b981',color: 'white',border: 'none',padding: '10px 24px',borderRadius: '8px',fontWeight: '600',cursor: 'pointer',fontSize: '14px',transition: 'all 0.2s ease',},
-    btnExternalSmall: {background: 'transparent',color: '#ef4444',border: '1px solid #fecaca',padding: '10px 24px',borderRadius: '8px',fontSize: '14px',fontWeight: '600',cursor: 'pointer',transition: 'all 0.2s ease',},
-    noMatchesFoundCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', background: '#fffbeb', border: '2px dashed #f59e0b', borderRadius: '16px', textAlign: 'center',marginTop: '20px'},
-    btnExternalTriggerLarge: { background: '#ef4444', color: 'white', border: 'none', padding: '16px 32px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer',marginTop: '20px',boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)'},
-
-    /* --- SUCCESS VIEW SPECIFIC STYLES --- */
+    decisionStrip: { display: 'flex', flexDirection: 'row', gap: '12px', alignItems: 'center', paddingLeft: '20px' },
+    btnReserve: { background: '#10b981', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' },
+    btnExternalSmall: { background: 'transparent', color: '#ef4444', border: '1px solid #fecaca', padding: '10px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease' },
+    noMatchesFoundCard: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', background: '#fffbeb', border: '2px dashed #f59e0b', borderRadius: '16px', textAlign: 'center', marginTop: '20px' },
+    btnExternalTriggerLarge: { background: '#ef4444', color: 'white', border: 'none', padding: '16px 32px', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', marginTop: '20px', boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.4)' },
     successRow: { display: 'flex', flexDirection: 'row', alignItems: 'stretch', padding: '24px', borderLeft: '5px solid #10b981', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px' },
     headerRow: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' },
     projectTitleText: { margin: 0, fontSize: '24px', color: '#1e293b', fontWeight: '700' },
     performanceBadge: { background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' },
-    congratsBanner: { background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '13px', marginBottom: '16px', lineHeight: '1.4' },
-    projectSubline: { display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' },
-    metaGridSuccess: { display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1.5fr', gap: '20px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #f1f5f9' },
-    skillTagSmallSuccess: { background: '#e0e7ff', color: '#4338ca', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' },
-    statusBox: { minWidth: '160px', marginLeft: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', height: 'fit-content', alignSelf: 'center' },
-    statusLabel: { fontSize: '11px', fontWeight: '800', color: '#94a3b8', marginBottom: '4px', letterSpacing: '0.05em' },
-    statusValue: { fontSize: '18px', fontWeight: 'bold', color: '#059669' }
-};
 
+    // --- NEW EMPLOYEE LIST TABLE STYLES ---
+    table: { width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px', marginTop: '-10px' },
+    tableHeader: { backgroundColor: 'transparent' },
+    th: { textAlign: 'left', padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' },
+    tableRow: { backgroundColor: '#ffffff', transition: 'all 0.2s', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+    td: { padding: '16px', verticalAlign: 'top', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' },
+    
+    // --- EMPLOYEE DATA STYLES ---
+    empId: { fontSize: '11px', fontWeight: '700', color: '#6366f1', display: 'block' },
+    empNameCell: { fontSize: '15px', fontWeight: '700', color: '#1e293b', display: 'block', marginTop: '2px' },
+    empEmailCell: { fontSize: '12px', color: '#94a3b8', display: 'block' },
+    skillCloud: { display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '400px' },
+    smallSkillTag: { background: '#f1f5f9', color: '#475569', fontSize: '11px', fontWeight: '600', padding: '3px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' },
+    statusPill: { padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#ecfdf5', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' },
+    ratingStar: { color: '#f59e0b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' },
+    expText: { fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }
+};
 export default ResourcePlannerMatch;
