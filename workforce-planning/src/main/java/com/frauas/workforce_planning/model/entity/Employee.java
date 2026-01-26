@@ -53,7 +53,7 @@ public class Employee {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
-    @JsonIgnoreProperties({"subordinates", "department", "createdStaffingRequests", "assignments", "supervisor"})
+    @JsonIgnoreProperties({"subordinates", "department", "createdStaffingRequests", "supervisor"})
     private Employee supervisor;
 
     @Column(name = "primary_location", length = 150)
@@ -116,13 +116,6 @@ public class Employee {
     @JsonIgnoreProperties("employee")
     private Set<EmployeeLanguage> languages = new HashSet<>();
 
-    @OneToMany(mappedBy = "employee")
-    @JsonIgnore // Stops Project -> Assignment -> Employee loop
-    private Set<Assignment> assignments = new HashSet<>();
-
-    @OneToMany(mappedBy = "createdBy")
-    @JsonIgnore
-    private Set<Assignment> createdAssignments = new HashSet<>();
 
     @OneToMany(mappedBy = "createdBy")
     @JsonIgnore // Stops Request -> Employee -> CreatedRequests loop

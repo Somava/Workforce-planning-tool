@@ -30,7 +30,7 @@ public class User {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", unique = true)
     // Keep these ignores to prevent the User -> Employee -> Department -> Project loop
-    @JsonIgnoreProperties({"department", "supervisor", "createdStaffingRequests", "assignments", "user"})
+    @JsonIgnoreProperties({"department", "supervisor", "createdStaffingRequests", "user"})
     private Employee employee;
 
     @Column(name = "external_employee_id")

@@ -19,9 +19,7 @@ public enum RequestStatus {
     NO_EXT_EMPLOYEE_FOUND,
     EXT_EMPLOYEE_REJECTED_BY_DH,
     EXTERNAL_RESPONSE_RECEIVED,
-    EXT_EMPLOYEE_APPROVED_BY_DH,
-
-    
+    EXT_EMPLOYEE_APPROVED_BY_DH,    
     ASSIGNED,
     CANCELLED, //request cancelled
     OPEN,    // Added to match common workflow

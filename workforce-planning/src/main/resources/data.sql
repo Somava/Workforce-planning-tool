@@ -615,10 +615,7 @@ VALUES (50, 'john.doe@freelance.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymG
 -- VALUES (14, 1, 'APPLIED', 'I have extensive Kubernetes experience.') 
 -- ON CONFLICT DO NOTHING;
 
-INSERT INTO assignments (employee_id, project_id, status, period_start, period_end) 
-VALUES (3, 1, 'ACTIVE', '2026-01-01', '2026-06-01'),
-       (7, 2, 'ACTIVE', '2026-03-01', '2026-12-31')
-ON CONFLICT DO NOTHING;
+
 
 --------------------------------------------------
 -- 8) SEQUENCE SYNCHRONIZATION

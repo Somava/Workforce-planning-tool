@@ -46,7 +46,7 @@ public class StaffingRequest {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
     // BREAKS THE LOOP: Ignores the list of requests inside the Project object
-    @JsonIgnoreProperties({"staffingRequests", "assignments"})
+    @JsonIgnoreProperties({"staffingRequests"})
     private Project project;
 
     @Column(name = "project_name")
@@ -98,7 +98,7 @@ public class StaffingRequest {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by_employee_id")
     // BREAKS THE LOOP: Ignores the lists inside the Employee object
-    @JsonIgnoreProperties({"createdStaffingRequests", "assignments", "department", "supervisor"})
+    @JsonIgnoreProperties({"createdStaffingRequests", "department", "supervisor"})
     private Employee createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)

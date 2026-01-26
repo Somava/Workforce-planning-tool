@@ -14,6 +14,12 @@ DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
 DROP TABLE IF EXISTS languages CASCADE;
 DROP TABLE IF EXISTS project_departments CASCADE;
+DROP TABLE IF EXISTS employee_skills CASCADE;
+DROP TABLE IF EXISTS skills CASCADE;
+DROP TABLE IF EXISTS staffing_request_skills CASCADE;
+DROP TABLE IF EXISTS workforce_plans CASCADE;
+DROP TABLE IF EXISTS workforce_plan_status CASCADE;
+
 
 --------------------------------------------------
 -- 1) LOOKUP TABLES
@@ -210,28 +216,9 @@ CREATE TABLE staffing_requests (
 ALTER TABLE external_employees ADD CONSTRAINT fk_ext_emp_request FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(request_id) ON DELETE SET NULL;
 
 --------------------------------------------------
--- 6) ASSIGNMENTS & APPLICATIONS
+-- 6) APPLICATIONS
 --------------------------------------------------
-CREATE TABLE assignments (
-    id BIGSERIAL PRIMARY KEY,
-    employee_id BIGINT NOT NULL,
-    staffing_request_id BIGINT NULL,
-    project_id BIGINT NULL,
-    status VARCHAR(50) NOT NULL,
-    period_start DATE,
-    period_end DATE,
-    performance_rating SMALLINT,
-    feedback TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by_employee_id BIGINT NULL,
-    CONSTRAINT fk_assignment_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    CONSTRAINT fk_assignment_request FOREIGN KEY (staffing_request_id) REFERENCES staffing_requests(request_id) ON DELETE SET NULL,
-    CONSTRAINT fk_assignment_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-    CONSTRAINT fk_assignment_created_by FOREIGN KEY (created_by_employee_id) REFERENCES employees(id) ON DELETE SET NULL,
-    CONSTRAINT chk_rating_range CHECK (performance_rating IS NULL OR (performance_rating BETWEEN 1 AND 5))
-);
 
-CREATE UNIQUE INDEX uq_assignment_emp_request_notnull ON assignments(employee_id, staffing_request_id) WHERE staffing_request_id IS NOT NULL;
 
 CREATE TABLE employee_applications (
     id BIGSERIAL PRIMARY KEY,
