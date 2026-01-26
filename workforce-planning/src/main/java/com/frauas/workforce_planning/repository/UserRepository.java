@@ -40,4 +40,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
         """, nativeQuery = true)
     Set<Long> findLeadershipEmployeeIds();
 
+    // Find the Department Head (e.g., Bob)
+    @Query("""
+        SELECT u FROM User u 
+        JOIN u.roles r 
+        WHERE r.name = 'ROLE_DEPT_HEAD' 
+        AND u.employee.department.id = :deptId
+    """)
+    Optional<User> findDepartmentHeadByDeptId(@Param("deptId") Long deptId);
+
+    // Find the Resource Planner
+    @Query("""
+        SELECT u FROM User u 
+        JOIN u.roles r 
+        WHERE r.name = 'ROLE_RESOURCE_PLNR' 
+        AND u.employee.department.id = :deptId
+    """)
+    Optional<User> findResourcePlannerByDeptId(@Param("deptId") Long deptId);
+
 }
