@@ -83,27 +83,31 @@ public interface StaffingRequestRepository extends JpaRepository<StaffingRequest
         @Param("userId") Long userId
     );
 
-    /**
-     * Dashboard Query: Fetches requests where the status is 'INT_EMPLOYEE_ASSIGNED'
-     * and the logged-in user is either the Manager, Dept Head, Planner, or the Assigned Employee.
+   /**
+     * Dashboard Query: Fetches successful assignments for both Internal and External paths.
+     * Triggers when:
+     * 1. Internal Employee has confirmed (INT_EMPLOYEE_ASSIGNED)
+     * 2. Dept Head has approved an External employee (EXT_EMPLOYEE_APPROVED_BY_DH)
      */
     @Query("""
     SELECT DISTINCT s
     FROM StaffingRequest s
     LEFT JOIN s.assignedUser au
     LEFT JOIN s.createdBy cb
-    LEFT JOIN cb.user cbu,
-        ProjectDepartment pd
+    LEFT JOIN cb.user cbu
+    JOIN ProjectDepartment pd ON pd.project.id = s.project.id AND pd.department.id = s.department.id
     LEFT JOIN pd.departmentHeadUser dh
     LEFT JOIN pd.resourcePlannerUser rp
-    WHERE s.status = com.frauas.workforce_planning.model.enums.RequestStatus.INT_EMPLOYEE_ASSIGNED
-    AND pd.project.id = s.project.id
-    AND pd.department.id = s.department.id
+    WHERE (
+        s.status = com.frauas.workforce_planning.model.enums.RequestStatus.INT_EMPLOYEE_ASSIGNED
+        OR 
+        s.status = com.frauas.workforce_planning.model.enums.RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH
+    )
     AND (
         cbu.email = :email
         OR dh.email = :email
         OR rp.email = :email
-        OR au.email = :email
+        OR (au IS NOT NULL AND au.email = :email)
     )
     """)
     List<StaffingRequest> findSuccessDashboardData(@Param("email") String email);
