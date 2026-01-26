@@ -15,23 +15,38 @@ import org.springframework.web.server.ResponseStatusException;
 import com.frauas.workforce_planning.dto.CandidateActionRequest;
 import com.frauas.workforce_planning.dto.MatchResponseDTO;
 import com.frauas.workforce_planning.dto.MatchedEmployeeDTO;
+import com.frauas.workforce_planning.model.entity.Department;
+import com.frauas.workforce_planning.model.entity.StaffingRequest;
+import com.frauas.workforce_planning.model.entity.User;
+import com.frauas.workforce_planning.model.enums.RequestStatus;
+import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.repository.UserRepository;
 import com.frauas.workforce_planning.services.MatchingService;
 import com.frauas.workforce_planning.services.StaffingDecisionService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestController
-@RequestMapping("/api")
-public class StaffingMatchingController {
+@RequestMapping("/api/resource-planner")
+public class ResourcePlannerController {
 
   private final MatchingService matchingService;
   private final StaffingDecisionService decisionService;
+  private final UserRepository userRepository;
+  private final StaffingRequestRepository staffingRequestRepository;
 
-  public StaffingMatchingController(MatchingService matchingService,
-                                    StaffingDecisionService decisionService) {
+  public ResourcePlannerController(MatchingService matchingService,
+                                    StaffingDecisionService decisionService,
+                                    UserRepository userRepository,
+                                    StaffingRequestRepository staffingRequestRepository) {
     this.matchingService = matchingService;
     this.decisionService = decisionService;
+    this.userRepository = userRepository; 
+    this.staffingRequestRepository = staffingRequestRepository;
   }
 
-  @GetMapping("/resource-planner/staffing-requests/matches")
+  @GetMapping("/staffing-requests/employee-matches")
   public ResponseEntity<MatchResponseDTO> getMatches(@RequestParam Long requestId,
                                                     @RequestParam(defaultValue = "10") int topN) {
 
@@ -47,7 +62,7 @@ public class StaffingMatchingController {
     return ResponseEntity.ok(new MatchResponseDTO(null, matches));
   }
 
-  @PostMapping("/resource-planner/staffing-requests/reserve")
+  @PostMapping("/staffing-requests/employee-reserve-decision")
   public ResponseEntity<String> reserve(@RequestParam Long requestId,
                                         @RequestParam boolean internalFound,
                                         @RequestBody(required = false) CandidateActionRequest body) {
@@ -61,6 +76,33 @@ public class StaffingMatchingController {
     decisionService.reserve(requestId, internalFound, employeeDbId);
     return ResponseEntity.ok("Request " + requestId + " has been processed");
   }
+
+  @GetMapping("/approved-requests")
+    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam String email) {
+        log.info("Fetching approved requests for resource planner email: {}", email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found for email: " + email
+                ));
+        if(!user.getEmployee().getDefaultRole().getName().equals("ROLE_RESOURCE_PLNR")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Resource Planner");
+        }
+        Department department = user.getEmployee().getDepartment();                
+        
+        List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(
+            RequestStatus.APPROVED,
+            department.getId()
+        );
+
+        if (pending.isEmpty()) {
+            return ResponseEntity.ok()
+                .header("X-Info", "No approved staffing requests found")
+                .body(List.of());
+        }
+
+        return ResponseEntity.ok(pending);
+    }
 
   
 }
