@@ -27,6 +27,8 @@ import com.frauas.workforce_planning.repository.EmployeeRepository;
 import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.model.entity.ProjectDepartment;
+import com.frauas.workforce_planning.model.entity.User;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +58,12 @@ public class StaffingRequestService {
     @Autowired 
     private ExternalEmployeeRepository externalEmployeeRepository;
 
+    @Autowired
+    private com.frauas.workforce_planning.repository.ProjectDepartmentRepository projectDepartmentRepository;
+
+    @Autowired
+    private com.frauas.workforce_planning.repository.UserRepository userRepository;
+
     /**
      * Entry Point: No @Transactional here. 
      * This ensures the DB commit is finished before Camunda starts.
@@ -75,6 +83,30 @@ public class StaffingRequestService {
 
         Employee manager = employeeRepository.findById(currentManagerId)
                 .orElseThrow(() -> new RuntimeException("Manager not found"));
+
+    // --- NEW: UNIVERSAL PROJECT MAPPING LOGIC ---
+    // Check if this department is already linked to this project
+    boolean alreadyMapped = projectDepartmentRepository
+            .existsByProjectIdAndDepartmentId(project.getId(), dept.getId());
+
+    if (!alreadyMapped) {
+        log.info("Mapping project '{}' to department '{}' for the first time.", project.getName(), dept.getName());
+        
+        // Find leadership for this specific department
+        var deptHead = userRepository.findDepartmentHeadByDeptId(dept.getId())
+                .orElseThrow(() -> new RuntimeException("No Dept Head found for: " + dept.getName()));
+        
+        var resourcePlanner = userRepository.findResourcePlannerByDeptId(dept.getId())
+                .orElseThrow(() -> new RuntimeException("No Resource Planner found for: " + dept.getName()));
+
+        ProjectDepartment mapping = new ProjectDepartment();
+        mapping.setProject(project);
+        mapping.setDepartment(dept);
+        mapping.setDepartmentHeadUser(deptHead);
+        mapping.setResourcePlannerUser(resourcePlanner);
+
+        projectDepartmentRepository.save(mapping);
+    }
 
         // 3. Set properties and FORCE status to PENDING_APPROVAL
         entity.setProject(project);
