@@ -4,7 +4,6 @@ import com.frauas.workforce_planning.dto.ProjectCreateDTO;
 import com.frauas.workforce_planning.model.entity.Project;
 import com.frauas.workforce_planning.services.ProjectService;
 import com.frauas.workforce_planning.repository.ProjectRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +15,14 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:3000")
 public class ProjectController {
 
-    @Autowired
-    private ProjectRepository projectRepository;
+    private final ProjectService projectService;
+    private final ProjectRepository projectRepository;
 
-    @Autowired
-    private ProjectService projectService; // Inject the new service logic
+    public ProjectController(ProjectService projectService,
+                                     ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
+        this.projectService = projectService;
+    }
 
     @GetMapping
     public List<Project> getAllProjects() {

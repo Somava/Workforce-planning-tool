@@ -2,7 +2,6 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +16,7 @@ import com.frauas.workforce_planning.dto.EmployeeProfileDTO;
 import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
 import com.frauas.workforce_planning.model.entity.User;
+import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
 import com.frauas.workforce_planning.services.EmployeeApplicationService;
@@ -27,23 +27,26 @@ import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Slf4j
-@RequestMapping("/api/employee-portal")
-public class EmployeePortalController {
+@RequestMapping("/api/employee")
+public class EmployeeController {
 
-    @Autowired
-    private StaffingRequestService staffingRequestService;
+    private final UserRepository userRepository;
+    private final StaffingRequestRepository staffingRequestRepository;
+    private final EmployeeApplicationService applicationService;
+    private final StaffingRequestService staffingRequestService;
+    private final EmployeeService employeeService;
 
-    @Autowired
-    private EmployeeApplicationService applicationService;
-
-    @Autowired
-    private EmployeeService employeeService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private StaffingRequestRepository staffingRequestRepository;
+    public EmployeeController(UserRepository userRepository,
+                             StaffingRequestRepository staffingRequestRepository,
+                             EmployeeApplicationService applicationService,
+                             StaffingRequestService staffingRequestService,
+                             EmployeeService employeeService) {
+        this.userRepository = userRepository;
+        this.staffingRequestRepository = staffingRequestRepository;
+        this.applicationService = applicationService;
+        this.staffingRequestService = staffingRequestService;
+        this.employeeService = employeeService;
+    }
     
     // 1. View Open Positions (Filtered for the specific employee)
     @GetMapping("/open-positions")
@@ -97,7 +100,7 @@ public class EmployeePortalController {
         }
     }
 
-    @PostMapping("/employee/assignment-decision")
+    @PostMapping("/assignment-decision")
     public ResponseEntity<String> handleEmployeeAssignmentDecision(
             @RequestParam Long requestId,
             @RequestParam String email,
@@ -146,4 +149,43 @@ public class EmployeePortalController {
         String action = approved ? "confirmed" : "rejected";
         return ResponseEntity.ok("Assignment for request " + requestId + " has been " + action + " by " + email);
     }
+
+    @GetMapping("/assigned-requests")
+    public ResponseEntity<List<StaffingRequest>> getAssignedRequestsForEmployee(
+            @RequestParam String email) {
+
+        log.info("Fetching assigned requests for employee email: {}", email);
+
+        // 1. Resolve user by email
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, "User not found for email: " + email
+            ));
+
+        // 2. Ensure this user is linked to an employee
+        if (user.getEmployee() == null) {
+            throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "User is not linked to an internal employee"
+            );
+        }
+
+        Long employeeUserId = user.getId();
+
+        // 3. Fetch assigned requests
+        List<StaffingRequest> assignedRequests =
+            staffingRequestRepository.findAssignedToEmployeeByStatus(
+                RequestStatus.INT_EMPLOYEE_APPROVED_BY_DH,
+                employeeUserId
+            );
+
+        if (assignedRequests.isEmpty()) {
+            return ResponseEntity.ok()
+                .header("X-Info", "No assigned staffing requests found")
+                .body(List.of());
+        }
+
+        return ResponseEntity.ok(assignedRequests);
+    }
 }
+

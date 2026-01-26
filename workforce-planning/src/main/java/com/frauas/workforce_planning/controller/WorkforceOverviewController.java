@@ -2,7 +2,6 @@ package com.frauas.workforce_planning.controller;
 
 import com.frauas.workforce_planning.dto.LeadershipEmployeeDTO;
 import com.frauas.workforce_planning.services.EmployeeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,18 +20,21 @@ import java.util.List;
 @RequestMapping("/api/workforce-overview")
 public class WorkforceOverviewController {
 
-    @Autowired
-    private EmployeeService employeeService;
+    private final StaffingRequestService staffingRequestService;
+    private final EmployeeService employeeService;
 
-    @Autowired
-    private StaffingRequestService staffingRequestService;
+    public WorkforceOverviewController(EmployeeService employeeService,
+                                       StaffingRequestService staffingRequestService) {
+        this.employeeService = employeeService; 
+        this.staffingRequestService = staffingRequestService;
+  }
 
     @GetMapping("/all-employees")
-public ResponseEntity<List<LeadershipEmployeeDTO>> getGlobalEmployeePool(@RequestParam String email) {
-    // Pass the email to the service so it can check if the user is Alice, Bob, or Charlie
-    List<LeadershipEmployeeDTO> employeePool = employeeService.getEmployeePoolForLeadership(email);
-    return ResponseEntity.ok(employeePool);
-}
+    public ResponseEntity<List<LeadershipEmployeeDTO>> getGlobalEmployeePool(@RequestParam String email) {
+        // Pass the email to the service so it can check if the user is Alice, Bob, or Charlie
+        List<LeadershipEmployeeDTO> employeePool = employeeService.getEmployeePoolForLeadership(email);
+        return ResponseEntity.ok(employeePool);
+    }
 
     /**
      * Endpoint representing the "Notify All Parties" outcome in the BPMN diagram.
