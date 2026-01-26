@@ -7,6 +7,5 @@ public record ProjectCreateDTO(
     String description,
     LocalDate startDate,
     LocalDate endDate,
-    String location,
-    Long departmentId
+    String location
 ) {}

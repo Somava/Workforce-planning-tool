@@ -12,6 +12,8 @@ import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 @Repository
 public interface ProjectDepartmentRepository extends JpaRepository<ProjectDepartment, Long> {
 
+    boolean existsByProjectIdAndDepartmentId(Long projectId, Long departmentId);
+
     //  Find all Department IDs where the user is either the Head or the Planner
     @Query("SELECT DISTINCT pd.department.id FROM ProjectDepartment pd " +
            "WHERE pd.departmentHeadUser.id = :userId OR pd.resourcePlannerUser.id = :userId")

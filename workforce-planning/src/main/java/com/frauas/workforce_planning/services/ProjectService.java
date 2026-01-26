@@ -37,7 +37,7 @@ public Project createProject(ProjectCreateDTO dto, String managerEmail) {
         throw new RuntimeException("Employee has no linked User account.");
     }
 
-    // 2. Create and Save the Project
+    // 2. Create and Save the Project - No Department logic here anymore!
     Project project = new Project();
     project.setName(dto.name());
     project.setDescription(dto.description());
@@ -47,33 +47,7 @@ public Project createProject(ProjectCreateDTO dto, String managerEmail) {
     project.setStatus("ACTIVE");
     project.setManagerUser(manager.getUser());
 
-    Project savedProject = projectRepository.save(project);
-
-    // 3. Mapping Logic for Department Head AND Resource Planner
-    if (dto.departmentId() != null) {
-        Department dept = departmentRepository.findById(dto.departmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-
-        // DYNAMIC LOOKUP: Find Head and Planner using your new Repository methods
-        User deptHead = userRepository.findDepartmentHeadByDeptId(dto.departmentId())
-                .orElseThrow(() -> new RuntimeException("Department Head not found for this department"));
-
-        User resourcePlanner = userRepository.findResourcePlannerByDeptId(dto.departmentId())
-                .orElseThrow(() -> new RuntimeException("Resource Planner not found for this department"));
-
-        // Create the mapping record
-        ProjectDepartment mapping = new ProjectDepartment();
-        mapping.setProject(savedProject);
-        mapping.setDepartment(dept);
-        
-        // Now BOTH can see the project/requests
-        mapping.setDepartmentHeadUser(deptHead);
-        mapping.setResourcePlannerUser(resourcePlanner); 
-        
-        projectDepartmentRepository.save(mapping);
-    }
-    
-    return savedProject;
+    return projectRepository.save(project);
 }
 
     public List<Project> getAllActiveProjects() {
