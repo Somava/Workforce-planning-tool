@@ -440,37 +440,49 @@ public class StaffingRequestService {
      */
     @Transactional(readOnly = true)
     public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
+        // This repository call now returns both INT_EMPLOYEE_ASSIGNED and EXT_EMPLOYEE_APPROVED_BY_DH
         List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
 
         return successRequests.stream().map(req -> {
             var au = req.getAssignedUser();
-            
-            // 1. Define 'emp' properly inside the map block
-            com.frauas.workforce_planning.model.entity.Employee emp = (au != null) ? au.getEmployee() : null;
+            com.frauas.workforce_planning.model.entity.Employee internalEmp = (au != null) ? au.getEmployee() : null;
 
-            String empName = "External/Freelancer";
-            String empIdStr = "N/A";
+            String empName = "External Employee";
+            String empIdStr = "EXTERNAL";
             boolean isSelfAssignment = false;
+            String displayMessage;
 
-            if (au != null) {
-                if (au.getEmail().equalsIgnoreCase(email)) {
-                    isSelfAssignment = true;
+            // --- EXTERNAL PATH LOGIC ---
+            if (req.getStatus() == RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH) {
+                // Try to find the external name from the repository managed by the other group
+                var externalData = externalEmployeeRepository.findByStaffingRequestId(req.getRequestId());
+                if (externalData.isPresent()) {
+                    empName = externalData.get().getFirstName() + " " + externalData.get().getLastName();
+                    empIdStr = "EXT-" + externalData.get().getId();
                 }
-                if (emp != null) {
-                    empName = emp.getFirstName() + " " + emp.getLastName();
-                    empIdStr = emp.getEmployeeId();
+                displayMessage = String.format("Success! External Employee %s has been officially approved and assigned to project '%s'.", 
+                    empName, req.getProjectName());
+            } 
+            // --- INTERNAL PATH LOGIC ---
+            else {
+                if (au != null) {
+                    if (au.getEmail().equalsIgnoreCase(email)) {
+                        isSelfAssignment = true;
+                    }
+                    if (internalEmp != null) {
+                        empName = internalEmp.getFirstName() + " " + internalEmp.getLastName();
+                        empIdStr = internalEmp.getEmployeeId();
+                    }
                 }
+                displayMessage = isSelfAssignment 
+                    ? String.format("Congratulations! You have been officially assigned to the project '%s' as '%s'.", req.getProjectName(), req.getTitle())
+                    : String.format("Success! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", empName, empIdStr, req.getTitle(), req.getProjectName());
             }
 
             String managerName = (req.getCreatedBy() != null)
                     ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()
                     : "N/A";
 
-            String displayMessage = isSelfAssignment 
-                ? String.format("Congratulations! You have been officially assigned to the project '%s' as '%s'.", req.getProjectName(), req.getTitle())
-                : String.format("Success! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", empName, empIdStr, req.getTitle(), req.getProjectName());
-
-            // 2. Return the DTO with careful attention to types
             return new SuccessDashboardDTO(
                 req.getRequestId(),
                 req.getProjectName(),
@@ -483,12 +495,12 @@ public class StaffingRequestService {
                 req.getProjectLocation(),
                 managerName,
                 req.getWagePerHour(),
-                // --- Employee Specifics ---
-                (emp != null && emp.getPrimaryLocation() != null) ? emp.getPrimaryLocation() : "N/A",
-                (emp != null && emp.getContractType() != null) ? emp.getContractType().name() : "N/A",
-                (emp != null && emp.getPerformanceRating() != null) ? emp.getPerformanceRating() : 0.0,
-                // FIX: If emp or skills is null, return an empty List
-                (emp != null && emp.getSkills() != null) ? emp.getSkills() : java.util.Collections.emptyList(),
+                // Use employee location if internal, otherwise project location for external
+                (internalEmp != null && internalEmp.getPrimaryLocation() != null) ? internalEmp.getPrimaryLocation() : "External/Remote",
+                (internalEmp != null && internalEmp.getContractType() != null) ? internalEmp.getContractType().name() : "EXTERNAL",
+                (internalEmp != null && internalEmp.getPerformanceRating() != null) ? internalEmp.getPerformanceRating() : 5.0,
+                // If internalEmp is null (external case), show the skills required by the request itself
+                (internalEmp != null && internalEmp.getSkills() != null) ? internalEmp.getSkills() : req.getRequiredSkills(),
                 displayMessage 
             );
         }).collect(Collectors.toList());
