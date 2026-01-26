@@ -56,15 +56,17 @@ public class ResourcePlannerController {
         .getContext()
         .getAuthentication()
         .getPrincipal();   
-    // String role = p.selectedRole();
-    // if(!"ROLE_RESOURCE_PLNR".equals(role)) {
+    String role = p.selectedRole();
+    if(!"ROLE_RESOURCE_PLNR".equals(role)) {
         
-    //     throw new ResponseStatusException(
-    //         HttpStatus.FORBIDDEN,
-    //         "You are not authorized to perform this action"
-    //     );
-    // }
+        throw new ResponseStatusException(
+            HttpStatus.FORBIDDEN,
+            "You are not authorized to perform this action"
+        );
+    }
 
+    System.out.println("Fetching matches for requestId: " + requestId + " with topN: " + topN);
+                                                       
     List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
 
     if (matches.isEmpty()) {
@@ -86,13 +88,13 @@ public class ResourcePlannerController {
         .getContext()
         .getAuthentication()
         .getPrincipal();   
-    // String role = p.selectedRole();
-    // if(!"ROLE_RESOURCE_PLNR".equals(role)) {
-    //     throw new ResponseStatusException(
-    //         HttpStatus.FORBIDDEN,
-    //         "You are not authorized to perform this action"
-    //     );
-    // }
+    String role = p.selectedRole();
+    if(!"ROLE_RESOURCE_PLNR".equals(role)) {
+        throw new ResponseStatusException(
+            HttpStatus.FORBIDDEN,
+            "You are not authorized to perform this action"
+        );
+    }
 
     if (internalFound && body == null) {
         throw new ResponseStatusException(
