@@ -27,7 +27,14 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Allows login/auto-login
-                        .anyRequest().permitAll()                    // Temporary for testing
+                        .requestMatchers(
+                            "/swagger-ui.html",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml"
+                        ).permitAll()
+                        .requestMatchers("/api/group3b/**").permitAll()
+                        .anyRequest().authenticated()                    // Temporary for testing
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

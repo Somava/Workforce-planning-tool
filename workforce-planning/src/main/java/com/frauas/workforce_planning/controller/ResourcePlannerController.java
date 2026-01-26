@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
+import com.frauas.workforce_planning.security.JwtAuthFilter;
 import com.frauas.workforce_planning.services.MatchingService;
 import com.frauas.workforce_planning.services.StaffingDecisionService;
 
@@ -49,6 +51,19 @@ public class ResourcePlannerController {
   @GetMapping("/staffing-requests/employee-matches")
   public ResponseEntity<MatchResponseDTO> getMatches(@RequestParam Long requestId,
                                                     @RequestParam(defaultValue = "10") int topN) {
+        
+    JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();   
+    // String role = p.selectedRole();
+    // if(!"ROLE_RESOURCE_PLNR".equals(role)) {
+        
+    //     throw new ResponseStatusException(
+    //         HttpStatus.FORBIDDEN,
+    //         "You are not authorized to perform this action"
+    //     );
+    // }
 
     List<MatchedEmployeeDTO> matches = matchingService.matchEmployees(requestId, topN);
 
@@ -66,6 +81,19 @@ public class ResourcePlannerController {
   public ResponseEntity<String> reserve(@RequestParam Long requestId,
                                         @RequestParam boolean internalFound,
                                         @RequestBody(required = false) CandidateActionRequest body) {
+
+    JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();   
+    // String role = p.selectedRole();
+    // if(!"ROLE_RESOURCE_PLNR".equals(role)) {
+    //     throw new ResponseStatusException(
+    //         HttpStatus.FORBIDDEN,
+    //         "You are not authorized to perform this action"
+    //     );
+    // }
+
     if (internalFound && body == null) {
         throw new ResponseStatusException(
             HttpStatus.BAD_REQUEST,
@@ -78,16 +106,26 @@ public class ResourcePlannerController {
   }
 
   @GetMapping("/approved-requests")
-    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner(@RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getApprovedForResourcePlanner() {
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+            .getContext()
+            .getAuthentication()
+            .getPrincipal();
+        String email = p.email();
+        String role = p.selectedRole();
+        if(!"ROLE_RESOURCE_PLNR".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
         log.info("Fetching approved requests for resource planner email: {}", email);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found for email: " + email
                 ));
-        if(!user.getEmployee().getDefaultRole().getName().equals("ROLE_RESOURCE_PLNR")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Resource Planner");
-        }
+
         Department department = user.getEmployee().getDepartment();                
         
         List<StaffingRequest> pending = staffingRequestRepository.findApprovedForResourcePlanner(

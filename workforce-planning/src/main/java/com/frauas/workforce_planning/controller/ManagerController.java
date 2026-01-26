@@ -3,6 +3,7 @@ package com.frauas.workforce_planning.controller;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
+import com.frauas.workforce_planning.security.JwtAuthFilter;
 import com.frauas.workforce_planning.services.ManagerDecisionService;
 import com.frauas.workforce_planning.services.StaffingRequestService;
 
@@ -49,7 +51,23 @@ public class ManagerController {
      * Used for the Manager Dashboard view.
      */
     @GetMapping("/requests")
-    public ResponseEntity<List<StaffingRequest>> getManagerRequests(@RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getManagerRequests() {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to view this resource"
+            );
+        }
+
+        String email = p.email();
+
         log.info("Fetching requests created by manager: {}", email);
         // Ensure this method exists in your StaffingRequestService
         List<StaffingRequest> requests = staffingRequestService.getRequestsByManagerEmail(email);
@@ -62,6 +80,20 @@ public class ManagerController {
      */
     @GetMapping("/staffing-request")
     public ResponseEntity<StaffingRequest> getRequestForRevision(@RequestParam Long requestId) {
+
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to view this resource"
+            );
+        }
+
         log.info("Fetching request details for revision. ID: {}", requestId);
         return staffingRequestService.getById(requestId)
                 .map(ResponseEntity::ok)
@@ -71,9 +103,22 @@ public class ManagerController {
     @PostMapping("/staffing-request/review-decision")
     public ResponseEntity<String> handleManagerDecision(
             @RequestParam Long requestId,
-            @RequestParam String email,
             @RequestParam boolean isResubmit,
-            @RequestBody(required = false) StaffingRequestUpdateDTO updateData) {
+            @RequestBody(required = false) StaffingRequestUpdateDTO updateData) 
+    {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
         
         if (isResubmit) {
             log.info("Manager is resubmitting request ID: {}", requestId);
@@ -95,7 +140,20 @@ public class ManagerController {
     }
     
     @GetMapping("/rejected-requests")
-    public ResponseEntity<List<StaffingRequest>> getRejectedRequests(@RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getRejectedRequests() {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to view this resource"
+            );
+        }
         log.info("Fetching all rejected staffing requests for manager review.");
 
         // Define the list of statuses that count as "Rejected/Needs Revision"
@@ -113,25 +171,21 @@ public class ManagerController {
     }
 
     @GetMapping("/int-employee-rejected")
-    public ResponseEntity<List<StaffingRequest>> getAllIntEmployeeRejectedRequests(@RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getAllIntEmployeeRejectedRequests() {
 
-        User user = userRepository.findByEmail(email)
-        .orElseThrow(() -> new ResponseStatusException(
-            HttpStatus.NOT_FOUND, "User not found for email: " + email
-        ));
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
 
-        boolean isProjectManager = user.getEmployee() != null
-            && user.getEmployee().getDefaultRole() != null
-            && "ROLE_MANAGER".equals(
-                user.getEmployee().getDefaultRole().getName()
-            );
-
-        if (!isProjectManager) {
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
             throw new ResponseStatusException(
                 HttpStatus.FORBIDDEN,
                 "You are not authorized to view this resource"
             );
         }
+
         List<StaffingRequest> rejected =
             staffingRequestRepository.findByStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
         

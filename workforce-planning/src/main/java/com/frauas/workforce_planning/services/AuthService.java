@@ -71,6 +71,10 @@ public class AuthService {
     public LoginResponse loginAuto(LoginAutoRequest req) {
         User user = userRepository.findByEmailWithEmployeeRolesAndDefaultRole(req.email())
                 .orElseThrow(InvalidCredentialsException::new);
+                
+        if(user == null) {
+            throw new InvalidCredentialsException();
+        }
 
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             throw new InvalidCredentialsException();

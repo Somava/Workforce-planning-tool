@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
+import com.frauas.workforce_planning.security.JwtAuthFilter;
 import com.frauas.workforce_planning.services.EmployeeApplicationService;
 import com.frauas.workforce_planning.services.EmployeeService;
 import com.frauas.workforce_planning.services.StaffingRequestService;
@@ -50,17 +52,31 @@ public class EmployeeController {
     
     // 1. View Open Positions (Filtered for the specific employee)
     @GetMapping("/open-positions")
-     public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions(@RequestParam String email) {
+     public ResponseEntity<List<WorkforceRequestDTO>> getOpenPositions() {
     // We pass the email so the service can filter out what THIS employee already applied for
-    List<WorkforceRequestDTO> positions = staffingRequestService.getOpenPositionsForEmployee(email);
-    return positions.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(positions);
-}
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
+        
+        List<WorkforceRequestDTO> positions = staffingRequestService.getOpenPositionsForEmployee(email);
+        return positions.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(positions);
+    }
 
     // 2. Apply: No IDs in URL. Uses email and requestId as params.
     @PostMapping("/apply")
     public ResponseEntity<?> applyForPosition(
-            @RequestParam Long requestId, 
-            @RequestParam String email) {
+            @RequestParam Long requestId) {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
+
         try {
             applicationService.apply(requestId, email);
             return ResponseEntity.ok("Successfully applied for position!");
@@ -71,7 +87,14 @@ public class EmployeeController {
 
     // 3. Dashboard: Fetch by email query parameter
     @GetMapping("/my-applications")
-    public ResponseEntity<List<EmployeeApplicationDTO>> getMyApplications(@RequestParam String email) {
+    public ResponseEntity<List<EmployeeApplicationDTO>> getMyApplications() {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
         List<EmployeeApplicationDTO> applications = applicationService.getApplicationsForEmployee(email);
         return applications.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(applications);
     }
@@ -79,8 +102,14 @@ public class EmployeeController {
     // 4. Withdraw: Uses applicationId and email to verify ownership
     @PostMapping("/withdraw") 
     public ResponseEntity<String> withdrawApplication(
-            @RequestParam Long applicationId, 
-            @RequestParam String email) {
+            @RequestParam Long applicationId) {
+
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
         try {
             applicationService.withdrawApplication(applicationId, email);
             return ResponseEntity.ok("Application withdrawn successfully.");
@@ -91,7 +120,14 @@ public class EmployeeController {
 
     // 5. Profile Details: View all employee details for the dashboard
     @GetMapping("/my-profile")
-    public ResponseEntity<EmployeeProfileDTO> getMyProfile(@RequestParam String email) {
+    public ResponseEntity<EmployeeProfileDTO> getMyProfile() {
+            
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
         try {
             EmployeeProfileDTO profile = employeeService.getProfile(email);
             return ResponseEntity.ok(profile);
@@ -103,9 +139,15 @@ public class EmployeeController {
     @PostMapping("/assignment-decision")
     public ResponseEntity<String> handleEmployeeAssignmentDecision(
             @RequestParam Long requestId,
-            @RequestParam String email,
             @RequestParam boolean approved,
             @RequestParam(required = false) String reason) {
+
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
 
         String finalReason = (reason == null || reason.trim().isEmpty()) 
                          ? "Employee declined without providing a specific reason." 
@@ -151,8 +193,14 @@ public class EmployeeController {
     }
 
     @GetMapping("/assigned-requests")
-    public ResponseEntity<List<StaffingRequest>> getAssignedRequestsForEmployee(
-            @RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getAssignedRequestsForEmployee() {
+
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String email = p.email();
 
         log.info("Fetching assigned requests for employee email: {}", email);
 

@@ -4,9 +4,13 @@ import com.frauas.workforce_planning.dto.ProjectCreateDTO;
 import com.frauas.workforce_planning.model.entity.Project;
 import com.frauas.workforce_planning.services.ProjectService;
 import com.frauas.workforce_planning.repository.ProjectRepository;
+import com.frauas.workforce_planning.security.JwtAuthFilter;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -34,9 +38,22 @@ public class ProjectController {
      */
     @PostMapping("/create")
     public ResponseEntity<Project> createProject(
-            @RequestBody ProjectCreateDTO dto, 
-            @RequestParam String managerEmail) {
+            @RequestBody ProjectCreateDTO dto
+        ) {
         
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
+        String managerEmail = p.email();
         // Use the service to handle the "ACTIVE" status logic
         Project newProject = projectService.createProject(dto, managerEmail);
         

@@ -19,6 +19,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
+    /** Central identity object carried through Spring Security */
+    public record JwtPrincipal(
+            Long userId,
+            String email,
+            String selectedRole
+    ) {}
+
     public JwtAuthFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
@@ -39,28 +46,38 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
-        // If already authenticated, skip
+        // Already authenticated → skip
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         if (!jwtService.isTokenValid(token)) {
-            // Invalid token -> continue; Spring Security will block protected endpoints
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Extract identity
         Long userId = jwtService.extractUserId(token);
+        String email = jwtService.extractEmail(token);
+        String selectedRole = jwtService.extractSelectedRole(token);
         List<String> roles = jwtService.extractRoles(token);
 
         var authorities = roles.stream()
-                .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
+                .map(r -> r.startsWith("ROLE_")
+                        ? new SimpleGrantedAuthority(r)
+                        : new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
                 .toList();
 
-        var auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
-        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        JwtPrincipal principal = new JwtPrincipal(userId, email, selectedRole);
 
+        var auth = new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                authorities
+        );
+
+        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);

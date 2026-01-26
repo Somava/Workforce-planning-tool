@@ -70,12 +70,26 @@ public class JwtService {
             return false;
         }
     }
+        
+    public String extractEmail(String token) {
+        return parseClaims(token).getSubject();
+    }
 
     public Long extractUserId(String token) {
         Object v = parseClaims(token).get("userId");
         if (v instanceof Integer i) return i.longValue();
         if (v instanceof Long l) return l;
         return Long.valueOf(v.toString());
+    }
+    
+    public String extractSelectedRole(String token) {
+        Object v = parseClaims(token).get("selectedRole");
+        return v != null ? v.toString() : null;
+    }
+
+    public String extractEmployeeHrId(String token) {
+        Object v = parseClaims(token).get("employeeHrId");
+        return v != null ? v.toString() : null;
     }
 
     @SuppressWarnings("unchecked")

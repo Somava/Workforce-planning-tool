@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +24,7 @@ import com.frauas.workforce_planning.repository.ExternalEmployeeRepository;
 import com.frauas.workforce_planning.repository.ProjectDepartmentRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
+import com.frauas.workforce_planning.security.JwtAuthFilter;
 import com.frauas.workforce_planning.services.StaffingRequestService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -65,9 +67,21 @@ public class DepartmentHeadController {
     }
 
     @GetMapping("/pending-requests-approval")
-    public ResponseEntity<?> getPendingApprovals(@RequestParam String email) {
-        log.info("Fetching pending approvals for email: {}", email);
+    public ResponseEntity<?> getPendingApprovals() {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
 
+        String role = p.selectedRole();
+        if(!"ROLE_DEPT_HEAD".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to access this resource"
+            );
+        }
+        String email = p.email();
         // 1. Find the User by email to get their ID
         // Assuming you have a UserRepository or can find them via EmployeeRepository
         return userRepository.findByEmail(email)
@@ -86,14 +100,25 @@ public class DepartmentHeadController {
     }
 
     @GetMapping("/pending-employees-approval")
-    public ResponseEntity<List<StaffingRequest>> getFullPendingApprovals(@RequestParam String email) {
+    public ResponseEntity<List<StaffingRequest>> getFullPendingApprovals() {
         
-        User deptHead = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head not found"));
-        
-        if(!deptHead.getEmployee().getDefaultRole().getName().equals("ROLE_DEPT_HEAD")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Department Head");
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_DEPT_HEAD".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to view this resource"
+            );
         }
+
+        String email = p.email();
+        User deptHead = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dept Head not found"));        
+
 
         Department department = deptHead.getEmployee().getDepartment();
 
@@ -123,10 +148,23 @@ public class DepartmentHeadController {
     @PostMapping("/requests-approval-decision")
     public ResponseEntity<String> handleDeptHeadDecision(
             @RequestParam Long requestId,
-            @RequestParam String email, // Changed from Long deptHeadId to String email
             @RequestParam boolean approved,
             @RequestParam(required = false) String reason) {
 
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_DEPT_HEAD".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
+
+        String email = p.email();
         String finalReason = (reason == null || reason.trim().isEmpty()) 
                          ? "No specific reason provided by Dept Head." 
                          : reason;
@@ -168,9 +206,23 @@ public class DepartmentHeadController {
     @PostMapping("/employee-assigning-decision")
     public ResponseEntity<String> handleDecision(
             @RequestParam Long requestId,
-            @RequestParam String email,
             @RequestParam boolean approved,
             @RequestParam(required = false) String reason) {
+
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();
+
+        String role = p.selectedRole();
+        if(!"ROLE_DEPT_HEAD".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
+
+        String email = p.email();
 
         log.info("Processing decision for Request ID: {} from Dept Head: {}. Approved: {}", requestId, email, approved);
 
