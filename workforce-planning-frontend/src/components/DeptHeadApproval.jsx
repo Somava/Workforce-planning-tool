@@ -60,9 +60,9 @@ const ApprovalDashboard = () => {
             setEmployees(Array.isArray(employeeData) ? employeeData : []); // NEW: Update employee state
 
             const names = { 
-                "charlie@frauas.de": "Research & Development", 
-                "bob@frauas.de": "Information Technology", 
-                "diana@frauas.de": "Human Resources" 
+                "charlie@frauas.de": "IT Frontend", 
+                "bob@frauas.de": "IT Backend", 
+                "diana@frauas.de": "Finance & Management" 
             };
             setDepartmentName(names[userEmail] || "Department Dashboard");
             setLastSynced(new Date().toLocaleTimeString());
