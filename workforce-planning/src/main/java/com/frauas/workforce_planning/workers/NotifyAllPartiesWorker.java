@@ -21,6 +21,8 @@ import com.frauas.workforce_planning.model.entity.Project;
 import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 import com.frauas.workforce_planning.repository.ProjectDepartmentRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
+import com.frauas.workforce_planning.repository.ExternalEmployeeRepository; 
+import com.frauas.workforce_planning.model.enums.RequestStatus;
 import lombok.extern.slf4j.Slf4j;
 
 @Component
@@ -32,6 +34,9 @@ public class NotifyAllPartiesWorker {
 
     @Autowired
     private ProjectDepartmentRepository pdRepository;
+
+    @Autowired
+    private ExternalEmployeeRepository externalEmployeeRepository;
 
     @Value("${spring.mail.username}")
     private String senderEmail;
@@ -59,7 +64,7 @@ public class NotifyAllPartiesWorker {
         String projectName = request.getProjectName();
         String positionTitle = request.getTitle();
         
-        // MANAGER (The Requester - StaffingRequest.getCreatedBy() returns Employee)
+        // MANAGER (The Requester)
         Employee creatorEmployee = request.getCreatedBy();
         String managerEmail = (creatorEmployee.getUser() != null) ? creatorEmployee.getUser().getEmail() : "N/A";
         String managerName = creatorEmployee.getFirstName() + " " + creatorEmployee.getLastName();
@@ -72,25 +77,36 @@ public class NotifyAllPartiesWorker {
         // RESOURCE PLANNER
         String plannerEmail = (projDept.getResourcePlannerUser() != null) ? projDept.getResourcePlannerUser().getEmail() : null;
 
-        // EMPLOYEE (The Assigned Talent - StaffingRequest.getAssignedUser() returns User)
+        // TALENT MAPPING (Internal vs External)
         String employeeEmail = null;
-        String employeeName = "External/Freelancer";
-        if (request.getAssignedUser() != null) {
+        String employeeName = "External Employee";
+
+        // Handle External Case
+        if (request.getStatus() == RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH) {
+            employeeName = externalEmployeeRepository.findByStaffingRequestId(requestId)
+                    .map(ee -> ee.getFirstName() + " " + ee.getLastName())
+                    .orElse("External Employee");
+            // External employees typically don't have a system email yet
+            employeeEmail = null; 
+        } 
+        // Handle Internal Case (Your existing logic)
+        else if (request.getAssignedUser() != null) {
             User assignedUserAccount = request.getAssignedUser();
             employeeEmail = assignedUserAccount.getEmail();
             
-            // Navigate User -> Employee to get the names
             if (assignedUserAccount.getEmployee() != null) {
                 employeeName = assignedUserAccount.getEmployee().getFirstName() + " " + 
                                assignedUserAccount.getEmployee().getLastName();
             }
+        } else {
+            employeeName = "External/Freelancer";
         }
 
         // 3. Define the Summary
         String summary = """
                 Project: %s
                 Position: %s
-                Assigned Employee: %s
+                Assigned Talent: %s
                 Requesting Manager: %s
                 """.formatted(projectName, positionTitle, employeeName, managerName);
 
@@ -100,7 +116,7 @@ public class NotifyAllPartiesWorker {
         sendEmail(managerEmail, "Staffing Complete: " + projectName, 
             "Hello " + managerName + ",\n\nAssignment is complete. Please begin onboarding steps.\n\n" + summary);
 
-        // Notify Employee
+        // Notify Employee (Only if internal)
         if (employeeEmail != null) {
             sendEmail(employeeEmail, "Congratulations! Your New Assignment", 
                 "Hello " + employeeName + ",\n\nYou have been officially assigned. Please contact " + managerEmail + " to start.\n\n" + summary);
