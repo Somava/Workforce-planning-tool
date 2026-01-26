@@ -75,7 +75,7 @@ public class TaskController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             });
     }
-    
+
     @GetMapping("/dept-head/employee-approval")
     public ResponseEntity<List<StaffingRequest>> getFullPendingApprovals(@RequestParam String email) {
         
@@ -332,7 +332,7 @@ public class TaskController {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found for email: " + email
                 ));
-        if(!user.getEmployee().getDefaultRole().getName().equals("ROLE_RESOURCE_PLANNER")) {
+        if(!user.getEmployee().getDefaultRole().getName().equals("ROLE_RESOURCE_PLNR")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a Resource Planner");
         }
         Department department = user.getEmployee().getDepartment();                
