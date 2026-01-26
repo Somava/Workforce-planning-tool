@@ -44,14 +44,21 @@ public class ExternalResponseController {
             return ResponseEntity.badRequest().body(Map.of("error", "staffingRequestId is mandatory"));
         }
 
+        
+        boolean found = dto.externalEmployeeId() != null && !dto.externalEmployeeId().isBlank();
+
         // 3. Update Status in Supabase (Staffing Request Table)
         staffingRequestRepository.findByRequestId(dto.staffingRequestId())
-            .ifPresent(request -> {
+        .ifPresent(request -> {
+            if (found) {
                 request.setStatus(RequestStatus.EXTERNAL_RESPONSE_RECEIVED);
-                staffingRequestRepository.save(request);
-            });
-
-        boolean found = dto.externalEmployeeId() != null && !dto.externalEmployeeId().isBlank();
+            } else {
+                // Updated to the specific status found in your logs
+                request.setStatus(RequestStatus.NO_EXT_EMPLOYEE_FOUND);
+                request.setRejectionType("EXT_EMPLOYEE_NOT_FOUND");
+            }
+            staffingRequestRepository.save(request);
+        });
 
         // 4. Save Directly to external_employee Table
         if (found) {
@@ -78,7 +85,7 @@ public class ExternalResponseController {
             .status("PENDING")
             .build();
     
-    externalEmployeeRepository.saveAndFlush(employee);
+        externalEmployeeRepository.saveAndFlush(employee);
         }
 
         // 5. Prepare Variables for Camunda

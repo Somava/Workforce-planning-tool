@@ -1,15 +1,16 @@
 package com.frauas.workforce_planning.services;
 
-import com.frauas.workforce_planning.dto.ProjectCreateDTO;
-import com.frauas.workforce_planning.model.entity.Project;
-import com.frauas.workforce_planning.model.entity.Employee;
-import com.frauas.workforce_planning.repository.ProjectRepository;
-import com.frauas.workforce_planning.repository.EmployeeRepository;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import com.frauas.workforce_planning.dto.ProjectCreateDTO;
+import com.frauas.workforce_planning.model.entity.Employee;
+import com.frauas.workforce_planning.model.entity.Project;
+import com.frauas.workforce_planning.repository.EmployeeRepository;
+import com.frauas.workforce_planning.repository.ProjectRepository;
 
 @Service
 public class ProjectService {
@@ -43,7 +44,7 @@ public class ProjectService {
         project.setLocation(dto.location());
         
         // Requirements: Always ACTIVE and Published
-        project.setStatus("ACTIVE");
+        project.setStatus("Active");
         
         // 3. Link the project to the User entity (NOT just the ID)
         project.setManagerUser(manager.getUser());

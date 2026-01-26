@@ -13,14 +13,14 @@ INSERT INTO languages (id, name) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO projects (id, name, description, status, start_date, end_date, location, manager_user_id) VALUES 
-(1, 'Project Skyfall: AWS Migration', 'Migrating core on-premise banking services to a multi-region AWS architecture for high availability.', 'ACTIVE', '2026-01-01', '2032-12-31', 'Munich', NULL),
-(2, 'NeuralCare: AI Support Portal', 'Development of a Generative AI-driven customer service interface to automate Tier-1 technical support.', 'ACTIVE', '2026-03-01', '2033-02-28', 'Darmstadt', NULL),
-(3, 'Legacy ERP Sunset Phase 1', 'Final data archiving and decommissioning of the SAP R/3 legacy environment and physical server hardware.', 'ACTIVE', '2025-01-01', '2034-11-30', 'Frankfurt', NULL),
-(4, 'WorkForce Go: Mobile Alpha', 'Internal testing and rollout of the React Native employee portal for mobile expense and shift management.', 'ACTIVE', '2026-05-01', '2032-12-01', 'Berlin', NULL)
+(1, 'Project Skyfall: AWS Migration', 'Migrating core on-premise banking services to a multi-region AWS architecture for high availability.', 'Active', '2026-01-01', '2032-12-31', 'Munich', NULL),
+(2, 'NeuralCare: AI Support Portal', 'Development of a Generative AI-driven customer service interface to automate Tier-1 technical support.', 'Active', '2026-03-01', '2033-02-28', 'Darmstadt', NULL),
+(3, 'Legacy ERP Sunset Phase 1', 'Final data archiving and decommissioning of the SAP R/3 legacy environment and physical server hardware.', 'Active', '2025-01-01', '2034-11-30', 'Frankfurt', NULL),
+(4, 'WorkForce Go: Mobile Alpha', 'Internal testing and rollout of the React Native employee portal for mobile expense and shift management.', 'Active', '2026-05-01', '2032-12-01', 'Berlin', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO departments (id, name) VALUES 
-(1, 'IT Backend'), (2, 'IT Frontend'), (3, 'Finance AND Management')
+(1, 'IT Backend'), (2, 'IT Frontend'), (3, 'Finance & Management')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO employees (
@@ -363,7 +363,7 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (34, 1, 'B2'),(37, 1, 'A2'),(39, 1, 'A1'),(40, 1, 'C2'),(43, 1, 'C1'),(44, 1, 'C2'),(47, 1, 'A2'),(49, 1, 'B2'),(50, 1, 'B1'),
 (54, 1, 'B2'),(55, 1, 'C2'),(56, 1, 'A2'),(59, 1, 'B2'),(65, 1, 'B1'),(64, 1, 'A2'),(62, 1, 'C2'),(69, 1, 'A1'),(68, 1, 'C2'),
 (70, 1, 'C1'),(74, 1, 'A2'),(75, 1, 'B2'),(76, 1, 'C1'),(78, 1, 'B2'),(80, 1, 'A2'),(82, 1, 'B2'),(83, 1, 'C2'),(84, 1, 'B2'),
-(85, 1, 'C2'),(88, 1, 'A2'),(90, 1, 'C2'),(92, 1, 'B1'),(93, 1, 'A1'),(94, 1, 'C1')
+(85, 1, 'C2'),(88, 1, 'A2'),(90, 1, 'C2'),(92, 1, 'B1'),(93, 1, 'A1'),(94, 1, 'C1'),(61, 1, 'A1'),(45, 1, 'C1'),(48, 1, 'B2')
 ON CONFLICT DO NOTHING;
 
 -- Many employees also know German
@@ -393,7 +393,7 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (46, 1, 'B1'),(47, 1, 'C2'),(49, 1, 'A1'),(50, 1, 'C1'),(52, 1, 'C2'),(53, 1, 'A1'),(55, 1, 'C2'),(57, 1, 'C2'),(58, 1, 'C1'),
 (60, 1, 'C1'),(63, 1, 'B2'),(64, 1, 'C1'),(66, 1, 'B2'),(68, 1, 'A2'),(69, 1, 'B2'),(71, 1, 'A2'),(73, 1, 'C1'),(75, 1, 'B2'),
 (76, 1, 'B2'),(78, 1, 'C2'),(79, 1, 'C1'),(81, 1, 'B2'),(83, 1, 'A2'),(84, 1, 'A1'),(86, 1, 'C2'),(87, 1, 'C1'),(88, 1, 'B2'),
-(92, 1, 'A2'),(93, 1, 'B2'),(94, 1, 'C2')
+(92, 1, 'A2'),(93, 1, 'B2'),(94, 1, 'C2'),(91, 1, 'A1'),(41, 1, 'B2'),(35, 1, 'A1')
 ON CONFLICT DO NOTHING;
 
 -- Some employees also know Spanish
@@ -408,7 +408,7 @@ INSERT INTO employee_languages (employee_id, language_id, proficiency_level) VAL
 (31, 3, 'B1'),
 (34, 3, 'A2'),(37, 1, 'C2'),(39, 1, 'B2'),(43, 1, 'A2'),(44, 1, 'B1'),(49, 1, 'C1'),(54, 1, 'A1'),(57, 1, 'B2'),(59, 1, 'B2'),
 (63, 1, 'B2'),(66, 1, 'A2'),(67, 1, 'B2'),(72, 1, 'C2'),(75, 1, 'B2'),(77, 1, 'C1'),(81, 1, 'A2'),(87, 1, 'C2'),(89, 1, 'B1'),
-(92, 1, 'C2'),(94, 1, 'A1')
+(92, 1, 'C2'),(94, 1, 'A1'),(51, 1, 'A1'),(35, 1, 'B1')
 ON CONFLICT DO NOTHING;
 
 
