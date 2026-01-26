@@ -256,7 +256,7 @@ public class StaffingRequestService {
 
         // 2. Update Request Status
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
-        request.setRejectionType("DEPT_HEAD_ASSIGNMENT_REJECTED");
+        request.setRejectionType("DEPT_HEAD_REJECTED_INTERNAL_EMPLOYEE");
         request.setRejectionReason(reason);
         repository.save(request);
 
@@ -383,7 +383,7 @@ public class StaffingRequestService {
         employeeRepository.save(employee);
 
         request.setStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_EMP);
-        request.setRejectionType("EMPLOYEE_DECLINED"); // Hardcoded Type
+        request.setRejectionType("EMPLOYEE_DECLINED"); 
         request.setRejectionReason(reason); 
         repository.save(request);
 
@@ -393,7 +393,7 @@ public class StaffingRequestService {
         );
 
         zeebeClient.newPublishMessageCommand()
-            .messageName("Employee_Confirmation") // MUST match BPMN exactly
+            .messageName("Employee_Confirmation") 
             .correlationKey(requestId.toString())
             .variables(Map.of("confirm", false))
             .send()
@@ -535,6 +535,7 @@ public class StaffingRequestService {
                 .orElseThrow(() -> new RuntimeException("Request not found: " + requestId));
                 
         request.setStatus(RequestStatus.EXT_EMPLOYEE_REJECTED_BY_DH);
+        request.setRejectionType("DEPT_HEAD_REJECTED_EXTERNAL_EMPLOYEE");
         request.setRejectionReason(reason);
         repository.save(request);
 
