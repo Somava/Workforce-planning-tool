@@ -2,7 +2,6 @@ package com.frauas.workforce_planning.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +39,7 @@ public class DepartmentHeadController {
     private final UserRepository userRepository;
     private final ProjectDepartmentRepository projectDepartmentRepository;
     private final ExternalEmployeeRepository externalEmployeeRepository;
+    private final DepartmentRepository departmentRepository;
 
     // Using Constructor Injection (Recommended)
     public DepartmentHeadController(
@@ -47,13 +47,20 @@ public class DepartmentHeadController {
             StaffingRequestRepository staffingRequestRepository,
             UserRepository userRepository,
             ProjectDepartmentRepository projectDepartmentRepository,
-            ExternalEmployeeRepository externalEmployeeRepository
+            ExternalEmployeeRepository externalEmployeeRepository,
+            DepartmentRepository departmentRepository
     ) {
         this.staffingRequestService = staffingRequestService;
         this.staffingRequestRepository = staffingRequestRepository;
         this.userRepository = userRepository;
         this.projectDepartmentRepository = projectDepartmentRepository;
         this.externalEmployeeRepository = externalEmployeeRepository;
+        this.departmentRepository = departmentRepository;
+    }
+
+    @GetMapping("/all-departments")
+    public List<Department> getAllDepartments() {
+        return departmentRepository.findAll();
     }
 
     @GetMapping("/pending-requests-approval")
