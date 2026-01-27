@@ -39,7 +39,7 @@ public class DepartmentHeadController {
     private final StaffingRequestRepository staffingRequestRepository;
     private final UserRepository userRepository;
     private final ProjectDepartmentRepository projectDepartmentRepository;
-    private final ExternalEmployeeRepository externalEmployeeRepository; // Now being used!
+    private final ExternalEmployeeRepository externalEmployeeRepository;
 
     // Using Constructor Injection (Recommended)
     public DepartmentHeadController(
@@ -54,16 +54,6 @@ public class DepartmentHeadController {
         this.userRepository = userRepository;
         this.projectDepartmentRepository = projectDepartmentRepository;
         this.externalEmployeeRepository = externalEmployeeRepository;
-    }
-    @Autowired
-    private DepartmentRepository departmentRepository;
-
-    /**
-     * Get all departments (now returns all 12+ depts)
-     */
-    @GetMapping
-    public List<Department> getAllDepartments() {
-        return departmentRepository.findAll();
     }
 
     @GetMapping("/pending-requests-approval")

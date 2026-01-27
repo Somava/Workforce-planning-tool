@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.frauas.workforce_planning.dto.StaffingRequestUpdateDTO;
+import com.frauas.workforce_planning.dto.WorkforceRequestDTO;
 import com.frauas.workforce_planning.model.entity.StaffingRequest;
-import com.frauas.workforce_planning.model.entity.User;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.repository.UserRepository;
@@ -31,26 +31,49 @@ import lombok.extern.slf4j.Slf4j;
 @CrossOrigin(origins = "http://localhost:3000")
 public class ManagerController {
 
-    private final UserRepository userRepository;
     private final StaffingRequestRepository staffingRequestRepository;
     private final ManagerDecisionService managerDecisionService;
     private final StaffingRequestService staffingRequestService;
+    private final StaffingRequestService staffingService;
 
     public ManagerController(UserRepository userRepository,
                              StaffingRequestRepository staffingRequestRepository,
                              ManagerDecisionService managerDecisionService,
-                             StaffingRequestService staffingRequestService) {
-        this.userRepository = userRepository;
+                             StaffingRequestService staffingRequestService,
+                             StaffingRequestService staffingService) {
         this.staffingRequestRepository = staffingRequestRepository;
         this.managerDecisionService = managerDecisionService;
         this.staffingRequestService = staffingRequestService;
+        this.staffingService = staffingService;
     }
+
+    @PostMapping("/create-staffing-requests")
+    public ResponseEntity<StaffingRequest> createRequest(
+            @RequestBody WorkforceRequestDTO dto) {
+        
+        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
+        .getContext()
+        .getAuthentication()
+        .getPrincipal();   
+        String role = p.selectedRole();
+        if(!"ROLE_MANAGER".equals(role)) {
+            throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "You are not authorized to perform this action"
+            );
+        }
+        Long currentUserId = p.userId();
+        // Passing the DTO and the manager ID to the service
+        StaffingRequest savedRequest = staffingService.createAndStartRequest(dto, currentUserId);
+        return ResponseEntity.ok(savedRequest);
+    }
+    
 
     /**
      * 1. GET all requests for a specific manager
      * Used for the Manager Dashboard view.
      */
-    @GetMapping("/requests")
+    @GetMapping("/all-staffing-requests")
     public ResponseEntity<List<StaffingRequest>> getManagerRequests() {
         
         JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
@@ -72,32 +95,6 @@ public class ManagerController {
         // Ensure this method exists in your StaffingRequestService
         List<StaffingRequest> requests = staffingRequestService.getRequestsByManagerEmail(email);
         return ResponseEntity.ok(requests);
-    }
-
-    /**
-     * 2. GET specific Request Details for Editing
-     * Used when the manager clicks "Edit" on a rejected request.
-     */
-    @GetMapping("/staffing-request")
-    public ResponseEntity<StaffingRequest> getRequestForRevision(@RequestParam Long requestId) {
-
-        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
-        .getContext()
-        .getAuthentication()
-        .getPrincipal();
-
-        String role = p.selectedRole();
-        if(!"ROLE_MANAGER".equals(role)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "You are not authorized to view this resource"
-            );
-        }
-
-        log.info("Fetching request details for revision. ID: {}", requestId);
-        return staffingRequestService.getById(requestId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/staffing-request/review-decision")
@@ -168,34 +165,6 @@ public class ManagerController {
         List<StaffingRequest> rejectedRequests = staffingRequestRepository.findByStatusIn(targetStatuses);
 
         return ResponseEntity.ok(rejectedRequests);
-    }
-
-    @GetMapping("/int-employee-rejected")
-    public ResponseEntity<List<StaffingRequest>> getAllIntEmployeeRejectedRequests() {
-
-        JwtAuthFilter.JwtPrincipal p = (JwtAuthFilter.JwtPrincipal) SecurityContextHolder
-        .getContext()
-        .getAuthentication()
-        .getPrincipal();
-
-        String role = p.selectedRole();
-        if(!"ROLE_MANAGER".equals(role)) {
-            throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "You are not authorized to view this resource"
-            );
-        }
-
-        List<StaffingRequest> rejected =
-            staffingRequestRepository.findByStatus(RequestStatus.INT_EMPLOYEE_REJECTED_BY_DH);
-        
-            if (rejected.isEmpty()) {
-                return ResponseEntity.ok()
-                    .header("X-Info", "No rejected staffing requests found")
-                    .body(List.of());
-            }
-
-        return ResponseEntity.ok(rejected);
     }
 
 }
