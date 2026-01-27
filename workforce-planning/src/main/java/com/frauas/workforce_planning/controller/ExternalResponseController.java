@@ -70,18 +70,19 @@ public class ExternalResponseController {
             : Collections.emptyList();
 
             ExternalEmployee employee = ExternalEmployee.builder()
+            .staffingRequestId(dto.staffingRequestId())
             .externalEmployeeId(dto.externalEmployeeId())
             .provider(dto.provider())
-            .contractId(dto.contractId())
             .firstName(dto.firstName())
             .lastName(dto.lastName())
             .email(dto.email())
-            .skills(skillsList)
-            .evaluationScore(dto.evaluationScore())
-            .experienceYears(dto.experienceYears())
             .wagePerHour(dto.wagePerHour())
-            .staffingRequestId(dto.staffingRequestId())
+            .skills(skillsList)
+            .location(dto.location())
+            .contractId(dto.contractId())
+            .evaluationScore(dto.evaluationScore())
             .projectId(dto.projectId())
+            .experienceYears(dto.experienceYears())
             .status("PENDING")
             .build();
     

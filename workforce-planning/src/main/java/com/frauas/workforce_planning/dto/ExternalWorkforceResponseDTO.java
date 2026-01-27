@@ -9,10 +9,11 @@ public record ExternalWorkforceResponseDTO(
     @JsonProperty("firstName") String firstName,
     @JsonProperty("lastName") String lastName,
     @JsonProperty("email") String email,
+    @JsonProperty("wagePerHour") Double wagePerHour,
     @JsonProperty("skills") String skills,
+    @JsonProperty("location") String location,
     @JsonProperty("contractId") String contractId,
     @JsonProperty("evaluationScore") Double evaluationScore,
-    @JsonProperty("experienceYears") Integer experienceYears,
-    @JsonProperty("wagePerHour") Double wagePerHour,
-    @JsonProperty("projectId") Long projectId
+    @JsonProperty("projectId") Long projectId,
+    @JsonProperty("experienceYears") Integer experienceYears
 ) {}
