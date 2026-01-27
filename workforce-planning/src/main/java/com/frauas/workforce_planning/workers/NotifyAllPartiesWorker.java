@@ -69,37 +69,34 @@ public class NotifyAllPartiesWorker {
         String managerEmail = (creatorEmployee.getUser() != null) ? creatorEmployee.getUser().getEmail() : "N/A";
         String managerName = creatorEmployee.getFirstName() + " " + creatorEmployee.getLastName();
 
+        // Safe fetch of ProjectDepartment mapping
         ProjectDepartment projDept = pdRepository.findByProject_IdAndDepartment_Id(project.getId(), dept.getId());
-
-        // DEPARTMENT HEAD
-        String deptHeadEmail = (projDept.getDepartmentHeadUser() != null) ? projDept.getDepartmentHeadUser().getEmail() : null;
-
-        // RESOURCE PLANNER
-        String plannerEmail = (projDept.getResourcePlannerUser() != null) ? projDept.getResourcePlannerUser().getEmail() : null;
 
         // TALENT MAPPING (Internal vs External)
         String employeeEmail = null;
         String employeeName = "External Employee";
+        String talentType = "INTERNAL";
 
-        // Handle External Case
+        // --- PATH A: EXTERNAL CASE ---
         if (request.getStatus() == RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH) {
-            employeeName = externalEmployeeRepository.findByStaffingRequestId(requestId)
-                    .map(ee -> ee.getFirstName() + " " + ee.getLastName())
-                    .orElse("External Employee");
-            // External employees typically don't have a system email yet
-            employeeEmail = null; 
+            talentType = "EXTERNAL";
+            var externalData = externalEmployeeRepository.findByStaffingRequestId(requestId);
+            if (externalData.isPresent()) {
+                var ext = externalData.get();
+                // Match the service logic: First Name + Last Name
+                employeeName = ext.getFirstName() + " " + ext.getLastName();
+            }
         } 
-        // Handle Internal Case (Your existing logic)
+        // --- PATH B: INTERNAL CASE ---
         else if (request.getAssignedUser() != null) {
             User assignedUserAccount = request.getAssignedUser();
             employeeEmail = assignedUserAccount.getEmail();
             
             if (assignedUserAccount.getEmployee() != null) {
-                employeeName = assignedUserAccount.getEmployee().getFirstName() + " " + 
-                               assignedUserAccount.getEmployee().getLastName();
+                Employee internalEmp = assignedUserAccount.getEmployee();
+                // Match the service logic: First Name + Last Name
+                employeeName = internalEmp.getFirstName() + " " + internalEmp.getLastName();
             }
-        } else {
-            employeeName = "External/Freelancer";
         }
 
         // 3. Define the Summary
@@ -107,31 +104,28 @@ public class NotifyAllPartiesWorker {
                 Project: %s
                 Position: %s
                 Assigned Talent: %s
+                Talent Type: %s
                 Requesting Manager: %s
-                """.formatted(projectName, positionTitle, employeeName, managerName);
+                """.formatted(projectName, positionTitle, employeeName, talentType, managerName);
 
-        // 4. Send Emails
-        
-        // Notify Manager
+        // 4. Send Emails (with Null-Safety for DeptHead/Planner)
         sendEmail(managerEmail, "Staffing Complete: " + projectName, 
-            "Hello " + managerName + ",\n\nAssignment is complete. Please begin onboarding steps.\n\n" + summary);
+            "Hello " + managerName + ",\n\nAssignment is complete for your request. Please begin onboarding steps.\n\n" + summary);
 
-        // Notify Employee (Only if internal)
         if (employeeEmail != null) {
             sendEmail(employeeEmail, "Congratulations! Your New Assignment", 
                 "Hello " + employeeName + ",\n\nYou have been officially assigned. Please contact " + managerEmail + " to start.\n\n" + summary);
         }
 
-        // Notify Department Head
-        if (deptHeadEmail != null) {
-            sendEmail(deptHeadEmail, "Resource Assignment Finalized", 
-                "The staffing request for your department has been filled.\n\n" + summary);
-        }
-
-        // Notify Resource Planner
-        if (plannerEmail != null) {
-            sendEmail(plannerEmail, "Resource Allocation Finalized", 
-                "The staffing request is now closed and resource capacity updated.\n\n" + summary);
+        if (projDept != null) {
+            if (projDept.getDepartmentHeadUser() != null) {
+                sendEmail(projDept.getDepartmentHeadUser().getEmail(), "Resource Assignment Finalized", 
+                    "The staffing request for your department has been filled.\n\n" + summary);
+            }
+            if (projDept.getResourcePlannerUser() != null) {
+                sendEmail(projDept.getResourcePlannerUser().getEmail(), "Resource Allocation Finalized", 
+                    "The staffing request is now closed and resource capacity updated.\n\n" + summary);
+            }
         }
 
         // 5. Complete Job in Camunda

@@ -29,6 +29,10 @@ import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 import com.frauas.workforce_planning.model.entity.User;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import lombok.extern.slf4j.Slf4j;
@@ -438,73 +442,75 @@ public class StaffingRequestService {
      * Fetches successful assignments for the Congratulations Dashboard.
      * Corrected to navigate User -> Employee for names.
      */
-    @Transactional(readOnly = true)
-    public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
-        // This repository call now returns both INT_EMPLOYEE_ASSIGNED and EXT_EMPLOYEE_APPROVED_BY_DH
-        List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
+   @Transactional(readOnly = true)
+public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) {
+    List<StaffingRequest> successRequests = repository.findSuccessDashboardData(email);
 
-        return successRequests.stream().map(req -> {
-            var au = req.getAssignedUser();
-            com.frauas.workforce_planning.model.entity.Employee internalEmp = (au != null) ? au.getEmployee() : null;
-
-            String empName = "External Employee";
-            String empIdStr = "EXTERNAL";
-            boolean isSelfAssignment = false;
-            String displayMessage;
-
-            // --- EXTERNAL PATH LOGIC ---
-            if (req.getStatus() == RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH) {
-                // Try to find the external name from the repository managed by the other group
-                var externalData = externalEmployeeRepository.findByStaffingRequestId(req.getRequestId());
-                if (externalData.isPresent()) {
-                    empName = externalData.get().getFirstName() + " " + externalData.get().getLastName();
-                    empIdStr = "EXT-" + externalData.get().getId();
-                }
-                displayMessage = String.format("Success! External Employee %s has been officially approved and assigned to project '%s'.", 
-                    empName, req.getProjectName());
-            } 
-            // --- INTERNAL PATH LOGIC ---
-            else {
-                if (au != null) {
-                    if (au.getEmail().equalsIgnoreCase(email)) {
-                        isSelfAssignment = true;
-                    }
-                    if (internalEmp != null) {
-                        empName = internalEmp.getFirstName() + " " + internalEmp.getLastName();
-                        empIdStr = internalEmp.getEmployeeId();
-                    }
-                }
-                displayMessage = isSelfAssignment 
-                    ? String.format("Congratulations! You have been officially assigned to the project '%s' as '%s'.", req.getProjectName(), req.getTitle())
-                    : String.format("Success! %s (ID: %s) has accepted the offer for '%s' in project '%s'.", empName, empIdStr, req.getTitle(), req.getProjectName());
+    return successRequests.stream().map(req -> {
+        // --- 1. HANDLE EXTERNAL EMPLOYEE PATH ---
+        if (req.getStatus() == RequestStatus.EXT_EMPLOYEE_APPROVED_BY_DH) {
+            var externalData = externalEmployeeRepository.findByStaffingRequestId(req.getRequestId());
+            if (externalData.isPresent()) {
+                var ext = externalData.get();
+                // Create Full Name variable
+                String fullName = ext.getFirstName() + " " + ext.getLastName();
+                
+                return new SuccessDashboardDTO(
+                    req.getRequestId(),
+                    req.getProjectName(),
+                    req.getTitle(),
+                    req.getDescription(),
+                    fullName,                      // Display Name field
+                    ext.getExternalEmployeeId(), 
+                    req.getProjectStartDate(),
+                    req.getProjectEndDate(),
+                    req.getProjectLocation(),
+                    (req.getCreatedBy() != null) ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName() : "N/A",
+                    BigDecimal.valueOf(ext.getWagePerHour()),
+                    "External Provider: " + ext.getProvider(),
+                    "EXTERNAL",
+                    ext.getEvaluationScore(), 
+                    ext.getSkills(),
+                    // CHANGED: Use fullName here instead of ext.getLastName()
+                    String.format("Success! External employee %s has been assigned to '%s'.", fullName, req.getProjectName())
+                );
             }
+        }
 
-            String managerName = (req.getCreatedBy() != null)
-                    ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName()
-                    : "N/A";
+        // --- 2. HANDLE INTERNAL EMPLOYEE PATH ---
+        var au = req.getAssignedUser();
+        Employee internalEmp = (au != null) ? au.getEmployee() : null;
+        
+        // Create Full Name variable for Internal
+        String internalFullName = (internalEmp != null) 
+            ? internalEmp.getFirstName() + " " + internalEmp.getLastName() 
+            : "Unknown";
+        
+        boolean isSelfAssignment = (au != null && au.getEmail().equalsIgnoreCase(email));
 
-            return new SuccessDashboardDTO(
-                req.getRequestId(),
-                req.getProjectName(),
-                req.getTitle(),
-                req.getDescription(),
-                empName,
-                empIdStr,
-                req.getProjectStartDate(),
-                req.getProjectEndDate(),
-                req.getProjectLocation(),
-                managerName,
-                req.getWagePerHour(),
-                // Use employee location if internal, otherwise project location for external
-                (internalEmp != null && internalEmp.getPrimaryLocation() != null) ? internalEmp.getPrimaryLocation() : "External/Remote",
-                (internalEmp != null && internalEmp.getContractType() != null) ? internalEmp.getContractType().name() : "EXTERNAL",
-                (internalEmp != null && internalEmp.getPerformanceRating() != null) ? internalEmp.getPerformanceRating() : 5.0,
-                // If internalEmp is null (external case), show the skills required by the request itself
-                (internalEmp != null && internalEmp.getSkills() != null) ? internalEmp.getSkills() : req.getRequiredSkills(),
-                displayMessage 
-            );
-        }).collect(Collectors.toList());
-    }
+        return new SuccessDashboardDTO(
+            req.getRequestId(),
+            req.getProjectName(),
+            req.getTitle(),
+            req.getDescription(),
+            internalFullName,             // Display Name field
+            (internalEmp != null) ? internalEmp.getEmployeeId() : "N/A",
+            req.getProjectStartDate(),
+            req.getProjectEndDate(),
+            req.getProjectLocation(),
+            (req.getCreatedBy() != null) ? req.getCreatedBy().getFirstName() + " " + req.getCreatedBy().getLastName() : "N/A",
+            (req.getWagePerHour() != null) ? req.getWagePerHour() : BigDecimal.ZERO,
+            (internalEmp != null) ? internalEmp.getPrimaryLocation() : "Remote",
+            "INTERNAL",
+            (internalEmp != null) ? internalEmp.getPerformanceRating() : 0.0, 
+            (internalEmp != null) ? internalEmp.getSkills() : req.getRequiredSkills(),
+            isSelfAssignment 
+                ? String.format("Congratulations! You are assigned to project '%s'.", req.getProjectName())
+                // CHANGED: Use internalFullName here
+                : String.format("Success! %s has been assigned to project '%s'.", internalFullName, req.getProjectName())
+        );
+    }).collect(Collectors.toList());
+}
 
     @Transactional
     public void updateRequestDetails(Long requestId, StaffingRequestUpdateDTO dto) {
