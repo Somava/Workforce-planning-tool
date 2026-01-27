@@ -1,22 +1,18 @@
 package com.frauas.workforce_planning.controller;
 
-import com.frauas.workforce_planning.dto.LeadershipEmployeeDTO;
-import com.frauas.workforce_planning.services.EmployeeService;
+import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.frauas.workforce_planning.dto.LeadershipEmployeeDTO;
 import com.frauas.workforce_planning.dto.SuccessDashboardDTO;
 import com.frauas.workforce_planning.security.JwtAuthFilter;
+import com.frauas.workforce_planning.services.EmployeeService;
 import com.frauas.workforce_planning.services.StaffingRequestService;
-import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.List;
 
 /**
  * Controller for Alice (Manager), Dept Heads, and Resource Planners 
