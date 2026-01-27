@@ -11,22 +11,22 @@ spring:
       #mode: never
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/workforce-planning 
+    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
     username: postgres
-    password: FRAU20242025
+    password: 'FRAU@20242025'
     driver-class-name: org.postgresql.Driver
     hikari:
         maximum-pool-size: 5       # Keep this low for Supabase Free Tier
         minimum-idle: 2
         idle-timeout: 30000
         max-lifetime: 1800000
-        connection-timeout: 30000
+        connection-timeout: 600000
 
 
   jpa:
    
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     defer-datasource-initialization: true
     properties:
       hibernate:
@@ -75,6 +75,6 @@ app:
 
 integration: 
   team3b:
-    base-url: "https://webhook.site/"
-    request-path: "9fbeccf0-ade4-4d02-b074-aad6e6cbdaeb"
-    decision-path: "9fbeccf0-ade4-4d02-b074-aad6e6cbdaeb"
+    base-url: "https://service-management-tool.onrender.com/"
+    request-path: "api/integration/group1/workforce-request"
+    decision-path: "api/integration/group1/decision"

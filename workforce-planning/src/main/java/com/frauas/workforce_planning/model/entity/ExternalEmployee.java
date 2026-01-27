@@ -71,6 +71,9 @@ public class ExternalEmployee {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "location")
+    private String location;
+
     @Column(name = "received_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime receivedAt;
 }
