@@ -103,6 +103,9 @@ const fetchRequests = useCallback(async () => {
         console.error("Fetch failed", err);
         setRequests([]);
         setRejectedRequests([]);
+        setEmployees([]);
+        setProjects([]);
+        setSuccessAssignments([]);
     } finally {
         setIsRefreshing(false);
     }
@@ -484,7 +487,7 @@ const openResubmitModal = (req) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                { (activeTab === 'recent' ? (requests || []) : (rejectedRequests || [])) .map((req) => (
+                                {((activeTab === 'recent' ? requests : rejectedRequests) || []).map((req) => (
                                     <tr key={req.requestId} style={styles.tableRow}>
                                         <td style={styles.td}>
                                             <strong>{req.title}</strong>
