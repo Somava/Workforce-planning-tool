@@ -17,7 +17,7 @@ const ApprovalDashboard = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState("");
     const [targetRequestId, setTargetRequestId] = useState(null);
-
+    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
     const userEmail = localStorage.getItem("email") || "charlie@frauas.de";
 
     const calculateMatch = (required = [], candidate = []) => {
@@ -33,10 +33,10 @@ const ApprovalDashboard = () => {
             setIsRefreshing(true);
             try {
                 const [staffingRes, assignmentRes, successRes, employeeRes] = await Promise.all([
-                    axios.get(`http://localhost:8080/api/department-head/pending-requests-approval`),
-                    axios.get(`http://localhost:8080/api/department-head/pending-employees-approval`),
-                    axios.get(`http://localhost:8080/api/workforce-overview/success-notifications`),
-                    axios.get(`http://localhost:8080/api/workforce-overview/all-employees`)
+                   axios.get(API_BASE + "/api/department-head/pending-requests-approval"),
+                   axios.get(API_BASE + "/api/department-head/pending-employees-approval"),
+                   axios.get(API_BASE + "/api/workforce-overview/success-notifications"),
+                   axios.get(API_BASE + "/api/workforce-overview/all-employees")
                 ]);
 
                 setStaffingTasks(Array.isArray(staffingRes.data) ? staffingRes.data.filter(t => t.status === 'PENDING_APPROVAL') : []);
@@ -60,7 +60,7 @@ const ApprovalDashboard = () => {
             } finally {
                 setIsRefreshing(false);
             }
-        }, [userEmail]);
+        }, [userEmail, API_BASE]);
           useEffect(() => {
         fetchAllData();
         }, [fetchAllData]);
@@ -83,10 +83,10 @@ const ApprovalDashboard = () => {
                 };
 
                 const endpoint = activeTab === 'staffing' 
-                    ? 'api/department-head/requests-approval-decision' 
-                    : 'api/department-head/employee-assigning-decision';
+                    ? '/api/department-head/requests-approval-decision' 
+                    : '/api/department-head/employee-assigning-decision';
 
-                await axios.post(`http://localhost:8080/${endpoint}`, null, { params });
+                await axios.post(API_BASE + endpoint, null, { params });
 
                 // Show the success message
                 setMessage({ 

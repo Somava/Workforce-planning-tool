@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle, CheckCircle, Users, Mail, MapPin, Briefcase } from 'lucide-react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 const ResourcePlannerMatch = () => {
     const [view, setView] = useState('list'); 
     const [requests, setRequests] = useState([]);
@@ -26,9 +27,9 @@ const ResourcePlannerMatch = () => {
         setLoading(true);
         try {
             const [reqRes, successRes, empRes] = await Promise.all([
-                axios.get('http://localhost:8080/api/resource-planner/approved-requests'),
-                axios.get('http://localhost:8080/api/workforce-overview/success-notifications'),
-                axios.get('http://localhost:8080/api/workforce-overview/all-employees')
+                axios.get(API_BASE + '/api/resource-planner/approved-requests'),
+                axios.get(API_BASE + '/api/workforce-overview/success-notifications'),
+                axios.get(API_BASE + '/api/workforce-overview/all-employees')
             ]);
 
             const list = Array.isArray(reqRes.data) ? reqRes.data : [];
@@ -47,7 +48,7 @@ const ResourcePlannerMatch = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [API_BASE]);
 
     // Initial Load
     useEffect(() => {
@@ -59,9 +60,9 @@ const ResourcePlannerMatch = () => {
         setLoading(true);
         setSelectedRequest(req);
         try {
-            const res = await axios.get(`http://localhost:8080/api/resource-planner/staffing-requests/employee-matches`, {
-                params: { requestId: req.requestId, topN: 10 }
-            });
+            const res = await axios.get(API_BASE + '/api/resource-planner/staffing-requests/employee-matches', {
+            params: { requestId: req.requestId, topN: 10 }
+        });
             
             const data = res.data;
             // Handle both { matches: [] } and flat array []
@@ -82,10 +83,10 @@ const ResourcePlannerMatch = () => {
         setLoading(true);
         try {
             const response = await axios.post(
-                `http://localhost:8080/api/resource-planner/staffing-requests/employee-reserve-decision`, 
-                accept ? { employeeDbId } : {}, 
-                { params: { requestId: selectedRequest.requestId, internalFound: accept } }
-            );
+            API_BASE + '/api/resource-planner/staffing-requests/employee-reserve-decision', 
+            accept ? { employeeDbId } : {}, 
+            { params: { requestId: selectedRequest.requestId, internalFound: accept } }
+        );
 
             if (response.status === 200 || response.status === 201) {
                 setMessage({ 

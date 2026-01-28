@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 // --- STYLES SECTION ---
 const statusStyles = {
     'APPLIED': { background: '#eff6ff', color: '#1e40af' },
@@ -210,12 +211,11 @@ const EmployeeDashboard = () => {
     const fetchData = useCallback(async () => {
     try {
         const [posRes, appRes, empAssignRes, profileRes, successRes] = await Promise.all([
-            axios.get('http://localhost:8080/api/employee/open-positions'),
-            axios.get('http://localhost:8080/api/employee/my-applications'), 
-            axios.get('http://localhost:8080/api/employee/assigned-requests'),
-            axios.get('http://localhost:8080/api/employee/my-profile'),
-            // ADD THIS LINE
-            axios.get('http://localhost:8080/api/workforce-overview/success-notifications')
+            axios.get(API_BASE + '/api/employee/open-positions'),
+            axios.get(API_BASE + '/api/employee/my-applications'), 
+            axios.get(API_BASE + '/api/employee/assigned-requests'),
+            axios.get(API_BASE + '/api/employee/my-profile'),
+            axios.get(API_BASE + '/api/workforce-overview/success-notifications')
         ]);
 
         setOpenPositions(Array.isArray(posRes.data) ? posRes.data : []);
@@ -230,7 +230,7 @@ const EmployeeDashboard = () => {
     } catch (err) {
         console.error("Sync Error:", err);
     }
-}, []);
+}, [API_BASE]);
     useEffect(() => { 
         fetchData(); 
     }, [fetchData]);
@@ -240,7 +240,7 @@ const EmployeeDashboard = () => {
         setPendingAction(requestId);
         try {
             // Using params object for cleaner URL construction
-            const res = await axios.post(`http://localhost:8080/api/employee/apply`, null, {
+            const res = await axios.post(API_BASE + '/api/employee/apply', null, {
                 params: { requestId }
             });
             
@@ -259,7 +259,7 @@ const EmployeeDashboard = () => {
     const handleWithdraw = async (applicationId) => {
         setPendingAction(applicationId);
         try {
-            await axios.post(`http://localhost:8080/api/employee/withdraw`, null, {
+            await axios.post(API_BASE + '/api/employee/withdraw', null, {
                 params: { applicationId }
             });
             showNotification("Application Withdrawn", 'success');
@@ -288,7 +288,8 @@ const EmployeeDashboard = () => {
 
     try {
         const token = localStorage.getItem('token'); 
-        const res = await axios.post(`http://localhost:8080/api/employee/assignment-decision`, null, {
+        const url = API_BASE + "/api/employee/assignment-decision";
+        const res = await axios.post(url, null, {
             params: {
                 requestId: id,
                 approved: isApproved,
