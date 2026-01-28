@@ -240,11 +240,11 @@ const StaffingRequest = () => {
                     <div style={styles.row}>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Experience (Years)</label>
-                            <input name="experienceYears" type="number" style={styles.input} onChange={handleChange} required />
+                            <input name="experienceYears" type="text" style={styles.input} onChange={handleChange} required />
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Wage / Hour (€)</label>
-                            <input name="wagePerHour" type="number" step="0.1" style={styles.input} onChange={handleChange} required />
+                            <input name="wagePerHour" type="text" style={styles.input} onChange={handleChange} required />
                         </div>
                     </div>
 

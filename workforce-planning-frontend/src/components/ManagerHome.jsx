@@ -305,11 +305,9 @@ const openResubmitModal = (req) => {
         </div>
     );
 
-   const renderSuccessAssignments = () => {
-    // Safety check: Ensure successAssignments is an array to prevent .map() errors
+    const renderSuccessAssignments = () => {
     const assignments = Array.isArray(successAssignments) ? successAssignments : [];
 
-    // Empty state: Show this when no assignments are found
     if (assignments.length === 0) {
         return (
             <div style={{
@@ -330,93 +328,107 @@ const openResubmitModal = (req) => {
         );
     }
 
-    // Data state: Render the list if assignments exist
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-            {assignments.map(item => (
-                <div key={item.requestId} style={{
-                    ...styles.projectRow, 
-                    display: 'flex', 
-                    flexDirection: 'row', 
-                    alignItems: 'stretch', 
-                    padding: '24px', 
-                    borderLeft: '5px solid #10b981', 
-                    backgroundColor: '#fff', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                    <div style={{ flex: '1' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
-                            <span style={{ 
-                                background: '#dcfce7', 
-                                color: '#166534', 
-                                padding: '4px 10px', 
-                                borderRadius: '6px', 
-                                fontSize: '11px', 
-                                fontWeight: '800', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '4px'
+            {assignments.map(item => {
+                const isExternal = item.contractType === 'EXTERNAL';
+
+                return (
+                    <div key={item.requestId} style={{
+                        ...styles.projectRow, 
+                        display: 'flex', 
+                        flexDirection: 'row', 
+                        alignItems: 'stretch', 
+                        padding: '24px', 
+                        // Indigo border for External, Green for Internal
+                        borderLeft: `5px solid ${isExternal ? '#6366f1' : '#10b981'}`, 
+                        backgroundColor: '#fff', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                        <div style={{ flex: '1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                                <span style={{ 
+                                    background: isExternal ? '#e0e7ff' : '#dcfce7', 
+                                    color: isExternal ? '#4338ca' : '#166534', 
+                                    padding: '4px 10px', 
+                                    borderRadius: '6px', 
+                                    fontSize: '11px', 
+                                    fontWeight: '800',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}>
+                                    ⭐ PERFORMANCE: {item.performanceRating} {isExternal && `| ${item.contractType}`}
+                                </span>
+                            </div>
+                            
+                            <div style={{ 
+                                background: isExternal ? '#f5f3ff' : '#f0fdf4', 
+                                padding: '12px 16px', 
+                                borderRadius: '8px', 
+                                border: `1px solid ${isExternal ? '#ddd6fe' : '#bbf7d0'}`, 
+                                color: isExternal ? '#5b21b6' : '#166534', 
+                                fontSize: '13px', 
+                                marginBottom: '16px', 
+                                lineHeight: '1.4'
                             }}>
-                                ⭐ PERFORMANCE: {item.performanceRating}
-                            </span>
-                        </div>
-                        
-                        <div style={{ 
-                            background: '#f0fdf4', 
-                            padding: '12px 16px', 
-                            borderRadius: '8px', 
-                            border: '1px solid #bbf7d0', 
-                            color: '#166534', 
-                            fontSize: '13px', 
-                            marginBottom: '16px', 
-                            lineHeight: '1.4'
-                        }}>
-                            ✨ {item.congratsMessage}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
-                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
-                            <span style={{ color: '#d1d5db' }}>|</span>
-                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
-                        </div>
-
-                        <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
-                            gap: '20px', 
-                            background: '#f8fafc', 
-                            padding: '16px', 
-                            borderRadius: '8px', 
-                            border: '1px solid #f1f5f9'
-                        }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
-                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                                ✨ {item.congratsMessage}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
-                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+
+                            <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                                <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                                <span style={{ color: '#d1d5db' }}>|</span>
+                                <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
-                                {item.employeeSkills?.map(skill => (
-                                    <span key={skill} style={{ 
-                                        background: '#e0e7ff', 
-                                        color: '#4338ca', 
-                                        padding: '4px 10px', 
-                                        borderRadius: '6px', 
-                                        fontSize: '11px', 
-                                        fontWeight: '700' 
-                                    }}>
-                                        {skill}
-                                    </span>
-                                ))}
+
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
+                                gap: '20px', 
+                                background: '#f8fafc', 
+                                padding: '16px', 
+                                borderRadius: '8px', 
+                                border: '1px solid #f1f5f9'
+                            }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                                    {/* Only show Provider for external */}
+                                    {isExternal && (
+                                        <div style={{ fontSize: '13px', color: '#6366f1', fontWeight: '600' }}>
+                                            <strong>Provider:</strong> {item.primaryLocation}
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                                    {/* Only show Manager for external */}
+                                    {isExternal && (
+                                        <div style={{ fontSize: '13px', color: '#475569' }}><strong>Manager:</strong> {item.managerName}</div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                    {item.employeeSkills?.map(skill => (
+                                        <span key={skill} style={{ 
+                                            background: isExternal ? '#e0e7ff' : '#f1f5f9', 
+                                            color: isExternal ? '#4338ca' : '#475569', 
+                                            padding: '4px 10px', 
+                                            borderRadius: '6px', 
+                                            fontSize: '11px', 
+                                            fontWeight: '700' 
+                                        }}>
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
