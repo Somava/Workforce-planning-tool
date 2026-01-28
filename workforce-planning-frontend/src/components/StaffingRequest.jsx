@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Briefcase, Calendar, Clock, AlertCircle, Send, MapPin, List, CheckCircle } from 'lucide-react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 const StaffingRequest = () => {
     // Force scroll to top on component mount
     useEffect(() => {
@@ -34,7 +35,7 @@ const StaffingRequest = () => {
         const fetchProjects = async () => {
             try {
                 // Using axios - interceptor handles the token automatically
-                const res = await axios.get('http://localhost:8080/api/projects');
+                const res = await axios.get(API_BASE + '/api/projects');
                 setProjects(res.data || []);
             } catch (err) {
                 setMessage({ type: 'error', text: 'Projects failed to load. Check API.' });
@@ -59,7 +60,7 @@ const StaffingRequest = () => {
 
         if (id) {
             try {
-                const res = await axios.get(`http://localhost:8080/api/department-head/all-departments`);
+                const res = await axios.get(API_BASE + '/api/department-head/all-departments');
                 const deptData = res.data || [];
                 
                 // Logic to ensure unique department names
@@ -139,7 +140,7 @@ const StaffingRequest = () => {
 
         try {
             // Interceptor handles headers. Data is passed as second argument.
-            const response = await axios.post('http://localhost:8080/api/manager/create-staffing-requests', payload);
+            const response = await axios.post(API_BASE + '/api/manager/create-staffing-requests', payload);
 
             if (response.status === 200 || response.status === 201) {
                 setIsSubmitted(true);

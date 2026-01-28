@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 // --- Comprehensive Visual Mapping for all RequestStatus Enums ---
 const STATUS_CONFIG = {
     'DRAFT': { color: '#f3f4f6', textColor: '#374151', label: 'Draft' },
@@ -84,11 +85,11 @@ const fetchRequests = useCallback(async () => {
     try {
         // Updated endpoints to match your request; Interceptor attaches token automatically
         const [recentRes, rejectedRes, empRes, projRes, successRes] = await Promise.all([
-            axios.get(`http://localhost:8080/api/manager/all-staffing-requests`), // Fixed spelling to 'staffing'
-            axios.get(`http://localhost:8080/api/manager/rejected-requests`),
-            axios.get(`http://localhost:8080/api/workforce-overview/all-employees`),
-            axios.get(`http://localhost:8080/api/projects`),
-            axios.get(`http://localhost:8080/api/workforce-overview/success-notifications`)
+            axios.get(API_BASE + "/api/manager/all-staffing-requests"), 
+            axios.get(API_BASE + "/api/manager/rejected-requests"),
+            axios.get(API_BASE + "/api/workforce-overview/all-employees"),
+            axios.get(API_BASE + "/api/projects"),
+            axios.get(API_BASE + "/api/workforce-overview/success-notifications")
         ]);
 
         setRequests(recentRes.data || []);
@@ -105,7 +106,7 @@ const fetchRequests = useCallback(async () => {
     } finally {
         setIsRefreshing(false);
     }
-}, []); 
+}, [API_BASE]); 
 
 // --- 3. AUTO-REFRESH EFFECT ---
 useEffect(() => {
@@ -144,7 +145,7 @@ const handleCreateProject = async () => {
 
     try {
         // managerEmail removed; backend identifies user via JWT
-        await axios.post(`http://localhost:8080/api/projects/create`, newProject);
+        await axios.post(API_BASE + "/api/projects/create", newProject);
         setShowProjectModal(false);
         setNewProject({ name: "", description: "", startDate: "", endDate: "", location: "" });
         fetchRequests(); 
@@ -180,7 +181,9 @@ const handleDecision = async (id, isResubmit, originalReq = null) => {
 
     try {
         // email parameter removed; identity extracted from token by JwtAuthFilter
-        const url = `http://localhost:8080/api/manager/staffing-request/review-decision?requestId=${id}&isResubmit=${isResubmit}`;
+        const url = API_BASE + "/api/manager/staffing-request/review-decision" + 
+                "?requestId=" + id + 
+                "&isResubmit=" + isResubmit;
         await axios.post(url, payload);
         setResubmitModal(null);
         fetchRequests();
