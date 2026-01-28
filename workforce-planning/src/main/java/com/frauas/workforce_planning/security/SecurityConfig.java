@@ -1,8 +1,9 @@
 package com.frauas.workforce_planning.security;
 
+import java.util.Arrays;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -10,6 +11,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -24,8 +28,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                // 1. Enable CORS (uses your WebConfig.java settings)
-                .cors(Customizer.withDefaults())
+                // 1. Link the CORS configuration source defined below
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 
                 // 2. Disable CSRF for stateless REST APIs
                 .csrf(csrf -> csrf.disable()) 
@@ -35,10 +39,7 @@ public class SecurityConfig {
                 
                 // 4. Configure Endpoint Permissions
                 .authorizeHttpRequests(auth -> auth
-                        // Public: Authentication endpoints
                         .requestMatchers("/api/auth/**").permitAll() 
-                        
-                        // Public: Swagger UI & OpenAPI Documentation
                         .requestMatchers(
                             "/swagger-ui.html",
                             "/swagger-ui/**",
@@ -48,17 +49,39 @@ public class SecurityConfig {
                             "/webjars/**",
                             "/error"
                         ).permitAll()
-                        
-                        // Public: Team 3B Integration endpoints
                         .requestMatchers("/api/integration/**", "/api/group3b/**").permitAll()
-                        
-                        // Secure: Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )
                 
-                // 5. Add JWT Filter before the standard UsernamePassword filter
+                // 5. Add JWT Filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Add all your trusted origins here
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://workforce-planning-tool.onrender.com",
+            "https://service-management-tool.onrender.com",
+            "https://workforce-planning-tool.vercel.app"
+        ));
+        
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        
+        // Essential for JWT: Browser needs to be allowed to send the 'Authorization' header
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
+        
+        // Essential for cookie/session sharing if you ever use it
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
