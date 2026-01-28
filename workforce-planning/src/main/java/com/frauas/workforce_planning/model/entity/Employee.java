@@ -1,16 +1,13 @@
 package com.frauas.workforce_planning.model.entity;
+
 import com.frauas.workforce_planning.model.enums.MatchingAvailability;
-
-
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.math.BigDecimal;
 
-
 import org.hibernate.annotations.Type;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.frauas.workforce_planning.model.enums.ContractType;
@@ -26,6 +23,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+// Critical for Hibernate EAGER/LAZY proxy handling
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Employee {
 
     @Id
@@ -43,17 +42,18 @@ public class Employee {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
-    @JsonIgnoreProperties({"employees", "departmentHead", "staffingRequests"})
+    @JsonIgnoreProperties({"employees", "departmentHead", "staffingRequests", "hibernateLazyInitializer", "handler"})
     private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_role_id")
-    @JsonIgnoreProperties("employees")
+    @JsonIgnoreProperties({"employees", "hibernateLazyInitializer", "handler"})
     private Role defaultRole;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supervisor_id")
-    @JsonIgnoreProperties({"subordinates", "department", "createdStaffingRequests", "supervisor"})
+    // Prevents crawling up the management chain forever
+    @JsonIgnoreProperties({"subordinates", "department", "createdStaffingRequests", "supervisor", "user", "hibernateLazyInitializer", "handler"})
     private Employee supervisor;
 
     @Column(name = "primary_location", length = 150)
@@ -78,7 +78,6 @@ public class Employee {
     @Column(name = "performance_rating")
     private Double performanceRating;
 
-
     @Column(name = "emergency_contact", length = 255)
     private String emergencyContact;
 
@@ -87,17 +86,13 @@ public class Employee {
 
     @Column(name = "availability_end")
     private LocalDate availabilityEnd;
+
     @Column(name = "email", unique = true, length = 150)
     private String email;
 
     @Enumerated(EnumType.STRING)
-    @Column(
-        name = "matching_availability",  
-        nullable = false,
-        length = 50
-    )
+    @Column(name = "matching_availability", nullable = false, length = 50)
     private MatchingAvailability matchingAvailability = MatchingAvailability.AVAILABLE;
-
 
     @Column(name = "project_preferences", columnDefinition = "TEXT")
     private String projectPreferences;
@@ -111,19 +106,21 @@ public class Employee {
 
     // --- Relations with Recursion Breaks ---
 
-
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties("employee")
+    @JsonIgnoreProperties({"employee", "hibernateLazyInitializer", "handler"})
     private Set<EmployeeLanguage> languages = new HashSet<>();
-
 
     @OneToMany(mappedBy = "createdBy")
     @JsonIgnore // Stops Request -> Employee -> CreatedRequests loop
     private Set<StaffingRequest> createdStaffingRequests = new HashSet<>();
 
     @OneToMany(mappedBy = "employee")
-    @JsonIgnoreProperties("employee")
+    @JsonIgnoreProperties({"employee", "hibernateLazyInitializer", "handler"})
     private Set<EmployeeApplication> applications = new HashSet<>();
+
+    @OneToOne(mappedBy = "employee")
+    @JsonIgnore // Breaks the Employee <-> User cycle
+    private User user;
 
     @Override
     public boolean equals(Object o) {
@@ -137,7 +134,4 @@ public class Employee {
     public int hashCode() {
         return id != null ? id.hashCode() : getClass().hashCode();
     }
-    @OneToOne(mappedBy = "employee")
-    @JsonIgnore
-    private User user;
 }
