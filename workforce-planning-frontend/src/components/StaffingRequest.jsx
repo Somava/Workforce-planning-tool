@@ -223,7 +223,7 @@ const StaffingRequest = () => {
 
                     <div style={styles.row}>
                         <div style={styles.flexItem}>
-                            <label style={styles.label}><MapPin size={14}/> Project Location (Auto)</label>
+                            <label style={styles.label}><MapPin size={14}/> Project Location</label>
                             <input name="projectLocation" value={formData.projectLocation} style={{...styles.input, background: '#f3f4f6', cursor: 'not-allowed'}} readOnly />
                         </div>
                         <div style={styles.flexItem}>

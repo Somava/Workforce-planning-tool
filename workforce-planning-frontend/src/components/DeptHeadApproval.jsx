@@ -455,7 +455,7 @@ return (
                                                                 color: matchScore > 75 ? '#166534' : '#854d0e',
                                                                 borderRadius: '20px', padding: '4px 12px'
                                                             }}>
-                                                                {matchScore}% Match
+                                                                {matchScore}% Match of Skills
                                                             </span>
                                                         )}
                                                     </div>
