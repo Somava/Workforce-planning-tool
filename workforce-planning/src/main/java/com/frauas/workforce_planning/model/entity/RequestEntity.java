@@ -16,8 +16,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.NoArgsConstructor;
 
 @Entity
+@NoArgsConstructor
 @Table(name = "staffing_requests")
 public class RequestEntity {
 

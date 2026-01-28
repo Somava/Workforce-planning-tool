@@ -11,22 +11,22 @@ spring:
       #mode: never
 
   datasource:
-    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
-    username: postgres
-    password: 'FRAU@20242025'
-    driver-class-name: org.postgresql.Driver
-    hikari:
-        maximum-pool-size: 1       # Keep this low for Supabase Free Tier
-        minimum-idle: 2
-        idle-timeout: 6000000
+      url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
+      username: postgres
+      password: 'FRAU@20242025'
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: 2       # Keep this low for Supabase Free Tier
+        minimum-idle: 1
+        idle-timeout: 30000
         max-lifetime: 1800000
-        connection-timeout: 6000000
+        connection-timeout: 30000
 
 
   jpa:
    
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     defer-datasource-initialization: true
     properties:
       hibernate:
