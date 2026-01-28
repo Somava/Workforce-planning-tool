@@ -35,7 +35,7 @@ const ManagerHome = () => {
     const userEmail = localStorage.getItem("email");
 
     const [activeTab, setActiveTab] = useState('recent'); 
-    const [requests, setRequests] = useState();
+    const [requests, setRequests] = useState([]);
     const [rejectedRequests, setRejectedRequests] = useState([]);
     const [employees, setEmployees] = useState([]); 
     const [projects, setProjects] = useState([]); 
