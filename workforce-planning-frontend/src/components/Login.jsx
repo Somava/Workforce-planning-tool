@@ -9,6 +9,9 @@ const Login = () => {
     const navigate = useNavigate();
     const inactivityTimer = useRef(null);
 
+    // This looks at Vercel's settings first. If not found, it uses localhost.
+    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+
     useEffect(() => {
         document.body.style.margin = "0";
         document.body.style.padding = "0";
@@ -37,7 +40,8 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            const res = await fetch("http://localhost:8080/api/auth/login/auto", {
+            const url = API_BASE + "/api/auth/login/auto";
+            const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(creds)

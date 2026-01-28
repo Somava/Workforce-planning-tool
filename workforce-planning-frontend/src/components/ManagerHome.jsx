@@ -24,7 +24,8 @@ const STATUS_CONFIG = {
     'ASSIGNED': { color: '#f3e8ff', textColor: '#6b21a8', label: 'Staff Assigned' },
     'CANCELLED': { color: '#111827', textColor: '#ffffff', label: 'Cancelled' },
     'OPEN': { color: '#ecfdf5', textColor: '#047857', label: 'Active' },
-    'CLOSED': { color: '#6b7280', textColor: '#ffffff', label: 'Closed' }
+    'CLOSED': { color: '#6b7280', textColor: '#ffffff', label: 'Closed' },
+    'EXT EMPLOYEE APPROVED BY DH': { color: '#fae8ff', textColor: '#86198f', label: 'External Employee Approved by Dept. Head' },
 };
 
 const ManagerHome = () => {
