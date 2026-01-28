@@ -96,42 +96,6 @@ const styles = {
         marginTop: '20px',         
         border: '1px solid #e2e8f0'
     },
-    modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw', // Ensures full width
-    height: '100vh', // Ensures full height
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Darker dim to make the white box pop
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000, // Higher priority
-    backdropFilter: 'blur(4px)', // Optional: adds that modern glass effect
-},
-modalContent: {
-    backgroundColor: '#ffffff',
-    padding: '40px',
-    borderRadius: '32px', // Deep rounding like the reference
-    width: '100%',
-    maxWidth: '550px', // Prevents it from getting too wide on desktop
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', // Heavier shadow
-    border: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'relative',
-},
-// ... keep modalTitle, modalSub, and modalTextarea as we had them
-modalConfirm: {
-    flex: 1,
-    padding: '16px',
-    borderRadius: '14px',
-    border: 'none',
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '700',
-    transition: 'all 0.2s ease', // Smooth color transition
-},
     // NEW ACTIVE PROJECT STYLES
     activeProjectCard: { background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
     activeCardSidebar: { width: '8px', background: '#10b981' },
@@ -582,37 +546,94 @@ const EmployeeDashboard = () => {
                                                 </div>
 
                                                 {showReasonInput[item.requestId] && (
-                                                    <div style={styles.modalOverlay} onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}>
-                                                        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                                            {/* 1. Header updated to match your Department Portal reference */}
-                                                            <h2 style={styles.modalTitle}>Reason for Rejection</h2>
+                                                    <div style={{
+                                                        position: 'fixed',
+                                                        top: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: 0,
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.7)', // The exact dark tint from your styles
+                                                        display: 'flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        zIndex: 9999,
+                                                        backdropFilter: 'blur(4px)'
+                                                    }} onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}>
+                                                        
+                                                        <div style={{
+                                                            backgroundColor: 'white',
+                                                            padding: '40px',
+                                                            borderRadius: '32px', // Force the deep curve
+                                                            width: '100%',
+                                                            maxWidth: '520px',
+                                                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                                                            border: 'none'
+                                                        }} onClick={(e) => e.stopPropagation()}>
                                                             
-                                                            {/* 2. Sub-header text updated for a cleaner look */}
-                                                            <p style={styles.modalSub}>
-                                                                Provide a mandatory reason for this decision.
-                                                            </p>
+                                                            <h3 style={{ 
+                                                                fontSize: '32px', 
+                                                                fontWeight: '800', 
+                                                                color: '#1e293b', 
+                                                                margin: '0 0 10px 0',
+                                                                fontFamily: 'sans-serif' 
+                                                            }}>Reason for Rejection</h3>
                                                             
-                                                            {/* 3. Textarea with the lighter placeholder */}
+                                                            <p style={{ 
+                                                                fontSize: '16px', 
+                                                                color: '#64748b', 
+                                                                marginBottom: '24px', 
+                                                                lineHeight: '1.5' 
+                                                            }}>Provide a mandatory reason for this decision.</p>
+                                                            
                                                             <textarea 
-                                                                style={styles.modalTextarea}
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '160px',
+                                                                    padding: '20px',
+                                                                    borderRadius: '16px',
+                                                                    border: '1px solid #e2e8f0',
+                                                                    backgroundColor: '#f8fafc', // Light grey background
+                                                                    fontFamily: 'inherit',
+                                                                    fontSize: '16px',
+                                                                    resize: 'none',
+                                                                    marginBottom: '32px',
+                                                                    boxSizing: 'border-box',
+                                                                    outline: 'none'
+                                                                }} 
                                                                 placeholder="Type rejection reason..."
                                                                 value={declineReason[item.requestId] || ""}
                                                                 onChange={(e) => setDeclineReason({...declineReason, [item.requestId]: e.target.value})}
                                                             />
 
-                                                            <div style={styles.modalActions}>
+                                                            <div style={{ display: 'flex', gap: '16px' }}>
                                                                 <button 
-                                                                    style={styles.modalCancel} 
+                                                                    style={{
+                                                                        flex: 1,
+                                                                        padding: '16px',
+                                                                        borderRadius: '14px',
+                                                                        border: '1px solid #e2e8f0',
+                                                                        backgroundColor: 'white',
+                                                                        color: '#1e293b',
+                                                                        fontWeight: '700',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '16px'
+                                                                    }} 
                                                                     onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}
                                                                 >
                                                                     Cancel
                                                                 </button>
                                                                 <button 
                                                                     style={{
-                                                                        ...styles.modalConfirm,
+                                                                        flex: 1,
+                                                                        padding: '16px',
+                                                                        borderRadius: '14px',
+                                                                        border: 'none',
+                                                                        color: 'white',
+                                                                        fontWeight: '700',
+                                                                        fontSize: '16px',
                                                                         backgroundColor: (declineReason[item.requestId] || "").trim() ? '#ef4444' : '#fca5a5',
                                                                         cursor: (declineReason[item.requestId] || "").trim() ? 'pointer' : 'not-allowed'
-                                                                    }}
+                                                                    }} 
                                                                     disabled={!(declineReason[item.requestId] || "").trim()}
                                                                     onClick={() => handleEmployeeDecision(item.requestId, false)}
                                                                 >
