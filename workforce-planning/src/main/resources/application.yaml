@@ -60,10 +60,9 @@ camunda:
       client-id: vVhXO-DdEmix.d.eerh3JX~JdYrsYNaL
       client-secret: E96o36zUop0JxxEf8ig_kiSGygKNtbWf~rxTNVeH.09vjG03BTsH.qZ4qb.mKNey
     zeebe:
-      
-      request-timeout: 60s
-      default-request-timeout: 60s
-      keep-alive: 60s
+      request-timeout: 20s
+      default-request-timeout: 20s
+      keep-alive: 20s
 
 app:
   jwt:
