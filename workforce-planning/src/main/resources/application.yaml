@@ -7,13 +7,13 @@ spring:
 
   sql:
     init:
-      mode: always
+      mode: never
       #mode: never
 
   datasource:
-      url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
-      username: postgres
-      password: 'FRAU@20242025'
+      url: jdbc:postgresql://dpg-d5sp4gvfte5s73ch8ur0-a.frankfurt-postgres.render.com/workforce_db_y3lc
+      username: workforce_db_y3lc_user
+      password: 9X6shObIsbhRFbucXpmIgAPuriOW3zUZ
       driver-class-name: org.postgresql.Driver
       hikari:
         maximum-pool-size: 2       # Keep this low for Supabase Free Tier
