@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -22,20 +24,38 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(Customizer.withDefaults()) // Links to WebConfig
-                .csrf(csrf -> csrf.disable())      // Required for POST requests
+                // 1. Enable CORS (uses your WebConfig.java settings)
+                .cors(Customizer.withDefaults())
+                
+                // 2. Disable CSRF for stateless REST APIs
+                .csrf(csrf -> csrf.disable()) 
+                
+                // 3. Set Session Policy to Stateless (JWT)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                
+                // 4. Configure Endpoint Permissions
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allows login/auto-login
+                        // Public: Authentication endpoints
+                        .requestMatchers("/api/auth/**").permitAll() 
+                        
+                        // Public: Swagger UI & OpenAPI Documentation
                         .requestMatchers(
                             "/swagger-ui.html",
                             "/swagger-ui/**",
                             "/v3/api-docs/**",
-                            "/v3/api-docs.yaml"
+                            "/v3/api-docs.yaml",
+                            "/swagger-resources/**",
+                            "/webjars/**"
                         ).permitAll()
-                        .requestMatchers("/api/group3b/**").permitAll()
-                        .anyRequest().authenticated()                    // Temporary for testing
+                        
+                        // Public: Team 3B Integration endpoints
+                        .requestMatchers("/api/integration/**", "/api/group3b/**").permitAll()
+                        
+                        // Secure: Everything else requires a valid JWT
+                        .anyRequest().authenticated()
                 )
+                
+                // 5. Add JWT Filter before the standard UsernamePassword filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -45,4 +65,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-

@@ -11,16 +11,16 @@ spring:
       #mode: never
 
   datasource:
-    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:6543/postgres?pgbouncer=true
+    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:6543/postgres?pgbouncer=true&prepareThreshold=0
     username: postgres
     password: 'FRAU@20242025'
     driver-class-name: org.postgresql.Driver
     hikari:
         maximum-pool-size: 1       # Keep this low for Supabase Free Tier
         minimum-idle: 2
-        idle-timeout: 600000
+        idle-timeout: 6000000
         max-lifetime: 1800000
-        connection-timeout: 600000
+        connection-timeout: 6000000
 
 
   jpa:
