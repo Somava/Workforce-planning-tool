@@ -8,6 +8,7 @@ import java.util.List;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 
@@ -46,7 +47,7 @@ public class StaffingRequest {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
     // BREAKS THE LOOP: Ignores the list of requests inside the Project object
-    @JsonIgnoreProperties({"staffingRequests"})
+    @JsonIgnore
     private Project project;
 
     @Column(name = "project_name")
@@ -98,12 +99,12 @@ public class StaffingRequest {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by_employee_id")
     // BREAKS THE LOOP: Ignores the lists inside the Employee object
-    @JsonIgnoreProperties({"createdStaffingRequests", "department", "supervisor"})
+    @JsonIgnore
     private Employee createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id") 
-    @JsonIgnoreProperties({"password", "roles"})
+    @JsonIgnore
     private User assignedUser;
 
     public void setAssignedUser(User assignedUser) {
