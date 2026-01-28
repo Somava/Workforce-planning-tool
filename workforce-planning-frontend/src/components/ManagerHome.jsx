@@ -35,7 +35,7 @@ const ManagerHome = () => {
     const userEmail = localStorage.getItem("email");
 
     const [activeTab, setActiveTab] = useState('recent'); 
-    const [requests, setRequests] = useState([]);
+    const [requests, setRequests] = useState();
     const [rejectedRequests, setRejectedRequests] = useState([]);
     const [employees, setEmployees] = useState([]); 
     const [projects, setProjects] = useState([]); 
@@ -450,8 +450,8 @@ const openResubmitModal = (req) => {
                 </div>
 
                 <div style={styles.tabBar}>
-                    <button style={{...styles.tabItem, ...(activeTab === 'recent' ? styles.activeTab : {})}} onClick={() => setActiveTab('recent')}>All Requests ({requests.length})</button>
-                    <button style={{...styles.tabItem, ...(activeTab === 'rejected' ? styles.activeTab : {})}} onClick={() => setActiveTab('rejected')}>Rejected Requests ({rejectedRequests.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'recent' ? styles.activeTab : {})}} onClick={() => setActiveTab('recent')}>All Requests ({requests?.length})</button>
+                    <button style={{...styles.tabItem, ...(activeTab === 'rejected' ? styles.activeTab : {})}} onClick={() => setActiveTab('rejected')}>Rejected Requests ({rejectedRequests?.length})</button>
                     <button style={{...styles.tabItem, ...(activeTab === 'employees' ? styles.activeTab : {})}} onClick={() => setActiveTab('employees')}>Employee List ({employees.length})</button>
                     <button style={{...styles.tabItem, ...(activeTab === 'projects' ? styles.activeTab : {})}} onClick={() => setActiveTab('projects')}>Project List ({projects.length})</button>
                     <button style={{...styles.tabItem, ...(activeTab === 'success' ? styles.activeTab : {})}} onClick={() => setActiveTab('success')}>Successful Assignments ({successAssignments.length})</button>
@@ -484,7 +484,7 @@ const openResubmitModal = (req) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {((activeTab === 'recent' ? requests : rejectedRequests) || []).map((req) => (
+                                { (activeTab === 'recent' ? (requests || []) : (rejectedRequests || [])) .map((req) => (
                                     <tr key={req.requestId} style={styles.tableRow}>
                                         <td style={styles.td}>
                                             <strong>{req.title}</strong>
