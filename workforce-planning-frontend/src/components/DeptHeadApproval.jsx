@@ -17,7 +17,7 @@ const ApprovalDashboard = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectionReason, setRejectionReason] = useState("");
     const [targetRequestId, setTargetRequestId] = useState(null);
-
+    const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
     const userEmail = localStorage.getItem("email") || "charlie@frauas.de";
 
     const calculateMatch = (required = [], candidate = []) => {
@@ -33,10 +33,10 @@ const ApprovalDashboard = () => {
             setIsRefreshing(true);
             try {
                 const [staffingRes, assignmentRes, successRes, employeeRes] = await Promise.all([
-                    axios.get(`http://localhost:8080/api/department-head/pending-requests-approval`),
-                    axios.get(`http://localhost:8080/api/department-head/pending-employees-approval`),
-                    axios.get(`http://localhost:8080/api/workforce-overview/success-notifications`),
-                    axios.get(`http://localhost:8080/api/workforce-overview/all-employees`)
+                   axios.get(API_BASE + "/api/department-head/pending-requests-approval"),
+                   axios.get(API_BASE + "/api/department-head/pending-employees-approval"),
+                   axios.get(API_BASE + "/api/workforce-overview/success-notifications"),
+                   axios.get(API_BASE + "/api/workforce-overview/all-employees")
                 ]);
 
                 setStaffingTasks(Array.isArray(staffingRes.data) ? staffingRes.data.filter(t => t.status === 'PENDING_APPROVAL') : []);
@@ -60,7 +60,7 @@ const ApprovalDashboard = () => {
             } finally {
                 setIsRefreshing(false);
             }
-        }, [userEmail]);
+        }, [userEmail, API_BASE]);
           useEffect(() => {
         fetchAllData();
         }, [fetchAllData]);
@@ -83,10 +83,10 @@ const ApprovalDashboard = () => {
                 };
 
                 const endpoint = activeTab === 'staffing' 
-                    ? 'api/department-head/requests-approval-decision' 
-                    : 'api/department-head/employee-assigning-decision';
+                    ? '/api/department-head/requests-approval-decision' 
+                    : '/api/department-head/employee-assigning-decision';
 
-                await axios.post(`http://localhost:8080/${endpoint}`, null, { params });
+                await axios.post(API_BASE + endpoint, null, { params });
 
                 // Show the success message
                 setMessage({ 
@@ -117,16 +117,20 @@ const ApprovalDashboard = () => {
                 }, 8000);
             }
         };
-    const renderSuccessList = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-            {completedAssignments.map(item => (
+     const renderSuccessList = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+        {completedAssignments.map(item => {
+            const isExternal = item.contractType === 'EXTERNAL';
+
+            return (
                 <div key={item.requestId} style={{
                     ...styles.projectRow, 
                     display: 'flex', 
                     flexDirection: 'row', 
                     alignItems: 'stretch', 
                     padding: '24px', 
-                    borderLeft: '5px solid #10b981', 
+                    // Indigo border for external, Green for internal
+                    borderLeft: `5px solid ${isExternal ? '#6366f1' : '#10b981'}`, 
                     backgroundColor: '#fff', 
                     borderRadius: '12px', 
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -135,37 +139,28 @@ const ApprovalDashboard = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                             <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
                             <span style={{ 
-                                background: '#dcfce7', 
-                                color: '#166534', 
+                                background: isExternal ? '#e0e7ff' : '#dcfce7', 
+                                color: isExternal ? '#4338ca' : '#166534', 
                                 padding: '4px 10px', 
                                 borderRadius: '6px', 
                                 fontSize: '11px', 
-                                fontWeight: '800', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '4px'
+                                fontWeight: '800'
                             }}>
-                                ⭐ PERFORMANCE: {item.performanceRating}
+                                ⭐ RATING: {item.performanceRating} | {item.contractType}
                             </span>
                         </div>
                         
                         <div style={{ 
-                            background: '#f0fdf4', 
+                            background: isExternal ? '#f5f3ff' : '#f0fdf4', 
                             padding: '12px 16px', 
                             borderRadius: '8px', 
-                            border: '1px solid #bbf7d0', 
-                            color: '#166534', 
+                            border: `1px solid ${isExternal ? '#ddd6fe' : '#bbf7d0'}`, 
+                            color: isExternal ? '#5b21b6' : '#166534', 
                             fontSize: '13px', 
                             marginBottom: '16px', 
                             lineHeight: '1.4'
                         }}>
                             ✨ {item.congratsMessage}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
-                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
-                            <span style={{ color: '#d1d5db' }}>|</span>
-                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
                         </div>
 
                         <div style={{ 
@@ -177,19 +172,33 @@ const ApprovalDashboard = () => {
                             borderRadius: '8px', 
                             border: '1px solid #f1f5f9'
                         }}>
+                            {/* Column 1: Identity & Provider (Conditional) */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
                                 <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                                {isExternal && (
+                                    <div style={{ fontSize: '13px', color: '#6366f1', fontWeight: '600' }}>
+                                        <strong>Provider:</strong> {item.primaryLocation}
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Column 2: Timeline & Manager (Conditional) */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
                                 <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                                {isExternal && (
+                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Manager:</strong> {item.managerName}</div>
+                                )}
                             </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+
+                            {/* Column 3: Skills Chips */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'flex-start' }}>
+                                <div style={{ width: '100%', fontSize: '12px', color: '#64748b', marginBottom: '4px', fontWeight: 'bold' }}>SKILLS:</div>
                                 {item.employeeSkills?.map(skill => (
                                     <span key={skill} style={{ 
-                                        background: '#e0e7ff', 
-                                        color: '#4338ca', 
+                                        background: isExternal ? '#e0e7ff' : '#f1f5f9', 
+                                        color: isExternal ? '#4338ca' : '#475569', 
                                         padding: '4px 10px', 
                                         borderRadius: '6px', 
                                         fontSize: '11px', 
@@ -202,9 +211,10 @@ const ApprovalDashboard = () => {
                         </div>
                     </div>
                 </div>
-            ))}
-        </div>
-    );
+            );
+        })}
+    </div>
+);
 
     // NEW: Employee List Renderer (Table View)
     const renderEmployeeList = () => {
@@ -455,7 +465,7 @@ return (
                                                                 color: matchScore > 75 ? '#166534' : '#854d0e',
                                                                 borderRadius: '20px', padding: '4px 12px'
                                                             }}>
-                                                                {matchScore}% Match
+                                                                {matchScore}% Match of Skills
                                                             </span>
                                                         )}
                                                     </div>

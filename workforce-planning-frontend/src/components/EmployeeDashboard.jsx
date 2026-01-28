@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
 // --- STYLES SECTION ---
 const statusStyles = {
     'APPLIED': { background: '#eff6ff', color: '#1e40af' },
@@ -95,77 +96,6 @@ const styles = {
         marginTop: '20px',         
         border: '1px solid #e2e8f0'
     },
-    modalOverlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'transparent', // No dark tint or dimming
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        // backdropFilter removed to keep background clear
-    },
-    modalContent: {
-        backgroundColor: '#ffffff',
-        padding: '32px',
-        borderRadius: '20px',
-        width: '450px',
-        // High box-shadow is essential so the box "pops" against the clear background
-        boxShadow: '0 20px 60px -10px rgba(0, 0, 0, 0.3)', 
-        border: '1px solid #e2e8f0', // Subtle border helps define the edge
-    },
-    modalTitle: {
-        margin: 0,
-        fontSize: '28px',
-        fontWeight: '800',
-        color: '#1e293b',
-        textAlign: 'left'
-    },
-    modalSub: {
-        color: '#64748b',
-        fontSize: '16px',
-        lineHeight: '1.5',
-        marginBottom: '10px'
-    },
-    modalTextarea: {
-        width: '100%',
-        height: '140px',
-        padding: '16px',
-        borderRadius: '12px',
-        border: '1px solid #cbd5e1',
-        fontSize: '15px',
-        outline: 'none',
-        resize: 'none',
-        boxSizing: 'border-box',
-    },
-    modalActions: {
-        display: 'flex',
-        gap: '16px',
-        marginTop: '20px'
-    },
-    modalCancel: {
-        flex: 1,
-        padding: '14px',
-        borderRadius: '12px',
-        border: '1px solid #e2e8f0',
-        backgroundColor: 'white',
-        color: '#64748b',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    modalConfirm: {
-        flex: 1,
-        padding: '14px',
-        borderRadius: '12px',
-        border: 'none',
-        backgroundColor: '#fca5a5', // Soft red like your screenshot
-        color: 'white',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
     // NEW ACTIVE PROJECT STYLES
     activeProjectCard: { background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
     activeCardSidebar: { width: '8px', background: '#10b981' },
@@ -245,12 +175,11 @@ const EmployeeDashboard = () => {
     const fetchData = useCallback(async () => {
     try {
         const [posRes, appRes, empAssignRes, profileRes, successRes] = await Promise.all([
-            axios.get('http://localhost:8080/api/employee/open-positions'),
-            axios.get('http://localhost:8080/api/employee/my-applications'), 
-            axios.get('http://localhost:8080/api/employee/assigned-requests'),
-            axios.get('http://localhost:8080/api/employee/my-profile'),
-            // ADD THIS LINE
-            axios.get('http://localhost:8080/api/workforce-overview/success-notifications')
+            axios.get(API_BASE + '/api/employee/open-positions'),
+            axios.get(API_BASE + '/api/employee/my-applications'), 
+            axios.get(API_BASE + '/api/employee/assigned-requests'),
+            axios.get(API_BASE + '/api/employee/my-profile'),
+            axios.get(API_BASE + '/api/workforce-overview/success-notifications')
         ]);
 
         setOpenPositions(Array.isArray(posRes.data) ? posRes.data : []);
@@ -265,7 +194,7 @@ const EmployeeDashboard = () => {
     } catch (err) {
         console.error("Sync Error:", err);
     }
-}, []);
+}, [API_BASE]);
     useEffect(() => { 
         fetchData(); 
     }, [fetchData]);
@@ -275,7 +204,7 @@ const EmployeeDashboard = () => {
         setPendingAction(requestId);
         try {
             // Using params object for cleaner URL construction
-            const res = await axios.post(`http://localhost:8080/api/employee/apply`, null, {
+            const res = await axios.post(API_BASE + '/api/employee/apply', null, {
                 params: { requestId }
             });
             
@@ -294,7 +223,7 @@ const EmployeeDashboard = () => {
     const handleWithdraw = async (applicationId) => {
         setPendingAction(applicationId);
         try {
-            await axios.post(`http://localhost:8080/api/employee/withdraw`, null, {
+            await axios.post(API_BASE + '/api/employee/withdraw', null, {
                 params: { applicationId }
             });
             showNotification("Application Withdrawn", 'success');
@@ -306,16 +235,14 @@ const EmployeeDashboard = () => {
         }
     };
 
-    const handleEmployeeDecision = async (id, isApproved) => {
-    // 1. Safety Check: Ensure the ID exists to prevent backend 403/400 errors
+        const handleEmployeeDecision = async (id, isApproved) => {
     if (!id) {
-        console.error("Missing ID! Check if your 'assignedRequests' objects have a 'requestId' property.");
-        showNotification("Error: Request ID not found. Please refresh the page.", "error");
+        console.error("Missing ID!");
+        showNotification("Error: Request ID not found.", "error");
         return;
     }
 
     const reason = declineReason[id] || "";
-    // Mandatory reason check for declining as per UI requirements
     if (!isApproved && !reason.trim()) {
         showNotification("Please provide a reason before declining.", "error");
         return;
@@ -324,48 +251,58 @@ const EmployeeDashboard = () => {
     setPendingAction(id);
 
     try {
-        // 2. Retrieve the JWT Token (usually stored during login)
         const token = localStorage.getItem('token'); 
-
-        // 3. Match the exact URL and Header format from your successful Swagger test
-        const res = await axios.post(`http://localhost:8080/api/employee/assignment-decision`, null, {
+        const url = API_BASE + "/api/employee/assignment-decision";
+        const res = await axios.post(url, null, {
             params: {
                 requestId: id,
                 approved: isApproved,
                 reason: isApproved ? "Accepted via Employee Portal" : reason
             },
-            headers: {
-                // This header is likely what was missing, causing the 403 error
-                'Authorization': `Bearer ${token}` 
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (res.status === 200) {
-            // Success notification using the profile data
-            const successText = `✨ Success! ${userProfile?.firstName || 'Employee'} ${userProfile?.lastName || ''} (ID: ${userProfile?.employeeId || id}) has accepted the offer.`;
-            
-            setDecisionMessage({
-                requestId: id, // Ensure message is tied to the specific card
-                title: isApproved ? "Assignment Accepted! 🎉" : "Assignment Declined",
-                text: isApproved ? successText : "The request has been removed.",
-                type: isApproved ? 'success' : 'info'
-            });
-
-            // Refresh data to move the item to 'Active Projects'
             await fetchData(); 
-            
+
             if (isApproved) {
-                // Short delay to allow the user to see the success state before switching tabs
-                setTimeout(() => setMainTab('active'), 2500); 
+                // ACCEPT FLOW: No "Thank You" screen, just notification and tab switch
+                setDecisionMessage({
+                    requestId: id,
+                    text: "Accepted!",
+                    isRejection: false // Ensure flag is false
+                });
+                setTimeout(() => {
+                    setMainTab('active');
+                    setDecisionMessage(null);
+                }, 2000); 
+            } else {
+                // REJECT FLOW: Trigger the "Return to Portal" screen
+                setDecisionMessage({
+                    requestId: id,
+                    text: "declined",
+                    isRejection: true // Trigger the special UI
+                });
+
+                // Stay for 6 seconds then reset
+                setTimeout(() => {
+                    setDecisionMessage(null);
+                }, 6000);
             }
         }
     } catch (err) {
-        // Detailed logging to debug if the 403 persists
-        console.error("Full Error Object:", err.response);
-        const errorMsg = err.response?.data || "Authorization error: Please try logging in again.";
-        showNotification(errorMsg, "error");
+        console.error("Error:", err.response);
+        showNotification(err.response?.data || "Authorization error", "error");
     } finally {
         setPendingAction(null);
+        if (!isApproved) {
+            setDeclineReason(prev => {
+                const newState = { ...prev };
+                delete newState[id];
+                return newState;
+            });
+            setShowReasonInput(prev => ({...prev, [id]: false}));
+        }
     }
 };
     const availableJobs = openPositions.filter(pos =>
@@ -549,7 +486,7 @@ const EmployeeDashboard = () => {
                 {/* Assignment Confirmation Section */}
                 {mainTab === 'assignments' && (
                         <div className="alert-fade-in">
-                            {/* NEW PERSISTENT CONGRATS BANNER: Checks new API data instead of temporary state */}
+                            {/* PERSISTENT CONGRATS BANNER */}
                             {successAssignments.length > 0 && (
                                 <div style={styles.successContainer} className="alert-fade-in">
                                     <div style={{...styles.congratsBanner, background: '#10b981', marginBottom: '20px'}}>
@@ -572,7 +509,6 @@ const EmployeeDashboard = () => {
                                     <div style={styles.grid}>
                                         {assignedRequests.map(item => (
                                             <div key={item.requestId} style={styles.card}>
-                                                {/* Individual Success Message for the current session action */}
                                                 {decisionMessage && decisionMessage.requestId === item.requestId && (
                                                     <div style={{
                                                         backgroundColor: '#f0fdf4', border: '1px solid #10b981', color: '#15803d',
@@ -608,39 +544,100 @@ const EmployeeDashboard = () => {
                                                         <div style={styles.metaItem}><strong>📅 End:</strong> {item.project?.endDate}</div>
                                                     </div>
                                                 </div>
+
                                                 {showReasonInput[item.requestId] && (
-                                                    <div style={styles.modalOverlay} onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}>
-                                                        {/* stopPropagation prevents clicking the modal itself from closing it */}
-                                                        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                                                            <h2 style={styles.modalTitle}>Decline Assignment</h2>
-                                                            <p style={styles.modalSub}>
-                                                                You are declining <strong>{item.jobTitle || item.title}</strong>. Please provide a mandatory reason.
-                                                            </p>
+                                                    <div style={{
+                                                        position: 'fixed',
+                                                        top: 0,
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: 0,
+                                                        backgroundColor: 'rgba(15, 23, 42, 0.7)', // The exact dark tint from your styles
+                                                        display: 'flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        zIndex: 9999,
+                                                        backdropFilter: 'blur(4px)'
+                                                    }} onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}>
+                                                        
+                                                        <div style={{
+                                                            backgroundColor: 'white',
+                                                            padding: '40px',
+                                                            borderRadius: '32px', // Force the deep curve
+                                                            width: '100%',
+                                                            maxWidth: '520px',
+                                                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                                                            border: 'none'
+                                                        }} onClick={(e) => e.stopPropagation()}>
+                                                            
+                                                            <h3 style={{ 
+                                                                fontSize: '32px', 
+                                                                fontWeight: '800', 
+                                                                color: '#1e293b', 
+                                                                margin: '0 0 10px 0',
+                                                                fontFamily: 'sans-serif' 
+                                                            }}>Reason for Rejection</h3>
+                                                            
+                                                            <p style={{ 
+                                                                fontSize: '16px', 
+                                                                color: '#64748b', 
+                                                                marginBottom: '24px', 
+                                                                lineHeight: '1.5' 
+                                                            }}>Provide a mandatory reason for this decision.</p>
                                                             
                                                             <textarea 
-                                                                style={styles.modalTextarea}
-                                                                placeholder="Reason for declining..."
+                                                                style={{
+                                                                    width: '100%',
+                                                                    height: '160px',
+                                                                    padding: '20px',
+                                                                    borderRadius: '16px',
+                                                                    border: '1px solid #e2e8f0',
+                                                                    backgroundColor: '#f8fafc', // Light grey background
+                                                                    fontFamily: 'inherit',
+                                                                    fontSize: '16px',
+                                                                    resize: 'none',
+                                                                    marginBottom: '32px',
+                                                                    boxSizing: 'border-box',
+                                                                    outline: 'none'
+                                                                }} 
+                                                                placeholder="Type rejection reason..."
                                                                 value={declineReason[item.requestId] || ""}
                                                                 onChange={(e) => setDeclineReason({...declineReason, [item.requestId]: e.target.value})}
                                                             />
 
-                                                            <div style={styles.modalActions}>
+                                                            <div style={{ display: 'flex', gap: '16px' }}>
                                                                 <button 
-                                                                    style={styles.modalCancel} 
+                                                                    style={{
+                                                                        flex: 1,
+                                                                        padding: '16px',
+                                                                        borderRadius: '14px',
+                                                                        border: '1px solid #e2e8f0',
+                                                                        backgroundColor: 'white',
+                                                                        color: '#1e293b',
+                                                                        fontWeight: '700',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '16px'
+                                                                    }} 
                                                                     onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}
                                                                 >
                                                                     Cancel
                                                                 </button>
                                                                 <button 
                                                                     style={{
-                                                                        ...styles.modalConfirm,
+                                                                        flex: 1,
+                                                                        padding: '16px',
+                                                                        borderRadius: '14px',
+                                                                        border: 'none',
+                                                                        color: 'white',
+                                                                        fontWeight: '700',
+                                                                        fontSize: '16px',
                                                                         backgroundColor: (declineReason[item.requestId] || "").trim() ? '#ef4444' : '#fca5a5',
                                                                         cursor: (declineReason[item.requestId] || "").trim() ? 'pointer' : 'not-allowed'
-                                                                    }}
+                                                                    }} 
                                                                     disabled={!(declineReason[item.requestId] || "").trim()}
                                                                     onClick={() => handleEmployeeDecision(item.requestId, false)}
                                                                 >
-                                                                    Confirm Decline
+                                                                    Confirm Rejection
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -672,14 +669,44 @@ const EmployeeDashboard = () => {
                                     </div>
                                 </>
                             ) : (
-                                /* If no pending requests and no confirmed assignments, show empty state */
-                                successAssignments.length === 0 && (
-                                    <div style={styles.emptyState}>No pending project assignments found.</div>
-                                )
+                                /* CLEAN SECTION: No outer styles.emptyState box unless we actually need to show content */
+                                <div style={{ textAlign: 'center' }}>
+                                    {decisionMessage?.isRejection ? (
+                                        <div className="alert-fade-in" style={{ animation: 'fadeIn 0.5s', padding: '40px 0' }}>
+                                            <div style={{ fontSize: '60px', marginBottom: '20px' }}>📩</div>
+                                            <h3 style={{ color: '#1f2937', fontSize: '24px', fontWeight: 'bold', marginBottom: '12px' }}>Decision Recorded</h3>
+                                            <p style={{ color: '#4b5563', maxWidth: '450px', margin: '0 auto 30px auto', lineHeight: '1.6', fontSize: '16px' }}>
+                                                Thank you for your decision. You can explore other exciting opportunities from the career portal.
+                                            </p>
+                                            <button 
+                                                onClick={() => window.location.href = '/employee-dashboard'}
+                                                style={{
+                                                    padding: '14px 28px',
+                                                    backgroundColor: '#2563eb',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '10px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Return to Career Portal
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        /* Only show "No assignments" if there are also no success banners */
+                                        successAssignments.length === 0 && (
+                                            <div style={{...styles.emptyState, minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                                <p style={{ color: '#9ca3af', fontSize: '18px', margin: 0 }}>
+                                                    {decisionMessage?.type === 'success' ? "Redirecting to active projects..." : "No pending project assignments found."}
+                                                </p>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
-
                 {/* Career Portal Section */}
                 {mainTab === 'career' && (
                     <div className="alert-fade-in">
