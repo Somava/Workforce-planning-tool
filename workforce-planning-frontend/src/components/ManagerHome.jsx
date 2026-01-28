@@ -307,7 +307,7 @@ const openResubmitModal = (req) => {
 
     const renderSuccessAssignments = () => {
     const assignments = Array.isArray(successAssignments) ? successAssignments : [];
-
+        
     if (assignments.length === 0) {
         return (
             <div style={{
@@ -484,7 +484,7 @@ const openResubmitModal = (req) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {(activeTab === 'recent' ? requests : rejectedRequests).map((req) => (
+                                {((activeTab === 'recent' ? requests : rejectedRequests) || []).map((req) => (
                                     <tr key={req.requestId} style={styles.tableRow}>
                                         <td style={styles.td}>
                                             <strong>{req.title}</strong>
