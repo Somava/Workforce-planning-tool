@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
 // --- STYLES SECTION ---
 const statusStyles = {
@@ -59,7 +60,112 @@ const styles = {
     successContainer: { background: 'white', borderRadius: '24px', padding: '40px', textAlign: 'center' },
     congratsBanner: { color: 'white', padding: '30px', borderRadius: '20px', marginBottom: '30px' },
     backBtn: { padding: '12px 30px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: '700' },
-    
+    stakeholderTable: {
+        width: '100%',
+        borderCollapse: 'collapse', // Important: removes gaps between cells
+        marginTop: '10px',
+    },
+    sTh: {
+        textAlign: 'left',
+        fontSize: '14px',
+        color: '#64748b',
+        fontWeight: '700',
+        paddingBottom: '10px',
+        borderBottom: '1px solid #e2e8f0', // Adds a nice underline to the header
+    },
+    sTd: {
+        textAlign: 'left',
+        padding: '12px 0', // Vertical spacing for readability
+        fontSize: '15px',
+        color: '#1e293b',
+        borderBottom: '1px solid #f1f5f9', // Optional: very light line between rows
+    },
+    sectionLabel: {
+        fontSize: '12px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        color: '#94a3b8',
+        marginBottom: '10px',
+        fontWeight: '700',
+    },
+    infoBoxGray: {
+        backgroundColor: '#f8fafc', 
+        borderRadius: '12px',      
+        padding: '20px',           
+        marginTop: '20px',         
+        border: '1px solid #e2e8f0'
+    },
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent', // No dark tint or dimming
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        // backdropFilter removed to keep background clear
+    },
+    modalContent: {
+        backgroundColor: '#ffffff',
+        padding: '32px',
+        borderRadius: '20px',
+        width: '450px',
+        // High box-shadow is essential so the box "pops" against the clear background
+        boxShadow: '0 20px 60px -10px rgba(0, 0, 0, 0.3)', 
+        border: '1px solid #e2e8f0', // Subtle border helps define the edge
+    },
+    modalTitle: {
+        margin: 0,
+        fontSize: '28px',
+        fontWeight: '800',
+        color: '#1e293b',
+        textAlign: 'left'
+    },
+    modalSub: {
+        color: '#64748b',
+        fontSize: '16px',
+        lineHeight: '1.5',
+        marginBottom: '10px'
+    },
+    modalTextarea: {
+        width: '100%',
+        height: '140px',
+        padding: '16px',
+        borderRadius: '12px',
+        border: '1px solid #cbd5e1',
+        fontSize: '15px',
+        outline: 'none',
+        resize: 'none',
+        boxSizing: 'border-box',
+    },
+    modalActions: {
+        display: 'flex',
+        gap: '16px',
+        marginTop: '20px'
+    },
+    modalCancel: {
+        flex: 1,
+        padding: '14px',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        backgroundColor: 'white',
+        color: '#64748b',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
+    modalConfirm: {
+        flex: 1,
+        padding: '14px',
+        borderRadius: '12px',
+        border: 'none',
+        backgroundColor: '#fca5a5', // Soft red like your screenshot
+        color: 'white',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
     // NEW ACTIVE PROJECT STYLES
     activeProjectCard: { background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' },
     activeCardSidebar: { width: '8px', background: '#10b981' },
@@ -86,6 +192,7 @@ const EmployeeDashboard = () => {
     // Track per requestId for Decline Reason
     const [showReasonInput, setShowReasonInput] = useState({}); 
     const [declineReason, setDeclineReason] = useState({}); 
+    const [successAssignments, setSuccessAssignments] = useState([]);
 
     const userEmail = localStorage.getItem("email") || "hoffmann.rd@frauas.de";
 
@@ -131,102 +238,232 @@ const EmployeeDashboard = () => {
 
     const showNotification = (text, type) => {
         setMessage({ text, type, visible: true });
-        setTimeout(() => setMessage(prev => ({ ...prev, visible: false })), 4600);
+        setTimeout(() => setMessage(prev => ({ ...prev, visible: false })), 8000);
     };
 
     // Data Fetching
     const fetchData = useCallback(async () => {
-        const emailParam = encodeURIComponent(userEmail);
-        try {
-            const [posRes, appRes, empAssignRes, profileRes] = await Promise.all([
-                fetch(`http://localhost:8080/api/employee-portal/open-positions?email=${emailParam}`),
-                fetch(`http://localhost:8080/api/employee-portal/my-applications?email=${emailParam}`),
-                fetch(`http://localhost:8080/api/tasks/employee/assigned-requests?email=${emailParam}`),
-                fetch(`http://localhost:8080/api/employee-portal/my-profile?email=${emailParam}`)
-            ]);
+    try {
+        const [posRes, appRes, empAssignRes, profileRes, successRes] = await Promise.all([
+            axios.get('http://localhost:8080/api/employee/open-positions'),
+            axios.get('http://localhost:8080/api/employee/my-applications'), 
+            axios.get('http://localhost:8080/api/employee/assigned-requests'),
+            axios.get('http://localhost:8080/api/employee/my-profile'),
+            // ADD THIS LINE
+            axios.get('http://localhost:8080/api/workforce-overview/success-notifications')
+        ]);
 
-            if (posRes.ok) {
-                const text = await posRes.text();
-                if (text) setOpenPositions(JSON.parse(text));
-            }
-            if (appRes.ok) {
-                const text = await appRes.text();
-                if (text) setMyApplications(JSON.parse(text));
-            }
-            if (empAssignRes.ok) {
-                const data = await empAssignRes.json();
-                setAssignedRequests(Array.isArray(data) ? data : []);
-            }
-            if (profileRes.ok) {
-                const profileData = await profileRes.json();
-                setUserProfile(profileData);
-            }
-        } catch (err) {
-            console.error("Sync Error:", err);
-        }
-    }, [userEmail]);
+        setOpenPositions(Array.isArray(posRes.data) ? posRes.data : []);
+        setMyApplications(Array.isArray(appRes.data) ? appRes.data : []);
+        setAssignedRequests(Array.isArray(empAssignRes.data) ? empAssignRes.data : []);
+        setUserProfile(profileRes.data || null);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+        // UPDATE THIS: Use the data directly from the new success-notifications API
+        // This matches the exact structure shown in your Swagger screenshot
+        setSuccessAssignments(Array.isArray(successRes.data) ? successRes.data : []);
 
+    } catch (err) {
+        console.error("Sync Error:", err);
+    }
+}, []);
+    useEffect(() => { 
+        fetchData(); 
+    }, [fetchData]);
+
+    // 2. Handle Application
     const handleApply = async (requestId) => {
         setPendingAction(requestId);
         try {
-            const res = await fetch(`http://localhost:8080/api/employee-portal/apply?requestId=${requestId}&email=${encodeURIComponent(userEmail)}`, { method: 'POST' });
-            const text = await res.text();
-            showNotification(text, res.ok ? 'success' : 'error');
+            // Using params object for cleaner URL construction
+            const res = await axios.post(`http://localhost:8080/api/employee/apply`, null, {
+                params: { requestId }
+            });
+            
+            showNotification(res.data || "Application submitted!", 'success');
             await fetchData();
-            if (res.ok) setTimeout(() => setActiveTab('applied'), 1000);
-        } catch (err) { showNotification("Connection failed", "error"); }
-        finally { setPendingAction(null); }
+            if (res.status === 200) setTimeout(() => setActiveTab('applied'), 1000);
+        } catch (err) { 
+            const errorMsg = err.response?.data || "Connection failed";
+            showNotification(errorMsg, "error"); 
+        } finally { 
+            setPendingAction(null); 
+        }
     };
 
+    // 3. Handle Withdrawal
     const handleWithdraw = async (applicationId) => {
         setPendingAction(applicationId);
         try {
-            const res = await fetch(`http://localhost:8080/api/employee-portal/withdraw?applicationId=${applicationId}&email=${encodeURIComponent(userEmail)}`, { method: 'POST' });
+            await axios.post(`http://localhost:8080/api/employee/withdraw`, null, {
+                params: { applicationId }
+            });
             showNotification("Application Withdrawn", 'success');
             await fetchData();
-        } catch (err) { showNotification("Withdraw failed", "error"); }
-        finally { setPendingAction(null); }
+        } catch (err) { 
+            showNotification("Withdraw failed", "error"); 
+        } finally { 
+            setPendingAction(null); 
+        }
     };
 
-    const handleEmployeeDecision = async (requestId, isApproved) => {
-        const reason = declineReason[requestId] || "";
-        
-        if (!isApproved && !reason.trim()) {
-            showNotification("Please provide a reason before declining.", "error");
-            return;
-        }
+    const handleEmployeeDecision = async (id, isApproved) => {
+    // 1. Safety Check: Ensure the ID exists to prevent backend 403/400 errors
+    if (!id) {
+        console.error("Missing ID! Check if your 'assignedRequests' objects have a 'requestId' property.");
+        showNotification("Error: Request ID not found. Please refresh the page.", "error");
+        return;
+    }
 
-        setPendingAction(requestId);
-        try {
-            const url = `http://localhost:8080/api/employee-portal/employee/assignment-decision?requestId=${requestId}&email=${encodeURIComponent(userEmail)}&approved=${isApproved}&reason=${encodeURIComponent(reason)}`;
-            
-            const res = await fetch(url, { method: 'POST' });
-            
-            if (res.ok) {
-                setDecisionMessage(isApproved ?
-                    { title: "Assignment Accepted! 🎉", text: "You have been successfully added to the project team.", type: 'success' } :
-                    { title: "Assignment Declined", text: "The request has been removed. You can continue browsing the career portal.", type: 'info' }
-                );
-                await fetchData();
-            } else {
-                const text = await res.text();
-                showNotification(text || "Action failed", "error");
+    const reason = declineReason[id] || "";
+    // Mandatory reason check for declining as per UI requirements
+    if (!isApproved && !reason.trim()) {
+        showNotification("Please provide a reason before declining.", "error");
+        return;
+    }
+
+    setPendingAction(id);
+
+    try {
+        // 2. Retrieve the JWT Token (usually stored during login)
+        const token = localStorage.getItem('token'); 
+
+        // 3. Match the exact URL and Header format from your successful Swagger test
+        const res = await axios.post(`http://localhost:8080/api/employee/assignment-decision`, null, {
+            params: {
+                requestId: id,
+                approved: isApproved,
+                reason: isApproved ? "Accepted via Employee Portal" : reason
+            },
+            headers: {
+                // This header is likely what was missing, causing the 403 error
+                'Authorization': `Bearer ${token}` 
             }
-        } catch (err) {
-            showNotification("Connection error", "error");
-        } finally {
-            setPendingAction(null);
-        }
-    };
+        });
+        
+        if (res.status === 200) {
+            // Success notification using the profile data
+            const successText = `✨ Success! ${userProfile?.firstName || 'Employee'} ${userProfile?.lastName || ''} (ID: ${userProfile?.employeeId || id}) has accepted the offer.`;
+            
+            setDecisionMessage({
+                requestId: id, // Ensure message is tied to the specific card
+                title: isApproved ? "Assignment Accepted! 🎉" : "Assignment Declined",
+                text: isApproved ? successText : "The request has been removed.",
+                type: isApproved ? 'success' : 'info'
+            });
 
+            // Refresh data to move the item to 'Active Projects'
+            await fetchData(); 
+            
+            if (isApproved) {
+                // Short delay to allow the user to see the success state before switching tabs
+                setTimeout(() => setMainTab('active'), 2500); 
+            }
+        }
+    } catch (err) {
+        // Detailed logging to debug if the 403 persists
+        console.error("Full Error Object:", err.response);
+        const errorMsg = err.response?.data || "Authorization error: Please try logging in again.";
+        showNotification(errorMsg, "error");
+    } finally {
+        setPendingAction(null);
+    }
+};
     const availableJobs = openPositions.filter(pos =>
         !myApplications.some(app => String(app.requestId) === String(pos.requestId) && app.status !== 'WITHDRAWN')
     );
 
-    const activeProjects = myApplications.filter(app => app.status === 'ASSIGNED');
+    // Check if your backend uses 'ASSIGNED' or 'ACCEPTED'
+        const activeProjects = myApplications.filter(app => 
+            app.status === 'ASSIGNED' || app.status === 'ACCEPTED'
+        );
+        const renderSuccessAssignments = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+            {successAssignments.map(item => (
+                <div key={item.requestId} style={{
+                    ...styles.projectRow, 
+                    display: 'flex', 
+                    flexDirection: 'row', 
+                    alignItems: 'stretch', 
+                    padding: '24px', 
+                    borderLeft: '5px solid #10b981', 
+                    backgroundColor: '#fff', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{ flex: '1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                            <span style={{ 
+                                background: '#dcfce7', 
+                                color: '#166534', 
+                                padding: '4px 10px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px', 
+                                fontWeight: '800', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px'
+                            }}>
+                                ⭐ PERFORMANCE: {item.performanceRating}
+                            </span>
+                        </div>
+                        
+                        <div style={{ 
+                            background: '#f0fdf4', 
+                            padding: '12px 16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #bbf7d0', 
+                            color: '#166534', 
+                            fontSize: '13px', 
+                            marginBottom: '16px', 
+                            lineHeight: '1.4'
+                        }}>
+                            ✨ {item.congratsMessage}
+                        </div>
 
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                            <span style={{ color: '#d1d5db' }}>|</span>
+                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                        </div>
+
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
+                            gap: '20px', 
+                            background: '#f8fafc', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                {item.employeeSkills?.map(skill => (
+                                    <span key={skill} style={{ 
+                                        background: '#e0e7ff', 
+                                        color: '#4338ca', 
+                                        padding: '4px 10px', 
+                                        borderRadius: '6px', 
+                                        fontSize: '11px', 
+                                        fontWeight: '700' 
+                                    }}>
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
     return (
         <div style={styles.page}>
             <div style={styles.container}>
@@ -240,7 +477,7 @@ const EmployeeDashboard = () => {
                                     <h1 style={styles.profileName}>{userProfile.firstName} {userProfile.lastName}</h1>
                                     <span style={styles.ratingBadge}>★ {userProfile.performanceRating}</span>
                                 </div>
-                                <p style={styles.profileSub}>{userProfile.jobRoleName} | {userProfile.departmentName}</p>
+                                <p style={styles.profileSub}>{userProfile.departmentName}</p>
                                 <p style={{fontSize: '14px', color: '#64748b', margin: '4px 0'}}>
                                     📧 {userProfile.email} | 📞 {userProfile.emergencyContact}
                                 </p>
@@ -254,10 +491,10 @@ const EmployeeDashboard = () => {
                         <div style={styles.profileStatsGrid}>
                             <div style={styles.statItem}><strong>Employee ID:</strong> {userProfile.employeeId}</div>
                             <div style={styles.statItem}><strong>Experience:</strong> {userProfile.experienceYears} Years</div>
-                            <div style={styles.statItem}><strong>Working Hours:</strong> {userProfile.totalHoursPerWeek}h/week</div>
+                            <div style={styles.statItem}><strong>Required Hours:</strong> {userProfile.totalHoursPerWeek}h/week</div>
                             <div style={styles.statItem}><strong>Location:</strong> {userProfile.primaryLocation}</div>
                             <div style={styles.statItem}><strong>Contract:</strong> {userProfile.contractType?.replace('_', ' ')}</div>
-                            <div style={styles.statItem}><strong>Window:</strong> {userProfile.availabilityStart} to {userProfile.availabilityEnd}</div>
+                            <div style={styles.statItem}><strong>Timeline:</strong> {userProfile.availabilityStart} to {userProfile.availabilityEnd}</div>
                         </div>
 
                         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '20px'}}>
@@ -274,8 +511,7 @@ const EmployeeDashboard = () => {
                             <div style={styles.orgInfoBox}>
                                 <p style={styles.sectionLabel}>Organization & Preferences</p>
                                 <div style={styles.orgDetail}><strong>Supervisor:</strong> {userProfile.supervisorName} ({userProfile.supervisorEmail})</div>
-                                <div style={styles.orgDetail}><strong>Dept Head:</strong> {userProfile.departmentHeadName}</div>
-                                <div style={{...styles.orgDetail, color: '#4f46e5', marginTop: '8px'}}>
+                                <div style={{...styles.orgDetail, marginTop: '8px'}}>
                                     <strong>Preferences:</strong> {userProfile.projectPreferences} | <strong>Interests:</strong> {userProfile.interests}
                                 </div>
                             </div>
@@ -304,155 +540,145 @@ const EmployeeDashboard = () => {
                     </div>
                 )}
 
-                {/* Active Projects Section */}
-                {mainTab === 'active' && (
+             {mainTab === 'active' && (
                     <div className="alert-fade-in">
-                        {activeProjects.length > 0 ? (
-                            activeProjects.map(project => (
-                                <div key={project.applicationId} style={styles.activeProjectCard}>
-                                    <div style={styles.activeCardSidebar} />
-                                    <div style={{ flex: 1, padding: '24px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <h2 style={styles.profileName}>{userProfile?.firstName} {userProfile?.lastName}</h2>
-                                                    <span style={styles.performanceMiniBadge}>★ PERFORMANCE: {userProfile?.performanceRating}</span>
-                                                </div>
-                                                
-                                                <div style={styles.successBannerSmall}>
-                                                    ✨ Success! {userProfile?.firstName} {userProfile?.lastName} (ID: {userProfile?.employeeId}) 
-                                                    has accepted the offer for '{project.jobTitle}' in project '{project.projectTitle}'.
-                                                </div>
-
-                                                <div style={{ marginTop: '15px', color: '#4f46e5', fontWeight: '600' }}>
-                                                    {project.projectTitle} <span style={{ color: '#cbd5e1', margin: '0 8px' }}>|</span> 
-                                                    <span style={{ color: '#64748b' }}>{project.jobTitle}</span>
-                                                </div>
-
-                                                <div style={styles.activeDetailsGrid}>
-                                                    <div style={styles.activeDetailItem}>
-                                                        <strong>Employee ID:</strong> {userProfile?.employeeId}
-                                                    </div>
-                                                    <div style={styles.activeDetailItem}>
-                                                        <strong>Wage:</strong> €{userProfile?.wagePerHour}/hr
-                                                    </div>
-                                                    <div style={styles.activeDetailItem}>
-                                                        <strong>Location:</strong> {userProfile?.primaryLocation}
-                                                    </div>
-                                                    <div style={styles.activeDetailItem}>
-                                                        <strong>Applied Date:</strong> {new Date(project.appliedAt).toLocaleDateString()}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div style={styles.statusBoxActive}>
-                                                <div style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>STATUS</div>
-                                                <div style={{ fontSize: '18px', fontWeight: '800', color: '#059669' }}>ASSIGNED</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div style={styles.emptyState}>No active projects found.</div>
-                        )}
+                        {renderSuccessAssignments()}
                     </div>
                 )}
 
                 {/* Assignment Confirmation Section */}
                 {mainTab === 'assignments' && (
-                    <div className="alert-fade-in">
-                        {!assignedRequests.length && decisionMessage ? (
-                            <div style={styles.successContainer} className="alert-fade-in">
-                                <div style={{...styles.congratsBanner, background: decisionMessage.type === 'success' ? '#10b981' : '#64748b'}}>
-                                    <h2 style={{ margin: 0, fontSize: '24px' }}>{decisionMessage.title}</h2>
-                                    <p style={{ margin: '8px 0 0 0', opacity: 0.9 }}>{decisionMessage.text}</p>
-                                </div>
-                                {decisionMessage.type === 'success' && (
-                                    <div style={styles.successDetailsGrid}>
-                                        <div style={styles.successCard}>
-                                            <p style={styles.sectionLabel}>Next Steps</p>
-                                            <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5' }}>
-                                                Your profile has been officially linked to the project. You will receive an onboarding email from your Project Manager shortly.
-                                            </p>
-                                        </div>
-                                        <div style={styles.successCard}>
-                                            <p style={styles.sectionLabel}>Quick Actions</p>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                <div style={{ fontSize: '13px', color: '#4f46e5', fontWeight: '600', cursor: 'pointer' }}>📅 Add to Calendar</div>
-                                                <div style={{ fontSize: '13px', color: '#4f46e5', fontWeight: '600', cursor: 'pointer' }}>📄 Download PDF</div>
-                                            </div>
-                                        </div>
+                        <div className="alert-fade-in">
+                            {/* NEW PERSISTENT CONGRATS BANNER: Checks new API data instead of temporary state */}
+                            {successAssignments.length > 0 && (
+                                <div style={styles.successContainer} className="alert-fade-in">
+                                    <div style={{...styles.congratsBanner, background: '#10b981', marginBottom: '20px'}}>
+                                        <h2 style={{ margin: 0, fontSize: '24px' }}>Congratulations! 🎉</h2>
+                                        <p style={{ margin: '8px 0 0 0', opacity: 0.9 }}>
+                                            You have {successAssignments.length} successfully confirmed assignment. 
+                                            Check the "Active Projects" tab for full details.
+                                        </p>
                                     </div>
-                                )}
-                                <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                                    <button onClick={() => setDecisionMessage(null)} style={styles.backBtn}>Return to Portal</button>
                                 </div>
-                            </div>
-                        ) : assignedRequests.length > 0 ? (
-                            <>
-                                <div style={styles.congratsBox}>
-                                    <h2 style={styles.congratsTitle}>Congratulations! 🎉</h2>
-                                    <p style={styles.congratsText}>Review details below and confirm your participation.</p>
-                                </div>
-                                <div style={styles.grid}>
-                                    {assignedRequests.map(item => (
-                                        <div key={item.requestId} style={styles.card}>
-                                            <div style={styles.cardHeader}>
-                                                <div>
-                                                    <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
-                                                    <h2 style={styles.jobTitle}>{item.title}</h2>
-                                                    <div style={styles.statusLabelBadge}>Awaiting employee confirmation</div>
+                            )}
+
+                            {/* Show pending requests if there are any */}
+                            {assignedRequests.length > 0 ? (
+                                <>
+                                    <div style={styles.congratsBox}>
+                                        <h2 style={styles.congratsTitle}>New Opportunities! 🔔</h2>
+                                        <p style={styles.congratsText}>Please review the details below and confirm your participation for these new requests.</p>
+                                    </div>
+                                    <div style={styles.grid}>
+                                        {assignedRequests.map(item => (
+                                            <div key={item.requestId} style={styles.card}>
+                                                {/* Individual Success Message for the current session action */}
+                                                {decisionMessage && decisionMessage.requestId === item.requestId && (
+                                                    <div style={{
+                                                        backgroundColor: '#f0fdf4', border: '1px solid #10b981', color: '#15803d',
+                                                        padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+                                                        fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px'
+                                                    }}>
+                                                        <span>✅</span> {decisionMessage.text}
+                                                    </div>
+                                                )}
+
+                                                <div style={styles.cardHeader}>
+                                                    <div>
+                                                        <span style={styles.deptBadge}>{item.project?.name || 'Assigned Project'}</span>
+                                                        <h2 style={styles.jobTitle}>{item.title}</h2>
+                                                        <div style={styles.statusLabelBadge}>Approved by dept head, awaiting employee confirmation</div>
+                                                    </div>
+                                                    <div style={styles.wageBox}>
+                                                        <span style={styles.wageText}>€{item.wagePerHour}/hr</span>
+                                                    </div>
                                                 </div>
-                                                <div style={styles.wageBox}>
-                                                    <span style={styles.wageText}>€{item.wagePerHour}</span>
-                                                    <span style={styles.wageUnit}>/hr</span>
+
+                                                <div style={styles.descriptionSection}>
+                                                    <h4 style={styles.sectionLabel}>Description</h4>
+                                                    <p style={styles.requestDesc}>{item.description || "No description provided."}</p>
+                                                </div>
+
+                                                <div style={styles.infoBoxBlue}>
+                                                    <h4 style={styles.sectionLabel}>Project Context</h4>
+                                                    <div style={styles.metaGrid}>
+                                                        <div style={styles.metaItem}><strong>📍 Location:</strong> {item.workLocation || item.project?.location }</div>
+                                                        <div style={styles.metaItem}><strong>🕒 Engagement:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
+                                                        <div style={styles.metaItem}><strong>📅 Start:</strong> {item.project?.startDate}</div>
+                                                        <div style={styles.metaItem}><strong>📅 End:</strong> {item.project?.endDate}</div>
+                                                    </div>
+                                                </div>
+                                                {showReasonInput[item.requestId] && (
+                                                    <div style={styles.modalOverlay} onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}>
+                                                        {/* stopPropagation prevents clicking the modal itself from closing it */}
+                                                        <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                                                            <h2 style={styles.modalTitle}>Decline Assignment</h2>
+                                                            <p style={styles.modalSub}>
+                                                                You are declining <strong>{item.jobTitle || item.title}</strong>. Please provide a mandatory reason.
+                                                            </p>
+                                                            
+                                                            <textarea 
+                                                                style={styles.modalTextarea}
+                                                                placeholder="Reason for declining..."
+                                                                value={declineReason[item.requestId] || ""}
+                                                                onChange={(e) => setDeclineReason({...declineReason, [item.requestId]: e.target.value})}
+                                                            />
+
+                                                            <div style={styles.modalActions}>
+                                                                <button 
+                                                                    style={styles.modalCancel} 
+                                                                    onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: false})}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                                <button 
+                                                                    style={{
+                                                                        ...styles.modalConfirm,
+                                                                        backgroundColor: (declineReason[item.requestId] || "").trim() ? '#ef4444' : '#fca5a5',
+                                                                        cursor: (declineReason[item.requestId] || "").trim() ? 'pointer' : 'not-allowed'
+                                                                    }}
+                                                                    disabled={!(declineReason[item.requestId] || "").trim()}
+                                                                    onClick={() => handleEmployeeDecision(item.requestId, false)}
+                                                                >
+                                                                    Confirm Decline
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div style={styles.footer}>
+                                                    <div style={styles.skillList}>
+                                                        {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
+                                                    </div>
+                                                    <div style={{display: 'flex', gap: '12px'}}>
+                                                        <button 
+                                                            onClick={() => handleEmployeeDecision(item.requestId, true)} 
+                                                            style={{...styles.applyBtn, background: '#10b981'}} 
+                                                            disabled={pendingAction !== null}
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setShowReasonInput({...showReasonInput, [item.requestId]: true})} 
+                                                            style={{...styles.applyBtn, background: '#ef4444'}} 
+                                                            disabled={pendingAction !== null}
+                                                        >
+                                                            Decline
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div style={styles.descriptionSection}>
-                                                <h4 style={styles.sectionLabel}>Description</h4>
-                                                <p style={styles.requestDesc}>{item.description || "No description provided."}</p>
-                                            </div>
-                                            <div style={styles.infoBoxBlue}>
-                                                <p style={{fontSize: '17px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0'}}>{item.project?.name}</p>
-                                                <div style={styles.metaGrid}>
-                                                    <div style={styles.metaItem}>📍 {item.workLocation || item.project?.location}</div>
-                                                    <div style={styles.metaItem}>🕒 {item.availabilityHoursPerWeek} hrs/week</div>
-                                                </div>
-                                            </div>
-                                            {showReasonInput[item.requestId] && (
-                                                <div style={styles.reasonInputBox}>
-                                                    <textarea
-                                                        style={styles.textArea}
-                                                        placeholder="Reason for declining..."
-                                                        value={declineReason[item.requestId] || ""}
-                                                        onChange={(e) => setDeclineReason({...declineReason, [item.requestId]: e.target.value})}
-                                                    />
-                                                </div>
-                                            )}
-                                            <div style={styles.footer}>
-                                                <div style={styles.skillList}>
-                                                    {item.requiredSkills?.map(s => <span key={s} style={styles.skill}>{s}</span>)}
-                                                </div>
-                                                <div style={{display: 'flex', gap: '12px'}}>
-                                                    <button onClick={() => handleEmployeeDecision(item.requestId, true)} style={{...styles.applyBtn, background: '#10b981'}} disabled={pendingAction !== null}>Accept</button>
-                                                    <button onClick={() => {
-                                                        if (!showReasonInput[item.requestId]) setShowReasonInput({...showReasonInput, [item.requestId]: true});
-                                                        else handleEmployeeDecision(item.requestId, false);
-                                                    }} style={{...styles.applyBtn, background: '#ef4444'}} disabled={pendingAction !== null}>
-                                                        {showReasonInput[item.requestId] ? 'Confirm' : 'Decline'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        ) : (
-                            <div style={styles.emptyState}>No pending project assignments found.</div>
-                        )}
-                    </div>
-                )}
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                /* If no pending requests and no confirmed assignments, show empty state */
+                                successAssignments.length === 0 && (
+                                    <div style={styles.emptyState}>No pending project assignments found.</div>
+                                )
+                            )}
+                        </div>
+                    )}
 
                 {/* Career Portal Section */}
                 {mainTab === 'career' && (
@@ -473,7 +699,7 @@ const EmployeeDashboard = () => {
                                                 <span style={styles.deptBadge}>{getDeptName(job.departmentId)}</span>
                                                 <h2 style={styles.jobTitle}>{job.title}</h2>
                                             </div>
-                                            <div style={styles.priceTag}>€{job.wagePerHour}<small>/hr</small></div>
+                                            <div style={styles.priceTag}>€{job.wagePerHour}/hr</div>
                                         </div>
                                         <div style={styles.metaGrid}>
                                             <div style={styles.metaItem}>📍 {job.workLocation}</div>

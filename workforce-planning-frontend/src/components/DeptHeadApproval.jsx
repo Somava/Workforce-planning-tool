@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
 const ApprovalDashboard = () => {
     const [activeTab, setActiveTab] = useState('staffing'); 
@@ -25,137 +26,178 @@ const ApprovalDashboard = () => {
         return Math.round((matched.length / required.length) * 100);
     };
 
-    const fetchAllData = useCallback(async () => {
-        setIsRefreshing(true);
-        try {
-            const endpoints = [
-                `http://localhost:8080/api/tasks/dept-head?email=${userEmail}`,
-                `http://localhost:8080/api/tasks/dept-head/employee-approval?email=${userEmail}`,
-                `http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`,
-                `http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}` // NEW: Employee endpoint
-            ];
+    // 1. Change the timer to a Ref at the top of your component
+        const messageTimerRef = React.useRef(null); 
 
-            const results = await Promise.allSettled(endpoints.map(url => fetch(url)));
+        const fetchAllData = useCallback(async () => {
+            setIsRefreshing(true);
+            try {
+                const [staffingRes, assignmentRes, successRes, employeeRes] = await Promise.all([
+                    axios.get(`http://localhost:8080/api/department-head/pending-requests-approval`),
+                    axios.get(`http://localhost:8080/api/department-head/pending-employees-approval`),
+                    axios.get(`http://localhost:8080/api/workforce-overview/success-notifications`),
+                    axios.get(`http://localhost:8080/api/workforce-overview/all-employees`)
+                ]);
 
-            const getSafeData = async (result) => {
-                if (result.status === 'fulfilled' && result.value.ok) {
-                    try {
-                        return await result.value.json();
-                    } catch (e) {
-                        console.error("JSON parsing error:", e);
-                        return [];
-                    }
-                }
-                return [];
-            };
+                setStaffingTasks(Array.isArray(staffingRes.data) ? staffingRes.data.filter(t => t.status === 'PENDING_APPROVAL') : []);
+                setAssignmentTasks(Array.isArray(assignmentRes.data) ? assignmentRes.data : []);
+                setCompletedAssignments(Array.isArray(successRes.data) ? successRes.data : []);
+                setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
 
-            const staffingData = await getSafeData(results[0]);
-            const assignmentData = await getSafeData(results[1]);
-            const successData = await getSafeData(results[2]);
-            const employeeData = await getSafeData(results[3]); // NEW: Employee data
+                const names = { 
+                    "charlie@frauas.de": "IT Frontend", 
+                    "bob@frauas.de": "IT Backend", 
+                    "diana@frauas.de": "Finance & Management" 
+                };
+                setDepartmentName(names[userEmail] || "Department Dashboard");
+                setLastSynced(new Date().toLocaleTimeString());
 
-            setStaffingTasks(Array.isArray(staffingData) ? staffingData.filter(t => t.status === 'PENDING_APPROVAL') : []);
-            setAssignmentTasks(Array.isArray(assignmentData) ? assignmentData : []);
-            setCompletedAssignments(Array.isArray(successData) ? successData : []);
-            setEmployees(Array.isArray(employeeData) ? employeeData : []); // NEW: Update employee state
+                // REMOVED: setMessage({ text: '', type: '' }); <--- THIS WAS KILLING YOUR MESSAGE
 
-            const names = { 
-                "charlie@frauas.de": "IT Frontend", 
-                "bob@frauas.de": "IT Backend", 
-                "diana@frauas.de": "Finance & Management" 
-            };
-            setDepartmentName(names[userEmail] || "Department Dashboard");
-            setLastSynced(new Date().toLocaleTimeString());
-            
-            setMessage({ text: '', type: '' });
-        } catch (err) {
-            console.error("Critical fetch error:", err);
-            setMessage({ text: "Critical error connecting to backend.", type: 'error' });
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [userEmail]);
-
-    useEffect(() => {
+            } catch (err) {
+                console.error("Critical fetch error:", err);
+                setMessage({ text: "Critical error connecting to backend.", type: 'error', visible: true });
+            } finally {
+                setIsRefreshing(false);
+            }
+        }, [userEmail]);
+          useEffect(() => {
         fetchAllData();
-    }, [fetchAllData]);
+        }, [fetchAllData]);
+        const handleDecision = async (id, isApproved, reason = "") => {
+            const safeReason = (typeof reason === 'string') ? reason.trim() : "";
 
-    const handleDecision = async (id, isApproved, reason = "") => {
-        if (!isApproved && !reason.trim()) {
-            setTargetRequestId(id);
-            setShowRejectModal(true);
-            return;
-        }
+            if (!isApproved && !safeReason) {
+                setTargetRequestId(id);
+                setShowRejectModal(true);
+                return;
+            }
 
-        setPendingAction(`${isApproved}-${id}`);
-        try {
-            const queryParams = new URLSearchParams({
-                requestId: id.toString(),
-                email: userEmail,
-                approved: isApproved.toString(),
-                reason: reason 
-            });
+            setPendingAction(`${isApproved}-${id}`);
 
-            const endpoint = activeTab === 'staffing' 
-                ? 'api/tasks/dept-head/request-approval-decision' 
-                : 'api/tasks/dept-head/employee-assigning-decision';
+            try {
+                const params = {
+                    requestId: id,
+                    approved: isApproved,
+                    reason: safeReason 
+                };
 
-            const response = await fetch(`http://localhost:8080/${endpoint}?${queryParams.toString()}`, { 
-                method: 'POST', 
-                headers: { 'accept': '*/*' } 
-            });
+                const endpoint = activeTab === 'staffing' 
+                    ? 'api/department-head/requests-approval-decision' 
+                    : 'api/department-head/employee-assigning-decision';
 
-            if (response.ok) {
+                await axios.post(`http://localhost:8080/${endpoint}`, null, { params });
+
+                // Show the success message
                 setMessage({ 
                     text: `${activeTab === 'staffing' ? 'Request' : 'Assignment'} #${id} ${isApproved ? 'Approved' : 'Rejected'}.`, 
-                    type: isApproved ? 'success' : 'action' 
+                    type: isApproved ? 'success' : 'action',
+                    visible: true 
                 });
+                
                 setShowRejectModal(false);
                 setRejectionReason("");
-                fetchAllData();
-            } else {
-                setMessage({ text: "Server failed to process decision.", type: 'error' });
-            }
-        } catch (err) {
-            setMessage({ text: "Network error.", type: 'error' });
-        } finally {
-            setPendingAction(null);
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
-        }
-    };
+                
+                // Refresh data (Now it won't clear the message)
+                await fetchAllData(); 
 
+            } catch (err) {
+                console.error("Decision failed:", err);
+                setMessage({ text: "Server failed to process decision.", type: 'error', visible: true });
+            } finally {
+                setPendingAction(null);
+
+                // Handle the 8-second timer using the Ref
+                if (messageTimerRef.current) {
+                    clearTimeout(messageTimerRef.current);
+                }
+
+                messageTimerRef.current = setTimeout(() => {
+                    setMessage({ text: '', type: '', visible: false });
+                }, 8000);
+            }
+        };
     const renderSuccessList = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
             {completedAssignments.map(item => (
-                <div key={item.requestId} style={{ ...styles.cardlessRow, borderLeft: '6px solid #10b981', paddingLeft: '30px' }}>
-                    <div style={styles.cardMain}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-                            <h2 style={styles.jobTitle}>{item.employeeName}</h2>
-                            <span style={{ ...styles.matchBadge, background: '#dcfce7', color: '#166534' }}>⭐ Performance: {item.performanceRating}</span>
+                <div key={item.requestId} style={{
+                    ...styles.projectRow, 
+                    display: 'flex', 
+                    flexDirection: 'row', 
+                    alignItems: 'stretch', 
+                    padding: '24px', 
+                    borderLeft: '5px solid #10b981', 
+                    backgroundColor: '#fff', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{ flex: '1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                            <span style={{ 
+                                background: '#dcfce7', 
+                                color: '#166534', 
+                                padding: '4px 10px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px', 
+                                fontWeight: '800', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px'
+                            }}>
+                                ⭐ PERFORMANCE: {item.performanceRating}
+                            </span>
                         </div>
-                        <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '14px', fontWeight: '500' }}>
+                        
+                        <div style={{ 
+                            background: '#f0fdf4', 
+                            padding: '12px 16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #bbf7d0', 
+                            color: '#166534', 
+                            fontSize: '13px', 
+                            marginBottom: '16px', 
+                            lineHeight: '1.4'
+                        }}>
                             ✨ {item.congratsMessage}
                         </div>
-                        <p style={styles.subHeader}>
-                            <span style={styles.projectLink}>{item.projectName}</span>
-                            <span style={styles.separator}>|</span>
-                            <span>{item.jobTitle}</span>
-                        </p>
-                        <div style={styles.metaGrid}>
-                            <div style={styles.metaCol}>
-                                <div style={styles.metaItem}><strong>Employee ID:</strong> {item.employeeId}</div>
-                                <div style={styles.metaItem}><strong>Location:</strong> {item.projectLocation}</div>
+
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                            <span style={{ color: '#d1d5db' }}>|</span>
+                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                        </div>
+
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
+                            gap: '20px', 
+                            background: '#f8fafc', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
                             </div>
-                            <div style={styles.metaCol}>
-                                <div style={styles.metaItem}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
-                                <div style={styles.metaItem}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
                             </div>
-                            <div style={styles.metaCol}>
-                                <div style={styles.skillRow}>
-                                    {item.employeeSkills?.map(skill => (
-                                        <span key={skill} style={styles.skillBadge}>{skill}</span>
-                                    ))}
-                                </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                {item.employeeSkills?.map(skill => (
+                                    <span key={skill} style={{ 
+                                        background: '#e0e7ff', 
+                                        color: '#4338ca', 
+                                        padding: '4px 10px', 
+                                        borderRadius: '6px', 
+                                        fontSize: '11px', 
+                                        fontWeight: '700' 
+                                    }}>
+                                        {skill}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -165,65 +207,122 @@ const ApprovalDashboard = () => {
     );
 
     // NEW: Employee List Renderer (Table View)
-    const renderEmployeeList = () => (
-        <div style={{ overflowX: 'auto', marginTop: '10px' }}>
-            <table style={styles.table}>
-                <thead>
-                    <tr style={styles.tableHeader}>
-                        <th style={styles.th}>ID & Name</th>
-                        <th style={styles.th}>Languages</th>
-                        <th style={styles.th}>Skills & Experience</th>
-                        <th style={styles.th}>Rating</th>
-                        <th style={styles.th}>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {employees.map(emp => (
-                        <tr key={emp.employeeId} style={styles.tableRow}>
-                            <td style={styles.td}>
-                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1' }}>{emp.employeeId}</div>
-                                <div style={{ fontWeight: 'bold', color: '#111827' }}>{emp.fullName}</div>
-                                <div style={{ fontSize: '12px', color: '#6b7280' }}>{emp.email}</div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                                    {emp.languages?.map(lang => (
-                                        <span key={lang} style={styles.skillTagSmall}> {lang}</span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                                    {emp.skills?.map(skill => (
-                                        <span key={skill} style={styles.skillTagSmall}>{skill}</span>
-                                    ))}
-                                </div>
-                                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
-                                    📅 {emp.experienceYears} Years Experience
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>⭐ {emp.performanceRating}</span>
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <span style={{ 
-                                    ...styles.statusPill, 
-                                    backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
-                                    color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
-                                }}>
-                                    {emp.availabilityStatus}
-                                </span>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
+    const renderEmployeeList = () => {
+    // Specifically tuned to match the "Internal Workforce" UI in image_161d15.png
+    const styles = {
+        tableContainer: {
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            padding: '24px',
+            marginTop: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        },
+        table: {
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontFamily: 'inherit',
+        },
+        tableHeader: {
+            backgroundColor: '#fcfcfc', // Very light grey as seen in screenshot
+        },
+        th: {
+            padding: '12px 8px',
+            textAlign: 'left',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            borderBottom: '1px solid #f3f4f6',
+        },
+        tableRow: {
+            borderBottom: '1px solid #f9fafb',
+        },
+        td: {
+            padding: '16px 8px',
+            verticalAlign: 'top',
+        },
+        skillTagSmall: {
+            display: 'inline-block',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            backgroundColor: '#f3f4f6', // Light grey tags from image
+            color: '#374151',
+            margin: '2px',
+        },
+        statusPill: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
+        }
+    };
 
     return (
+        <div style={styles.tableContainer}>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={styles.table}>
+                    <thead>
+                        <tr style={styles.tableHeader}>
+                            <th style={styles.th}>ID & Name</th>
+                            <th style={styles.th}>Languages</th>
+                            <th style={styles.th}>Skills & Experience</th>
+                            <th style={styles.th}>Rating</th>
+                            <th style={styles.th}>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {employees.map(emp => (
+                            <tr key={emp.id} style={styles.tableRow}>
+                                <td style={styles.td}>
+                                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#4f46e5', marginBottom: '2px' }}>{emp.employeeId}</div>
+                                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>{emp.fullName}</div>
+                                    <div style={{ fontSize: '13px', color: '#6b7280' }}>{emp.email}</div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        {emp.languages?.map(lang => (
+                                            <span key={lang} style={styles.skillTagSmall}>{lang}</span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                        {emp.skills?.map(skill => (
+                                            <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                                        ))}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        📅 <span style={{ fontWeight: '600' }}>{emp.experienceYears} Years Experience</span>
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontWeight: '700' }}>
+                                        ⭐ {emp.performanceRating}
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <span style={{ 
+                                        ...styles.statusPill, 
+                                        backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#ecfdf5' : '#fef2f2',
+                                        color: emp.availabilityStatus === 'AVAILABLE' ? '#059669' : '#dc2626'
+                                    }}>
+                                        {emp.availabilityStatus}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+return (
         <div style={styles.pageWrapper} onClick={() => setExpandedInfo(null)}>
             <main style={styles.container}>
                 {message.text && (
@@ -250,19 +349,57 @@ const ApprovalDashboard = () => {
                     </div>
                 </div>
 
-                <div style={styles.tabContainer}>
-                    <button style={{...styles.tab, ...(activeTab === 'staffing' ? styles.activeTab : {})}} onClick={() => setActiveTab('staffing')}>
-                        Staffing Requests ({staffingTasks.length})
-                    </button>
-                    <button style={{...styles.tab, ...(activeTab === 'assignment' ? styles.activeTab : {})}} onClick={() => setActiveTab('assignment')}>
-                        Employee Assignments ({assignmentTasks.length})
-                    </button>
-                    <button style={{...styles.tab, ...(activeTab === 'employees' ? styles.activeTab : {})}} onClick={() => setActiveTab('employees')}>
-                        Employee List ({employees.length})
-                    </button>
-                    <button style={{...styles.tab, ...(activeTab === 'success' ? styles.activeTab : {})}} onClick={() => setActiveTab('success')}>
-                        Successful Assignments ({completedAssignments.length})
-                    </button>
+                <div>
+                    <div style={styles.tabContainer}>
+                        <button 
+                            style={{...styles.tab, ...(activeTab === 'staffing' ? styles.activeTab : {})}} 
+                            onClick={() => setActiveTab('staffing')}
+                        >
+                            Staffing Requests ({staffingTasks.length})
+                        </button>
+                        <button 
+                            style={{...styles.tab, ...(activeTab === 'assignment' ? styles.activeTab : {})}} 
+                            onClick={() => setActiveTab('assignment')}
+                        >
+                            Employee Assignments ({assignmentTasks.length})
+                        </button>
+                        <button 
+                            style={{...styles.tab, ...(activeTab === 'employees' ? styles.activeTab : {})}} 
+                            onClick={() => setActiveTab('employees')}
+                        >
+                            Employee List ({employees.length})
+                        </button>
+                        <button 
+                            style={{...styles.tab, ...(activeTab === 'success' ? styles.activeTab : {})}} 
+                            onClick={() => setActiveTab('success')}
+                        >
+                            Successful Assignments ({completedAssignments.length})
+                        </button>
+                    </div>
+
+                    <div style={{ 
+                        padding: '20px 0 10px 0', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'baseline' 
+                    }}>
+                        <h2 style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '800', 
+                            color: '#111827', 
+                            margin: 0,
+                            fontFamily: 'inherit'
+                        }}>
+                            {activeTab === 'staffing' && "Action Required : Staffing Request Approval"}
+                            {activeTab === 'assignment' && "Action Required : Employee Assignments"}
+                            {activeTab === 'employees' && "Internal Workforce"}
+                            {activeTab === 'success' && "Successfully Staffed"}
+                            
+                            <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '400', marginLeft: '8px' }}>
+                                {departmentName ? `Viewing ${departmentName} operations` : ''}
+                            </span>
+                        </h2>
+                    </div>
                 </div>
 
                 <div style={styles.list}>
@@ -274,92 +411,153 @@ const ApprovalDashboard = () => {
                         (activeTab === 'staffing' ? staffingTasks : assignmentTasks).length > 0 ? (
                             (activeTab === 'staffing' ? staffingTasks : assignmentTasks).map((item) => {
                                 const itemId = item.requestId;
-                                const emp = item.assignedUser?.employee;
+                                const isExternal = !!item.externalEmployee;
+                                const emp = isExternal ? item.externalEmployee : item.assignedUser?.employee;
                                 const manager = item.project?.managerUser?.employee || item.createdBy;
-                                const planner = item.department?.resourcePlanner;
-                                const matchScore = calculateMatch(item.requiredSkills, emp?.skills);
+                                
+                                const matchScore = isExternal 
+                                    ? Math.round(item.externalEmployee.evaluationScore) 
+                                    : calculateMatch(item.requiredSkills, emp?.skills);
+
+                                const candidateName = emp ? `${emp.firstName} ${emp.lastName}` : "Pending Assignment";
+                                const experience = isExternal ? emp?.experienceYears : item.experienceYears;
 
                                 return (
-                                    <div key={itemId} style={styles.cardlessRow}>
+                                    <div key={itemId} style={{
+                                        ...styles.cardlessRow,
+                                        borderLeft: activeTab === 'assignment' ? `5px solid ${isExternal ? '#0ea5e9' : '#6366f1'}` : 'none',
+                                        marginBottom: '16px',
+                                        padding: '24px'
+                                    }}>
                                         <div style={styles.cardMain}>
-                                            <div style={styles.cardHeader}>
-                                                <div>
-                                                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                                                        <h2 style={styles.jobTitle}>{item.title}</h2>
+                                            <div style={{ ...styles.cardHeader, alignItems: 'flex-start' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    {/* TAGS & TITLE ROW */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                                        {isExternal && (
+                                                            <>
+                                                                <span style={{
+                                                                    fontSize: '11px', fontWeight: 'bold', padding: '3px 10px', borderRadius: '6px',
+                                                                    backgroundColor: '#0f172a', color: '#fff', textTransform: 'uppercase'
+                                                                }}>EXTERNAL</span>
+                                                                <span style={{
+                                                                    fontSize: '11px', fontWeight: '600', padding: '2px 10px', borderRadius: '6px',
+                                                                    backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0'
+                                                                }}>Provider: {item.externalEmployee.provider}</span>
+                                                            </>
+                                                        )}
+                                                        <h2 style={{ ...styles.jobTitle, margin: 0, fontSize: '22px' }}>{item.title}</h2>
+                                                        
                                                         {activeTab === 'assignment' && (
                                                             <span style={{
                                                                 ...styles.matchBadge, 
                                                                 background: matchScore > 75 ? '#dcfce7' : '#fef9c3',
-                                                                color: matchScore > 75 ? '#166534' : '#854d0e'
+                                                                color: matchScore > 75 ? '#166534' : '#854d0e',
+                                                                borderRadius: '20px', padding: '4px 12px'
                                                             }}>
                                                                 {matchScore}% Match
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p style={styles.subHeader}>
-                                                        <span style={styles.projectLink}>{item.project?.name || item.projectName}</span>
-                                                        <span style={styles.separator}>|</span>
-                                                        <span style={{fontWeight: '700', color: activeTab === 'staffing' ? '#64748b' : '#4338ca'}}>
-                                                            {activeTab === 'staffing' ? (item.department?.name || "Pending") : `Candidate: ${emp?.firstName} ${emp?.lastName}`}
+                                                    
+                                                    {/* PROJECT INFO SUBHEADER */}
+                                                    <p style={{ ...styles.subHeader, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <span style={{ ...styles.projectLink, color: '#6366f1', fontWeight: '600' }}>{item.project?.name || item.projectName}</span>
+                                                        <span style={styles.separator}>•</span>
+                                                        <span style={{ fontWeight: '500', color: '#4b5563' }}>
+                                                            {activeTab === 'staffing' ? "Resource Request" : `Candidate: ${candidateName}`}
                                                         </span>
                                                     </p>
                                                 </div>
-                                                <div style={styles.priceGroup}>
-                                                    <span style={styles.wage}>€{item.wagePerHour}/hr</span>
-                                                    <div style={{ position: 'relative' }}>
-                                                        <button 
-                                                            style={styles.infoCircle} 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setExpandedInfo(expandedInfo === itemId ? null : itemId);
-                                                            }}
-                                                        >i</button>
-                                                        
-                                                        {expandedInfo === itemId && (
-                                                            <div style={styles.floatingTab} onClick={(e) => e.stopPropagation()}>
-                                                                <div style={styles.infoSection}>
-                                                                    <h5 style={styles.panelTitle}>STAKEHOLDERS</h5>
-                                                                    <p style={styles.floatText}><strong>Project Manager:</strong> {manager?.firstName} {manager?.lastName} ({manager?.email})</p>
-                                                                    <p style={styles.floatText}><strong>Resource Planner:</strong> {planner?.email || 'Not Assigned'}</p>
-                                                                    
-                                                                    <h5 style={{...styles.panelTitle, marginTop: '12px'}}>PROJECT CONTEXT</h5>
-                                                                    <p style={styles.floatText}>{item.project?.description || item.projectContext}</p>
-                                                                </div>
+
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+                                                <span style={styles.wage}>€{isExternal ? emp.wagePerHour : item.wagePerHour}/hr</span>
+    
+                                                {/* Relative wrapper keeps the panel anchored to the button's position */}
+                                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                                    <button 
+                                                        style={{ ...styles.infoCircle, width: '28px', height: '28px', fontSize: '14px', cursor: 'pointer' }} 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedInfo(expandedInfo === itemId ? null : itemId);
+                                                        }}
+                                                    >
+                                                        i
+                                                    </button>
+
+                                                    {expandedInfo === itemId && (
+                                                        <div 
+                                                            style={{
+                                                                ...styles.floatingTab,
+                                                                position: 'absolute',
+                                                                top: '35px',        // Positions it just below the button
+                                                                right: '0',         // Aligns right edge with button
+                                                                width: '280px',
+                                                                backgroundColor: '#fff',
+                                                                borderRadius: '8px',
+                                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                                                                border: '1px solid #e2e8f0',
+                                                                padding: '16px',
+                                                                zIndex: 999,        // Ensures it stays on top of other content
+                                                                textAlign: 'left'
+                                                            }} 
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <div style={styles.infoSection}>
+                                                                <h5 style={{ ...styles.panelTitle, margin: '0 0 8px 0', fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>STAKEHOLDERS</h5>
+                                                                <p style={{ ...styles.floatText, margin: '0 0 4px 0', fontSize: '13px' }}>
+                                                                    <strong>Project Manager:</strong> {manager?.firstName} {manager?.lastName}
+                                                                </p>                                    
+                                                                <p style={{ ...styles.floatText, margin: '0 0 12px 0', fontSize: '13px' }}>
+                                                                    <strong>Email:</strong> {manager?.email}
+                                                                </p>                                    
+                                                                
+                                                                <h5 style={{ ...styles.panelTitle, margin: '0 0 8px 0', fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>PROJECT CONTEXT</h5>
+                                                                <p style={{ ...styles.floatText, margin: 0, fontSize: '13px', lineHeight: '1.5' }}>
+                                                                    {item.project?.description || item.projectContext}
+                                                                </p>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            </div>
+
+                                            {/* DATA GRID */}
+                                            <div style={{ ...styles.metaGrid, marginTop: '20px', backgroundColor: '#f8fafc', padding: '15px', borderRadius: '12px' }}>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>ID:</span> <span style={{ fontWeight: '600' }}>{isExternal ? item.externalEmployee.externalEmployeeId : itemId}</span></div>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>Location:</span> <span style={{ fontWeight: '600' }}>{emp?.location || item.projectLocation}</span></div>
+                                                </div>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>Mode:</span> <span style={{ fontWeight: '600' }}>{item.workLocation}</span></div>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>Schedule:</span> <span style={{ fontWeight: '600' }}>{item.projectStartDate}</span></div>
+                                                </div>
+                                                <div style={styles.metaCol}>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>Util:</span> <span style={{ fontWeight: '600' }}>{item.availabilityHoursPerWeek} hrs/wk</span></div>
+                                                    <div style={styles.metaItem}><span style={{ color: '#64748b' }}>Exp:</span> <span style={{ fontWeight: '600' }}>{experience} yr(s)</span></div>
                                                 </div>
                                             </div>
 
-                                            <div style={styles.metaGrid}>
-                                                <div style={styles.metaCol}>
-                                                    <div style={styles.metaItem}><strong>ID:</strong> {itemId}</div>
-                                                    <div style={styles.metaItem}><strong>Project Location:</strong> {item.projectLocation || item.project?.location}</div>
+                                            {/* DESCRIPTION & SKILLS */}
+                                            <div style={{ ...styles.descriptionRow, marginTop: '20px', gap: '40px' }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <span style={{ ...styles.smallLabel, color: '#1e293b', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Description</span>
+                                                    <p style={{ ...styles.descText, marginTop: '8px', color: '#475569', lineHeight: '1.6' }}>{item.description || item.jobDescription}</p>
                                                 </div>
-                                                <div style={styles.metaCol}>
-                                                    <div style={styles.metaItem}><strong>Mode:</strong> {item.workLocation}</div>
-                                                    <div style={styles.metaItem}><strong>Schedule:</strong> {item.projectStartDate} to {item.projectEndDate}</div>
-                                                </div>
-                                                <div style={styles.metaCol}>
-                                                    <div style={styles.metaItem}><strong>Utilization:</strong> {item.availabilityHoursPerWeek} hrs/week</div>
-                                                    <div style={styles.metaItem}><strong>Experience:</strong> {item.experienceYears} year(s)</div>
-                                                </div>
-                                            </div>
-
-                                            <div style={styles.descriptionRow}>
-                                                <div style={styles.descCol}>
-                                                    <span style={styles.smallLabel}>Role Description :</span>
-                                                    <p style={styles.descText}>{item.description}</p>
-                                                </div>
-                                                <div style={styles.descCol}>
-                                                    <span style={styles.smallLabel}>
-                                                        {activeTab === 'staffing' ? 'Required Skills :' : 'Candidate Skills :'}
+                                                <div style={{ flex: 1 }}>
+                                                    <span style={{ ...styles.smallLabel, color: '#1e293b', fontWeight: '700', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
+                                                        {activeTab === 'staffing' ? 'Required Skills' : 'Candidate Profile'}
                                                     </span>
-                                                    <div style={styles.skillRow}>
-                                                        {(activeTab === 'staffing' ? item.requiredSkills : emp?.skills || []).map(skill => (
+                                                    <div style={{ ...styles.skillRow, marginTop: '8px' }}>
+                                                        {(activeTab === 'staffing' ? item.requiredSkills : emp?.skills || item.employeeSkills || []).map(skill => (
                                                             <span key={skill} style={{
                                                                 ...styles.skillBadge,
-                                                                border: (activeTab === 'assignment' && item.requiredSkills?.includes(skill)) ? '1.5px solid #4338ca' : 'none'
+                                                                padding: '4px 12px',
+                                                                backgroundColor: '#fff',
+                                                                border: (activeTab === 'assignment' && item.requiredSkills?.includes(skill)) ? `2px solid ${isExternal ? '#0ea5e9' : '#6366f1'}` : '1px solid #e2e8f0',
+                                                                color: '#334155',
+                                                                fontWeight: '500'
                                                             }}>
                                                                 {skill}
                                                             </span>
@@ -369,17 +567,17 @@ const ApprovalDashboard = () => {
                                             </div>
                                         </div>
 
-                                        <div style={styles.actionCol}>
+                                        <div style={{ ...styles.actionCol, justifyContent: 'center', gap: '12px', minWidth: '140px' }}>
                                             <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDecision(itemId, true); }} 
-                                                style={styles.btnAccept}
+                                                onClick={(e) => { e.stopPropagation(); handleDecision(itemId, true, isExternal); }} 
+                                                style={{ ...styles.btnAccept, width: '100%', padding: '12px' }}
                                                 disabled={pendingAction !== null}
                                             >
                                                 {pendingAction === `true-${itemId}` ? "..." : "Approve"}
                                             </button>
                                             <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDecision(itemId, false); }} 
-                                                style={styles.btnReject}
+                                                onClick={(e) => { e.stopPropagation(); setTargetRequestId(itemId); setShowRejectModal(true); }} 
+                                                style={{ ...styles.btnReject, width: '100%', padding: '12px' }}
                                                 disabled={pendingAction !== null}
                                             >
                                                 {pendingAction === `false-${itemId}` ? "..." : "Reject"}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Briefcase, Calendar, Clock, AlertCircle, Send, MapPin, List, CheckCircle } from 'lucide-react';
 
 const StaffingRequest = () => {
@@ -28,28 +29,25 @@ const StaffingRequest = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
+    // --- FETCH PROJECTS ---
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const projRes = await fetch('http://localhost:8080/api/projects');
-                if (projRes.ok) {
-                    const projData = await projRes.json();
-                    setProjects(projData);
-                } else {
-                    setMessage({ type: 'error', text: 'Projects failed to load. Check API.' });
-                }
+                // Using axios - interceptor handles the token automatically
+                const res = await axios.get('http://localhost:8080/api/projects');
+                setProjects(res.data || []);
             } catch (err) {
-                setMessage({ type: 'error', text: 'Connection error: Backend unreachable.' });
+                setMessage({ type: 'error', text: 'Projects failed to load. Check API.' });
             }
         };
         fetchProjects();
     }, []);
 
+    // --- HANDLE PROJECT CHANGE ---
     const handleProjectChange = async (e) => {
         const id = e.target.value;
         const selectedProj = projects.find(p => p.id.toString() === id);
         
-        // KEEPING YOUR EXACT LOGIC: Reset departments and set form data
         setDepartments([]);
         setFormData({
             ...formData,
@@ -61,22 +59,19 @@ const StaffingRequest = () => {
 
         if (id) {
             try {
-                // FIXED: Using the new simplified endpoint that matches your Swagger
-                const deptRes = await fetch(`http://localhost:8080/api/departments`);
-                if (deptRes.ok) {
-                    const deptData = await deptRes.ok ? await deptRes.json() : [];
-                    
-                    // KEEPING YOUR EXACT LOGIC: The reduce function to ensure uniqueness
-                    const uniqueDepts = deptData.reduce((acc, current) => {
-                        const exists = acc.find(item => item.name === current.name);
-                        if (!exists) return acc.concat([current]);
-                        return acc;
-                    }, []);
-                    
-                    setDepartments(uniqueDepts);
-                }
+                const res = await axios.get(`http://localhost:8080/api/department-head/all-departments`);
+                const deptData = res.data || [];
+                
+                // Logic to ensure unique department names
+                const uniqueDepts = deptData.reduce((acc, current) => {
+                    const exists = acc.find(item => item.name === current.name);
+                    if (!exists) return acc.concat([current]);
+                    return acc;
+                }, []);
+                
+                setDepartments(uniqueDepts);
             } catch (err) {
-                console.error("Error fetching project departments:", err);
+                console.error("Error fetching departments:", err);
             }
         }
     };
@@ -85,6 +80,7 @@ const StaffingRequest = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // --- VALIDATION LOGIC ---
     const validateForm = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0); 
@@ -106,17 +102,13 @@ const StaffingRequest = () => {
         const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
         if (diffInDays < 60) return "Project duration must be at least 2 months (60 days).";
         
-        const maxSpanMs = 5 * 365.25 * 24 * 60 * 60 * 1000; 
-        if (diffInMs > maxSpanMs) return "Project span cannot exceed 5 years.";
-        
         if (isNaN(experience) || experience < 1 || experience > 25) return "Experience must be between 1 and 25 years.";
-        
-        if (isNaN(wage) || wage <= 0) return "Wage per hour must be greater than zero.";
-        if (wage > 40) return "Max wage allowed is 40.00 €.";
+        if (isNaN(wage) || wage <= 0 || wage > 40) return "Wage must be between 0.01 and 40.00 €.";
         
         return null;
     };
 
+    // --- SUBMIT REQUEST ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
@@ -131,38 +123,42 @@ const StaffingRequest = () => {
         setLoading(true);
         
         const payload = {
-            ...formData,
+            title: formData.title,
+            description: formData.description,
+            projectId: parseInt(formData.projectId),
+            departmentId: parseInt(formData.departmentId),
             experienceYears: parseInt(formData.experienceYears),
             availabilityHoursPerWeek: parseInt(formData.availabilityHoursPerWeek), 
+            projectStartDate: formData.projectStartDate,
+            projectEndDate: formData.projectEndDate,
             wagePerHour: parseFloat(formData.wagePerHour),
-            requiredSkills: formData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== ""),
-            projectId: parseInt(formData.projectId),
-            departmentId: parseInt(formData.departmentId)
+            projectLocation: formData.projectLocation,
+            workLocation: formData.workLocation,
+            requiredSkills: formData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== "")
         };
 
         try {
-            const response = await fetch('http://localhost:8080/api/requests/create', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': '1' 
-                },
-                body: JSON.stringify(payload)
-            });
+            // Interceptor handles headers. Data is passed as second argument.
+            const response = await axios.post('http://localhost:8080/api/manager/create-staffing-requests', payload);
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 setIsSubmitted(true);
-                window.scrollTo(0, 0); 
-            } else {
-                setMessage({ type: 'error', text: 'Backend rejected the request.' });
             }
         } catch (err) {
-            setMessage({ type: 'error', text: 'Network Error: Check Spring Boot.' });
+            const status = err.response?.status;
+            if (status === 401) {
+                setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
+            } else if (status === 403) {
+                setMessage({ type: 'error', text: 'Insufficient permissions to create requests.' });
+            } else {
+                setMessage({ type: 'error', text: 'Backend rejected the request. Please check input data.' });
+            }
         } finally {
             setLoading(false);
         }
     };
 
+    // --- SUCCESS SCREEN ---
     if (isSubmitted) {
         return (
             <div style={styles.container}>
@@ -170,7 +166,7 @@ const StaffingRequest = () => {
                     <CheckCircle size={64} color="#10b981" style={{marginBottom: '20px', marginInline: 'auto'}} />
                     <h2 style={styles.title}>Request Submitted</h2>
                     <p style={{color: '#6b7280', margin: '15px 0 30px'}}>
-                        Your request has been sent and is now being processed.
+                        Your request has been sent and is now being processed by the resource planner.
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                         <button onClick={() => window.location.reload()} style={{...styles.submitBtn, width: 'auto', paddingInline: '40px'}}>
@@ -205,7 +201,7 @@ const StaffingRequest = () => {
 
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Job Description</label>
-                        <textarea name="description" style={{...styles.input, ...styles.textarea}} placeholder="Brief Description of the required position" onChange={handleChange} required />
+                        <textarea name="description" style={{...styles.input, ...styles.textarea}} placeholder="Brief Description..." onChange={handleChange} required />
                     </div>
 
                     <div style={styles.row}>
@@ -232,13 +228,7 @@ const StaffingRequest = () => {
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}><MapPin size={14}/> Work Location</label>
-                            <select 
-                                name="workLocation"  
-                                style={styles.select} 
-                                value={formData.workLocation}
-                                onChange={handleChange} 
-                                required 
-                            >
+                            <select name="workLocation" style={styles.select} value={formData.workLocation} onChange={handleChange} required>
                                 <option value="">Select Location</option>
                                 <option value="Onsite">Onsite</option>
                                 <option value="Remote">Remote</option>
@@ -249,32 +239,16 @@ const StaffingRequest = () => {
                     <div style={styles.row}>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Experience (Years)</label>
-                            <input 
-                                name="experienceYears" 
-                                type="text" 
-                                value={formData.experienceYears}
-                                style={styles.input} 
-                                onChange={(e) => {
-                                    if (/^\d*$/.test(e.target.value)) handleChange(e);
-                                }} 
-                                required 
-                            />
+                            <input name="experienceYears" type="number" style={styles.input} onChange={handleChange} required />
                         </div>
                         <div style={styles.flexItem}>
                             <label style={styles.label}>Wage / Hour (€)</label>
-                            <input 
-                                name="wagePerHour" 
-                                type="number" 
-                                step="0.01" 
-                                style={styles.input} 
-                                onChange={handleChange} 
-                                required 
-                            />
+                            <input name="wagePerHour" type="number" step="0.1" style={styles.input} onChange={handleChange} required />
                         </div>
                     </div>
 
                     <div style={styles.inputGroup}>
-                        <label style={styles.label}><List size={14}/> Required Skills </label>
+                        <label style={styles.label}><List size={14}/> Required Skills</label>
                         <input name="requiredSkills" placeholder="React, Spring Boot, SQL" style={styles.input} onChange={handleChange} required />
                     </div>
 
@@ -288,17 +262,11 @@ const StaffingRequest = () => {
                             <input name="projectEndDate" type="date" style={styles.input} onChange={handleChange} required />
                         </div>
                         <div style={styles.flexItem}>
-                            <label style={styles.label}>Hrs/Week</label>
-                            <select 
-                                name="availabilityHoursPerWeek" 
-                                style={styles.select} 
-                                value={formData.availabilityHoursPerWeek}
-                                onChange={handleChange} 
-                                required 
-                            >
+                            <label style={styles.label}>Contract Type</label>
+                            <select name="availabilityHoursPerWeek" style={styles.select} value={formData.availabilityHoursPerWeek} onChange={handleChange} required>
                                 <option value="">Select Hours</option>
-                                <option value="40">Full time contract (40 hrs/week)</option>
-                                <option value="20">Part time contract (20 hrs/week)</option>
+                                <option value="40">Full time (40 hrs/week)</option>
+                                <option value="20">Part time (20 hrs/week)</option>
                             </select>
                         </div>
                     </div>
@@ -312,6 +280,7 @@ const StaffingRequest = () => {
     );
 };
 
+// ... Styles stay exactly the same ...
 const styles = {
     container: { minHeight: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', background: '#f3f4f6', padding: '30px 20px' },
     glassCard: { background: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', width: '100%', maxWidth: '850px', marginTop: '10px' },

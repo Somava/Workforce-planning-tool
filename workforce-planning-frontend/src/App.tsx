@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import Login from './components/Login';
 import DeptHeadApproval from './components/DeptHeadApproval';
 import EmployeeDashboard from './components/EmployeeDashboard';
@@ -7,15 +8,57 @@ import ResourcePlannerMatch from './components/ResourcePlannerMatch';
 import StaffingRequest from './components/StaffingRequest';
 import ManagerHome from './components/ManagerHome';
 
+// --- TYPES ---
+interface ProtectedRouteProps {
+    children: ReactNode;
+    allowedRoles?: string[];
+}
+
+// --- JWT AXIOS INTERCEPTOR ---
+axios.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// --- PROTECTED ROUTE COMPONENT ---
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Role-based access control
+    if (allowedRoles && role && !allowedRoles.includes(role)) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+};
+
 const Navigation = () => {
     const location = useLocation();
+    const token = localStorage.getItem("token");
     const role = localStorage.getItem("role") || "";
     const firstName = localStorage.getItem("firstName") || "";
     const lastName = localStorage.getItem("lastName") || "";
     const email = localStorage.getItem("email") || "";
-    const hrid = localStorage.getItem("employeeHrid") || "undefined";
+    const hrid = localStorage.getItem("employeeHrid") || "N/A";
 
-    if (["/", "/login"].includes(location.pathname)) return null;
+    // Navigation is hidden on Login pages or if logged out
+    if (["/", "/login"].includes(location.pathname) || !token) return null;
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = "/";
+    };
 
     return (
         <nav style={styles.nav}>
@@ -38,7 +81,7 @@ const Navigation = () => {
                         <span style={styles.idTag}>ID: {hrid}</span>
                     </div>
                 </div>
-                <button style={styles.logout} onClick={() => { localStorage.clear(); window.location.href="/"; }}>Logout</button>
+                <button style={styles.logout} onClick={handleLogout}>Logout</button>
             </div>
         </nav>
     );
@@ -53,14 +96,35 @@ const App = () => {
                     <Route path="/" element={<Login />} />
                     <Route path="/login" element={<Login />} />
                     
-                    {/* Components from image_5e2ee7.png */}
-                    <Route path="/planning" element={<ResourcePlannerMatch />} />
-                    <Route path="/approval" element={<DeptHeadApproval />} />
-                    <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+                    <Route path="/planning" element={
+                        <ProtectedRoute allowedRoles={['ROLE_RESOURCE_PLNR']}>
+                            <ResourcePlannerMatch />
+                        </ProtectedRoute>
+                    } />
                     
-                    {/* Manager Logic */}
-                    <Route path="/manager-home" element={<ManagerHome />} />
-                    <Route path="/create-request" element={<StaffingRequest />} />
+                    <Route path="/approval" element={
+                        <ProtectedRoute allowedRoles={['ROLE_DEPT_HEAD']}>
+                            <DeptHeadApproval />
+                        </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/manager-home" element={
+                        <ProtectedRoute allowedRoles={['ROLE_MANAGER']}>
+                            <ManagerHome />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/create-request" element={
+                        <ProtectedRoute allowedRoles={['ROLE_MANAGER']}>
+                            <StaffingRequest />
+                        </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/employee-dashboard" element={
+                        <ProtectedRoute allowedRoles={['ROLE_EMPLOYEE']}>
+                            <EmployeeDashboard />
+                        </ProtectedRoute>
+                    } />
 
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

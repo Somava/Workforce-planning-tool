@@ -13,14 +13,14 @@ const STATUS_CONFIG = {
     'APPROVED': { color: '#d1fae5', textColor: '#065f46', label: 'Approved/Open' },
     'REJECTED': { color: '#fee2e2', textColor: '#b91c1c', label: 'Rejected' },
     'EMPLOYEE_RESERVED': { color: '#fae8ff', textColor: '#86198f', label: 'Employee Reserved' },
-    'INT_EMPLOYEE_APPROVED_BY_DH': { color: '#ecfdf5', textColor: '#047857', label: 'Int. Approved' },
-    'INT_EMPLOYEE_REJECTED_BY_DH': { color: '#fff1f2', textColor: '#be123c', label: 'Int. DH Rejected' },
-    'INT_EMPLOYEE_REJECTED_BY_EMP': { color: '#fff1f2', textColor: '#be123c', label: 'Emp. Declined' },
-    'INT_EMPLOYEE_ASSIGNED': { color: '#dcfce7', textColor: '#166534', label: 'Int. Assigned' },
+    'INT_EMPLOYEE_APPROVED_BY_DH': { color: '#ecfdf5', textColor: '#047857', label: 'Internal Employee Approved' },
+    'INT_EMPLOYEE_REJECTED_BY_DH': { color: '#fff1f2', textColor: '#be123c', label: 'Internal Employee Rejected by Dept. Head' },
+    'INT_EMPLOYEE_REJECTED_BY_EMP': { color: '#fff1f2', textColor: '#be123c', label: 'Employee Declined' },
+    'INT_EMPLOYEE_ASSIGNED': { color: '#dcfce7', textColor: '#166534', label: 'Internal Employee Assigned' },
     'EXTERNAL_SEARCH_TRIGGERED': { color: '#eff6ff', textColor: '#1d4ed8', label: 'External Search' },
-    'EXTERNAL_RESPONSE_RECEIVED': { color: '#f0f9ff', textColor: '#075985', label: 'Ext. Response' },
-    'EXT_EMPLOYEE_REJECTED_BY_DH': { color: '#fef2f2', textColor: '#991b1b', label: 'Ext. DH Rejected' },
-    'NO_EXT_EMPLOYEE_FOUND': { color: '#f9fafb', textColor: '#4b5563', label: 'No Ext. Found' },
+    'EXTERNAL_RESPONSE_RECEIVED': { color: '#f0f9ff', textColor: '#075985', label: 'External Response' },
+    'EXT_EMPLOYEE_REJECTED_BY_DH': { color: '#fef2f2', textColor: '#991b1b', label: 'External Employee Rejected by Dept. Head' },
+    'NO_EXT_EMPLOYEE_FOUND': { color: '#f9fafb', textColor: '#4b5563', label: 'No External Employee Found' },
     'ASSIGNED': { color: '#f3e8ff', textColor: '#6b21a8', label: 'Staff Assigned' },
     'CANCELLED': { color: '#111827', textColor: '#ffffff', label: 'Cancelled' },
     'OPEN': { color: '#ecfdf5', textColor: '#047857', label: 'Active' },
@@ -55,20 +55,41 @@ const ManagerHome = () => {
         endDate: "",
         location: ""
     });
+// --- 1. VALIDATION LOGIC ---
+const validateResubmission = (data, originalReq) => {
+    const wage = parseFloat(data.wagePerHour);
+    const experience = parseInt(data.experienceYears);
+    
+    let diffInDays = 100; 
+    if(originalReq.projectStartDate && originalReq.projectEndDate) {
+        const start = new Date(originalReq.projectStartDate);
+        const end = new Date(originalReq.projectEndDate);
+        const diffInMs = end - start;
+        diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+    }
 
-    const fetchRequests = useCallback(async () => {
-    if (!userEmail) return;
+    if (!data.title || !data.description) return "Position title and description are required.";
+    if (diffInDays < 60) return "Project duration must be at least 2 months (60 days).";
+    if (isNaN(experience) || experience < 1 || experience > 25) return "Experience must be between 1 and 25 years.";
+    if (isNaN(wage) || wage < 1 || wage > 40) return "Wage must be between 1.00 and 40.00 €.";
+    if (!data.workLocation) return "Please select a work location.";
+    
+    return null;
+};
+
+// --- 2. DATA FETCHING ---
+const fetchRequests = useCallback(async () => {
     setIsRefreshing(true);
     try {
+        // Updated endpoints to match your request; Interceptor attaches token automatically
         const [recentRes, rejectedRes, empRes, projRes, successRes] = await Promise.all([
-            axios.get(`http://localhost:8080/api/requests/manager-requests?email=${userEmail}`),
-            axios.get(`http://localhost:8080/api/manager/manager/rejected-requests?email=${userEmail}`),
-            axios.get(`http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}`),
+            axios.get(`http://localhost:8080/api/manager/all-staffing-requests`), // Fixed spelling to 'staffing'
+            axios.get(`http://localhost:8080/api/manager/rejected-requests`),
+            axios.get(`http://localhost:8080/api/workforce-overview/all-employees`),
             axios.get(`http://localhost:8080/api/projects`),
-            axios.get(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`)
+            axios.get(`http://localhost:8080/api/workforce-overview/success-notifications`)
         ]);
 
-        // Using || [] fallbacks to prevent ".map is not a function" errors
         setRequests(recentRes.data || []);
         setRejectedRequests(rejectedRes.data || []);
         setEmployees(empRes.data || []);
@@ -78,127 +99,109 @@ const ManagerHome = () => {
         setLastSynced(new Date().toLocaleTimeString());
     } catch (err) {
         console.error("Fetch failed", err);
-        // Optional: Set states to empty arrays on error to clear old data
         setRequests([]);
         setRejectedRequests([]);
-        setSuccessAssignments([]);
     } finally {
         setIsRefreshing(false);
     }
-    }, [userEmail]);
+}, []); 
 
-    useEffect(() => {
+// --- 3. AUTO-REFRESH EFFECT ---
+useEffect(() => {
+    fetchRequests();
+    const interval = setInterval(fetchRequests, 30000);
+    return () => clearInterval(interval);
+}, [fetchRequests]); 
+
+// --- 4. PROJECT CREATION ---
+const handleCreateProject = async () => {
+    setProjectError(""); 
+    const { name, startDate, endDate, description, location } = newProject;
+
+    if (!name || !startDate || !endDate || !description || !location) {
+        setProjectError("All fields are required.");
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start < today) {
+        setProjectError("Start date cannot be in the past.");
+        return;
+    }
+
+    const minEndDate = new Date(start);
+    minEndDate.setFullYear(start.getFullYear() + 1);
+
+    if (end < minEndDate) {
+        setProjectError("Project duration must be at least 1 year (12 months).");
+        return;
+    }
+
+    try {
+        // managerEmail removed; backend identifies user via JWT
+        await axios.post(`http://localhost:8080/api/projects/create`, newProject);
+        setShowProjectModal(false);
+        setNewProject({ name: "", description: "", startDate: "", endDate: "", location: "" });
+        fetchRequests(); 
+    } catch (err) {
+        setProjectError("Failed to create project. Technical error occurred.");
+    }
+};
+
+// --- 5. REVIEW DECISION ---
+const handleDecision = async (id, isResubmit, originalReq = null) => {
+    setError("");
+    let payload = {};
+
+    if (isResubmit) {
+        const validationError = validateResubmission(editData, originalReq);
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
+        payload = {
+            title: editData.title,
+            description: editData.description,
+            requiredSkills: typeof editData.requiredSkills === 'string' 
+                ? editData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== "")
+                : editData.requiredSkills,
+            experienceYears: parseInt(editData.experienceYears),
+            wagePerHour: parseFloat(editData.wagePerHour),
+            workLocation: editData.workLocation,
+            availabilityHoursPerWeek: parseInt(editData.availabilityHoursPerWeek)
+        };
+    }
+
+    try {
+        // email parameter removed; identity extracted from token by JwtAuthFilter
+        const url = `http://localhost:8080/api/manager/staffing-request/review-decision?requestId=${id}&isResubmit=${isResubmit}`;
+        await axios.post(url, payload);
+        setResubmitModal(null);
         fetchRequests();
-        const interval = setInterval(fetchRequests, 30000);
-        return () => clearInterval(interval);
-    }, [fetchRequests]);
+    } catch (err) {
+        setError("Communication with server failed. Please try again.");
+    }
+};
 
-    const handleCreateProject = async () => {
-        setProjectError(""); 
-        const { name, startDate, endDate, description, location } = newProject;
-
-        if (!name || !startDate || !endDate || !description || !location) {
-            setProjectError("All fields are required.");
-            return;
-        }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        if (start < today) {
-            setProjectError("Start date cannot be in the past.");
-            return;
-        }
-
-        const minEndDate = new Date(start);
-        minEndDate.setFullYear(start.getFullYear() + 1);
-
-        if (end < minEndDate) {
-            setProjectError("Project duration must be at least 1 year (12 months).");
-            return;
-        }
-
-        try {
-            await axios.post(`http://localhost:8080/api/projects/create?managerEmail=${userEmail}`, newProject);
-            setShowProjectModal(false);
-            setNewProject({ name: "", description: "", startDate: "", endDate: "", location: "" });
-            fetchRequests(); 
-        } catch (err) {
-            setProjectError("Failed to create project. Technical error occurred.");
-        }
-    };
-
-    const validateResubmission = (data, originalReq) => {
-        const wage = parseFloat(data.wagePerHour);
-        const experience = parseInt(data.experienceYears);
-        
-        let diffInDays = 100; 
-        if(originalReq.projectStartDate && originalReq.projectEndDate) {
-            const start = new Date(originalReq.projectStartDate);
-            const end = new Date(originalReq.projectEndDate);
-            const diffInMs = end - start;
-            diffInDays = diffInMs / (1000 * 60 * 60 * 24);
-        }
-
-        if (!data.title || !data.description) return "Position title and description are required.";
-        if (diffInDays < 60) return "Project duration must be at least 2 months (60 days).";
-        if (isNaN(experience) || experience < 1 || experience > 25) return "Experience must be between 1 and 25 years.";
-        if (isNaN(wage) || wage < 1 || wage > 40) return "Wage must be between 1.00 and 40.00 €.";
-        if (!data.workLocation) return "Please select a work location.";
-        
-        return null;
-    };
-
-    const handleDecision = async (id, isResubmit, originalReq = null) => {
-        setError("");
-        let payload = {};
-
-        if (isResubmit) {
-            const validationError = validateResubmission(editData, originalReq);
-            if (validationError) {
-                setError(validationError);
-                return;
-            }
-
-            payload = {
-                title: editData.title,
-                description: editData.description,
-                requiredSkills: typeof editData.requiredSkills === 'string' 
-                    ? editData.requiredSkills.split(',').map(s => s.trim()).filter(s => s !== "")
-                    : editData.requiredSkills,
-                experienceYears: parseInt(editData.experienceYears),
-                wagePerHour: parseFloat(editData.wagePerHour),
-                workLocation: editData.workLocation,
-                availabilityHoursPerWeek: parseInt(editData.availabilityHoursPerWeek)
-            };
-        }
-
-        try {
-            const url = `http://localhost:8080/api/manager/staffing-request/review-decision?requestId=${id}&email=${userEmail}&isResubmit=${isResubmit}`;
-            await axios.post(url, payload);
-            setResubmitModal(null);
-            fetchRequests();
-        } catch (err) {
-            setError("Communication with server failed. Please try again.");
-        }
-    };
-
-    const openResubmitModal = (req) => {
-        setError("");
-        setEditData({
-            title: req.title,
-            description: req.description,
-            requiredSkills: req.requiredSkills?.join(', ') || "",
-            experienceYears: req.experienceYears,
-            wagePerHour: req.wagePerHour,
-            workLocation: req.workLocation || "Remote",
-            availabilityHoursPerWeek: req.availabilityHoursPerWeek || "40"
-        });
-        setResubmitModal(req);
-    };
-
+// --- 6. MODAL CONTROL ---
+const openResubmitModal = (req) => {
+    setError("");
+    setEditData({
+        title: req.title,
+        description: req.description,
+        requiredSkills: req.requiredSkills?.join(', ') || "",
+        experienceYears: req.experienceYears,
+        wagePerHour: req.wagePerHour,
+        workLocation: req.workLocation || "Remote",
+        availabilityHoursPerWeek: req.availabilityHoursPerWeek || "40"
+    });
+    setResubmitModal(req);
+};
     // Components like DetailRow and StatusBadge should be defined or used here
     const DetailRow = ({ label, value }) => (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { ChevronRight, ArrowLeft, RefreshCw, UserCheck, Cpu, Zap, Globe, Award, Phone, AlertCircle, CheckCircle, Users, Mail, MapPin, Briefcase } from 'lucide-react';
 
 const ResourcePlannerMatch = () => {
@@ -20,79 +21,52 @@ const ResourcePlannerMatch = () => {
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }, [view]);
 
-    // Fetch Employee List (from the Swagger endpoint)
-    const fetchEmployees = useCallback(async () => {
+    // 1. Consolidated Data Fetching
+    const fetchDashboardData = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/workforce-overview/all-employees?email=${userEmail}`);
-            const data = await response.json();
-            setEmployees(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error("Failed to fetch employee list");
-        } finally {
-            setLoading(false);
-        }
-    }, [userEmail]);
+            const [reqRes, successRes, empRes] = await Promise.all([
+                axios.get('http://localhost:8080/api/resource-planner/approved-requests'),
+                axios.get('http://localhost:8080/api/workforce-overview/success-notifications'),
+                axios.get('http://localhost:8080/api/workforce-overview/all-employees')
+            ]);
 
-    const fetchRequests = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`http://localhost:8080/api/tasks/resource-planner?email=${userEmail}`);
-            const data = await response.json();
-            const list = Array.isArray(data) ? data : [];
+            const list = Array.isArray(reqRes.data) ? reqRes.data : [];
             setRequests(list);
+            setSuccessAssignments(Array.isArray(successRes.data) ? successRes.data : []);
+            setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
 
             if (list.length > 0 && list[0].department) {
                 setDepartmentName(list[0].department.name);
-            } else {
-                switch (userEmail) {
-                    case "eve@frauas.de": setDepartmentName("Information Technology"); break;
-                    case "charlie@frauas.de": setDepartmentName("Research & Development"); break;
-                    case "diana@frauas.de": setDepartmentName("Human Resources"); break;
-                    default: setDepartmentName("Department");
-                }
             }
+            
             setLastSynced(new Date().toLocaleTimeString());
         } catch (err) {
-            setMessage({ text: "Error connecting to Planner API.", type: 'error' });
+            console.error("Fetch error:", err);
+            setMessage({ text: "Error syncing with Planner API.", type: 'error' });
         } finally {
             setLoading(false);
         }
-    }, [userEmail]);
+    }, []);
 
-    const fetchSuccess = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`http://localhost:8080/api/workforce-overview/success-notifications?email=${userEmail}`);
-            const data = await response.json();
-            setSuccessAssignments(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error("Failed to fetch success notifications");
-        } finally {
-            setLoading(false);
-        }
-    }, [userEmail]);
-
+    // Initial Load
     useEffect(() => {
-        fetchRequests();
-        fetchSuccess();
-        fetchEmployees(); // Initialize employee list
-    }, [fetchRequests, fetchSuccess, fetchEmployees]);
+        fetchDashboardData();
+    }, [fetchDashboardData]); 
 
+    // 2. Load Matches (Uses requestId param)
     const handleLoadMatches = async (req) => {
         setLoading(true);
         setSelectedRequest(req);
         try {
-            const res = await fetch(`http://localhost:8080/api/resource-planner/staffing-requests/matches?requestId=${req.requestId}&topN=10`);
-            const data = await res.json();
+            const res = await axios.get(`http://localhost:8080/api/resource-planner/staffing-requests/employee-matches`, {
+                params: { requestId: req.requestId, topN: 10 }
+            });
             
-            if (data && data.matches && Array.isArray(data.matches)) {
-                setCandidates(data.matches);
-            } else if (Array.isArray(data)) {
-                setCandidates(data);
-            } else {
-                setCandidates([]); 
-            }
+            const data = res.data;
+            // Handle both { matches: [] } and flat array []
+            const matchData = data?.matches && Array.isArray(data.matches) ? data.matches : (Array.isArray(data) ? data : []);
+            setCandidates(matchData);
             
             setView('matching');
         } catch (err) {
@@ -103,134 +77,235 @@ const ResourcePlannerMatch = () => {
         }
     };
 
+    // 3. Handle Decision (Reserve vs External)
     const handleDecision = async (employeeDbId, accept) => {
         setLoading(true);
         try {
-            const url = `http://localhost:8080/api/resource-planner/staffing-requests/reserve?requestId=${selectedRequest.requestId}&internalFound=${accept}`;
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: accept ? JSON.stringify({ employeeDbId }) : JSON.stringify({})
-            });
+            const response = await axios.post(
+                `http://localhost:8080/api/resource-planner/staffing-requests/employee-reserve-decision`, 
+                accept ? { employeeDbId } : {}, 
+                { params: { requestId: selectedRequest.requestId, internalFound: accept } }
+            );
 
-            if (res.ok) {
+            if (response.status === 200 || response.status === 201) {
                 setMessage({ 
-                    text: accept ? "Employee Reserved successfully!" : "External recruitment process triggered.", 
+                    text: accept ? "Employee Reserved successfully! 🎉" : "External recruitment process triggered.", 
                     type: 'success' 
                 });
                 setView('list');
-                fetchRequests();
-                fetchSuccess(); 
-                fetchEmployees();
-            } else {
-                setMessage({ text: "Action failed. Please check API status.", type: 'error' });
+                fetchDashboardData(); 
             }
         } catch (err) {
-            setMessage({ text: "Connection error. Action failed.", type: 'error' });
+            const errorMsg = err.response?.data || "Connection error. Action failed.";
+            setMessage({ text: errorMsg, type: 'error' });
         } finally {
             setLoading(false);
-            setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            setTimeout(() => setMessage({ text: '', type: '' }), 8000);
+        }
+    };
+    // --- NEW: RENDER EMPLOYEE LIST ---
+   const renderEmployeeList = () => {
+    // Specifically tuned to match the "Internal Workforce" UI in image_161d15.png
+    const styles = {
+        tableContainer: {
+            backgroundColor: '#fff',
+            borderRadius: '12px',
+            padding: '24px',
+            marginTop: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        },
+        table: {
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontFamily: 'inherit',
+        },
+        tableHeader: {
+            backgroundColor: '#fcfcfc', // Very light grey as seen in screenshot
+        },
+        th: {
+            padding: '12px 8px',
+            textAlign: 'left',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            borderBottom: '1px solid #f3f4f6',
+        },
+        tableRow: {
+            borderBottom: '1px solid #f9fafb',
+        },
+        td: {
+            padding: '16px 8px',
+            verticalAlign: 'top',
+        },
+        skillTagSmall: {
+            display: 'inline-block',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            backgroundColor: '#f3f4f6', // Light grey tags from image
+            color: '#374151',
+            margin: '2px',
+        },
+        statusPill: {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            letterSpacing: '0.5px',
         }
     };
 
-    // --- NEW: RENDER EMPLOYEE LIST ---
-    const renderEmployeeList = () => (
-        <div style={{ overflowX: 'auto', marginTop: '10px' }}>
-            <table style={styles.table}>
-                <thead>
-                    <tr style={styles.tableHeader}>
-                        <th style={styles.th}>ID & Name</th>
-                        <th style={styles.th}>Languages</th>
-                        <th style={styles.th}>Skills & Experience</th>
-                        <th style={styles.th}>Rating</th>
-                        <th style={styles.th}>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {employees.map(emp => (
-                        <tr key={emp.employeeId} style={styles.tableRow}>
-                            <td style={styles.td}>
-                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1' }}>{emp.employeeId}</div>
-                                <div style={{ fontWeight: 'bold', color: '#111827' }}>{emp.fullName}</div>
-                                <div style={{ fontSize: '12px', color: '#6b7280' }}>{emp.email}</div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                                    {emp.languages?.map(lang => (
-                                        <span key={lang} style={styles.skillTagSmall}> {lang}</span>
-                                    ))}
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                                    {emp.skills?.map(skill => (
-                                        <span key={skill} style={styles.skillTagSmall}>{skill}</span>
-                                    ))}
-                                </div>
-                                <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
-                                    📅 {emp.experienceYears} Years Experience
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>⭐ {emp.performanceRating}</span>
-                                </div>
-                            </td>
-                            <td style={styles.td}>
-                                <span style={{ 
-                                    ...styles.statusPill, 
-                                    backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#dcfce7' : '#fee2e2',
-                                    color: emp.availabilityStatus === 'AVAILABLE' ? '#166534' : '#991b1b'
-                                }}>
-                                    {emp.availabilityStatus}
-                                </span>
-                            </td>
+    return (
+        <div style={styles.tableContainer}>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={styles.table}>
+                    <thead>
+                        <tr style={styles.tableHeader}>
+                            <th style={styles.th}>ID & Name</th>
+                            <th style={styles.th}>Languages</th>
+                            <th style={styles.th}>Skills & Experience</th>
+                            <th style={styles.th}>Rating</th>
+                            <th style={styles.th}>Status</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {employees.map(emp => (
+                            <tr key={emp.id} style={styles.tableRow}>
+                                <td style={styles.td}>
+                                    <div style={{ fontSize: '12px', fontWeight: '600', color: '#4f46e5', marginBottom: '2px' }}>{emp.employeeId}</div>
+                                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>{emp.fullName}</div>
+                                    <div style={{ fontSize: '13px', color: '#6b7280' }}>{emp.email}</div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                        {emp.languages?.map(lang => (
+                                            <span key={lang} style={styles.skillTagSmall}>{lang}</span>
+                                        ))}
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                        {emp.skills?.map(skill => (
+                                            <span key={skill} style={styles.skillTagSmall}>{skill}</span>
+                                        ))}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        📅 <span style={{ fontWeight: '600' }}>{emp.experienceYears} Years Experience</span>
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontWeight: '700' }}>
+                                        ⭐ {emp.performanceRating}
+                                    </div>
+                                </td>
+                                <td style={styles.td}>
+                                    <span style={{ 
+                                        ...styles.statusPill, 
+                                        backgroundColor: emp.availabilityStatus === 'AVAILABLE' ? '#ecfdf5' : '#fef2f2',
+                                        color: emp.availabilityStatus === 'AVAILABLE' ? '#059669' : '#dc2626'
+                                    }}>
+                                        {emp.availabilityStatus}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
+};
 
     const renderSuccessAssignments = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {successAssignments.length === 0 ? (
-                <div style={styles.emptyState}>No successful assignments recorded yet.</div>
-            ) : (
-                successAssignments.map(item => (
-                    <div key={item.requestId} style={styles.successRow}>
-                        <div style={{ flex: '1' }}>
-                            <div style={styles.headerRow}>
-                                <h3 style={styles.projectTitleText}>{item.employeeName}</h3>
-                                <span style={styles.performanceBadge}>
-                                    ⭐ PERFORMANCE: {item.performanceRating}
-                                </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+            {successAssignments.map(item => (
+                <div key={item.requestId} style={{
+                    ...styles.projectRow, 
+                    display: 'flex', 
+                    flexDirection: 'row', 
+                    alignItems: 'stretch', 
+                    padding: '24px', 
+                    borderLeft: '5px solid #10b981', 
+                    backgroundColor: '#fff', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                    <div style={{ flex: '1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{ ...styles.projectTitleText, margin: 0, fontSize: '24px' }}>{item.employeeName}</h3>
+                            <span style={{ 
+                                background: '#dcfce7', 
+                                color: '#166534', 
+                                padding: '4px 10px', 
+                                borderRadius: '6px', 
+                                fontSize: '11px', 
+                                fontWeight: '800', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px'
+                            }}>
+                                ⭐ PERFORMANCE: {item.performanceRating}
+                            </span>
+                        </div>
+                        
+                        <div style={{ 
+                            background: '#f0fdf4', 
+                            padding: '12px 16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #bbf7d0', 
+                            color: '#166534', 
+                            fontSize: '13px', 
+                            marginBottom: '16px', 
+                            lineHeight: '1.4'
+                        }}>
+                            ✨ {item.congratsMessage}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', fontSize: '15px', marginBottom: '16px', fontWeight: '500' }}>
+                            <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
+                            <span style={{ color: '#d1d5db' }}>|</span>
+                            <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                        </div>
+
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1.2fr 1.2fr 1.5fr', 
+                            gap: '20px', 
+                            background: '#f8fafc', 
+                            padding: '16px', 
+                            borderRadius: '8px', 
+                            border: '1px solid #f1f5f9'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
                             </div>
-                            <div style={styles.congratsBanner}>✨ {item.congratsMessage}</div>
-                            <div style={styles.projectSubline}>
-                                <span style={{ color: '#4f46e5' }}>{item.projectName}</span>
-                                <span style={{ color: '#d1d5db' }}>|</span>
-                                <span style={{ color: '#6b7280' }}>{item.jobTitle}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
+                                <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
                             </div>
-                            <div style={styles.metaGridSuccess}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Employee ID:</strong> {item.employeeId}</div>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Location:</strong> {item.projectLocation}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Wage:</strong> €{item.wagePerHour}/hr</div>
-                                    <div style={{ fontSize: '13px', color: '#475569' }}><strong>Timeline:</strong> {item.startDate} to {item.endDate}</div>
-                                </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
-                                    {item.employeeSkills?.map(skill => (
-                                        <span key={skill} style={styles.skillTagSmallSuccess}>{skill}</span>
-                                    ))}
-                                </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignContent: 'center' }}>
+                                {item.employeeSkills?.map(skill => (
+                                    <span key={skill} style={{ 
+                                        background: '#e0e7ff', 
+                                        color: '#4338ca', 
+                                        padding: '4px 10px', 
+                                        borderRadius: '6px', 
+                                        fontSize: '11px', 
+                                        fontWeight: '700' 
+                                    }}>
+                                        {skill}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     </div>
-                ))
-            )}
+                </div>
+            ))}
         </div>
     );
 
@@ -255,33 +330,56 @@ const ResourcePlannerMatch = () => {
                     </div>
                     <div style={styles.syncGroup}>
                         <span style={styles.syncText}>Last synced: {lastSynced}</span>
-                        <button onClick={(e) => { e.stopPropagation(); fetchRequests(); fetchSuccess(); fetchEmployees(); }} style={styles.refreshBtn} disabled={loading}>
+                        <button onClick={(e) => { e.stopPropagation(); fetchDashboardData(); }} style={styles.refreshBtn} disabled={loading}>
                             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                         </button>
                     </div>
                 </div>
 
-                <div style={styles.tabBar}>
-                    <button 
-                        style={{...styles.tabItem, ...(view === 'list' ? styles.activeTab : {})}} 
-                        onClick={() => setView('list')}
-                    >
-                        Pending Approvals ({requests.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(view === 'success' ? styles.activeTab : {})}} 
-                        onClick={() => setView('success')}
-                    >
-                        Successful Assignments ({successAssignments.length})
-                    </button>
-                    <button 
-                        style={{...styles.tabItem, ...(view === 'employees' ? styles.activeTab : {})}} 
-                        onClick={() => setView('employees')}
-                    >
-                        Employee List ({employees.length})
-                    </button>
-                </div>
+                <div>
+    {/* Your existing Tab Bar */}
+                    <div style={styles.tabBar}>
+                        <button 
+                            style={{...styles.tabItem, ...(view === 'list' ? styles.activeTab : {})}} 
+                            onClick={() => setView('list')}
+                        >
+                            Pending Approvals ({requests.length})
+                        </button>
+                        <button 
+                            style={{...styles.tabItem, ...(view === 'success' ? styles.activeTab : {})}} 
+                            onClick={() => setView('success')}
+                        >
+                            Successful Assignments ({successAssignments.length})
+                        </button>
+                        <button 
+                            style={{...styles.tabItem, ...(view === 'employees' ? styles.activeTab : {})}} 
+                            onClick={() => setView('employees')}
+                        >
+                            Employee List ({employees.length})
+                        </button>
+                    </div>
 
+                    {/* New Dynamic Sub-heading Section */}
+                    <div style={{ 
+                        padding: '20px 0 10px 5px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'baseline' 
+                    }}>
+                        <h2 style={{ 
+                            fontSize: '20px', 
+                            fontWeight: '800', 
+                            color: '#111827', 
+                            margin: 0,
+                            marginBottom : 10,
+                            fontFamily: 'inherit'
+                        }}>
+                            {view === 'list' && "Action Required : Employee Assignment"}
+                            {view === 'success' && "Successfully Staffed"}
+                            {view === 'employees' && "Internal Workforce"}
+                        </h2>
+                    </div>
+                </div>
                 {view === 'list' && (
                     <div style={styles.list}>
                         {requests.length === 0 ? (
@@ -342,7 +440,7 @@ const ResourcePlannerMatch = () => {
                                             </div>
                                             <div style={styles.metaCol}>
                                                 <div style={styles.metaItem}><strong>Exp Required:</strong> {item.experienceYears} yr(s)</div>
-                                                <div style={styles.metaItem}><strong>Req. Hours:</strong> {item.availabilityHoursPerWeek} hrs/wk</div>
+                                                <div style={styles.metaItem}><strong>Required Hours:</strong> {item.availabilityHoursPerWeek} hrs/wk</div>
                                             </div>
                                             <div style={styles.metaCol}>
                                                 <div style={styles.metaItem}><strong>Start:</strong> {item.projectStartDate}</div>
@@ -382,7 +480,7 @@ const ResourcePlannerMatch = () => {
                 {view === 'matching' && (
                     <div>
                         <button onClick={() => setView('list')} style={styles.backBtn}><ArrowLeft size={18}/> Back</button>
-                        <h1 style={styles.mainTitle}>Best Matches for Request #{selectedRequest?.requestId}</h1>
+                        <h1 style={styles.mainTitle}>Best Matches for Request {selectedRequest?.requestId}</h1>
                         {candidates.length === 0 ? (
                             <div style={styles.noMatchesFoundCard}>
                                 <AlertCircle size={48} color="#f59e0b" />
@@ -428,12 +526,12 @@ const ResourcePlannerMatch = () => {
                                                 <h4 style={styles.sectionLabel}><Award size={14}/> Professional Profile</h4>
                                                 <p style={styles.detailText}><strong>Seniority:</strong> {emp.seniorityLevel}</p>
                                                 <p style={styles.detailText}><strong>Experience:</strong> {emp.experienceYears} Years</p>
-                                                <p style={styles.detailText}><strong>Perf. Grade:</strong> {emp.performanceGrade}</p>
+                                                <p style={styles.detailText}><strong>Performance Grade:</strong> {emp.performanceGrade}</p>
                                             </div>
                                             <div style={styles.dataColProfile}>
                                                 <h4 style={styles.sectionLabel}><Phone size={14}/> Administration</h4>
                                                 <p style={styles.detailText}><strong>Wage:</strong> €{emp.wagePerHour}/hr</p>
-                                                <p style={styles.detailText}><strong>Emergency:</strong> {emp.emergencyContact}</p>
+                                                <p style={styles.detailText}><strong>Contact:</strong> {emp.emergencyContact}</p>
                                                 <p style={styles.detailText}><strong>Availability:</strong> {emp.availableHoursPerWeek}h/week</p>
                                             </div>
                                         </div>
@@ -457,12 +555,12 @@ const styles = {
     statusMessage: { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '12px 24px', borderRadius: '8px', fontWeight: '600', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
     container: { maxWidth: '1200px', margin: '0 auto', padding: '60px 40px' },
     titleRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' },
-    mainTitle: { fontSize: '38px', fontWeight: '800', color: '#1e293b', margin: 0 },
+    mainTitle: { fontSize: '38px', fontWeight: '800', color: '#1e293b', marginBottom: '10px' },
     subTitle: { color: '#64748b', fontSize: '16px', marginTop: '6px' },
     syncGroup: { display: 'flex', alignItems: 'center', gap: '12px' },
     syncText: { fontSize: '13px', color: '#94a3b8' },
     refreshBtn: { background: 'white', border: '1px solid #e2e8f0', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-    tabBar: { display: 'flex', gap: '20px', marginBottom: '40px', borderBottom: '1px solid #e5e7eb' },
+    tabBar: { display: 'flex', gap: '20px', marginBottom: '10px', borderBottom: '1px solid #e5e7eb' },
     tabItem: { padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: '600', transition: '0.2s', fontSize: '15px' },
     activeTab: { color: '#4f46e5', borderBottom: '2px solid #4f46e5' },
     cardlessRow: { display: 'flex', justifyContent: 'space-between', gap: '50px', marginBottom: '60px', paddingBottom: '40px', borderBottom: '1px solid #f1f5f9' }, 
