@@ -8,7 +8,6 @@ import java.util.List;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.frauas.workforce_planning.model.enums.RequestStatus;
 
@@ -31,6 +30,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "staffing_requests")
 @Data
 @NoArgsConstructor
+// Prevents Jackson from crashing if Hibernate uses lazy-loading proxies
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class StaffingRequest {
 
     @Id
@@ -46,17 +47,17 @@ public class StaffingRequest {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id")
-    // BREAKS THE LOOP: Ignores the list of requests inside the Project object
-    @JsonIgnore
+    // Stop recursion back into the project's list of requests
+    @JsonIgnoreProperties({"staffingRequests", "hibernateLazyInitializer", "handler"})
     private Project project;
 
     @Column(name = "project_name")
     private String projectName;
 
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
-    @JsonIgnoreProperties({"employees", "staffingRequests"})
+    // Stop recursion into department's employee lists
+    @JsonIgnoreProperties({"employees", "staffingRequests", "hibernateLazyInitializer", "handler"})
     private Department department;
 
     @Column(name = "availability_hours_per_week")
@@ -98,17 +99,33 @@ public class StaffingRequest {
     
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by_employee_id")
-    // BREAKS THE LOOP: Ignores the lists inside the Employee object
-    @JsonIgnore
+    // CRITICAL: "user" and "applications" must be ignored to stop circular references
+    @JsonIgnoreProperties({
+        "createdStaffingRequests", 
+        "department", 
+        "supervisor", 
+        "user", 
+        "applications", 
+        "employeeLanguages",
+        "hibernateLazyInitializer", 
+        "handler"
+    })
     private Employee createdBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id") 
-    @JsonIgnore
+    // CRITICAL: "employee" must be ignored to stop the User -> Employee -> User loop
+    @JsonIgnoreProperties({
+        "password", 
+        "roles", 
+        "employee", 
+        "hibernateLazyInitializer", 
+        "handler"
+    })
     private User assignedUser;
 
     public void setAssignedUser(User assignedUser) {
-    this.assignedUser = assignedUser;
+        this.assignedUser = assignedUser;
     }
 
     @Column(name = "created_at", insertable = false, updatable = false)
@@ -122,5 +139,4 @@ public class StaffingRequest {
 
     @Transient
     private ExternalEmployee externalEmployee;
-
 }
