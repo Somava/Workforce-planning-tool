@@ -11,7 +11,7 @@ spring:
       #mode: never
 
   datasource:
-    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:6543/postgres?pgbouncer=true&prepareThreshold=0
+    url: jdbc:postgresql://db.qxcvxtbxdhhixagimhak.supabase.co:5432/postgres?prepareThreshold=0
     username: postgres
     password: 'FRAU@20242025'
     driver-class-name: org.postgresql.Driver
