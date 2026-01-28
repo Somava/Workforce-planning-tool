@@ -115,13 +115,7 @@ public class StaffingRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_user_id") 
     // CRITICAL: "employee" must be ignored to stop the User -> Employee -> User loop
-    @JsonIgnoreProperties({
-        "password", 
-        "roles", 
-        "employee", 
-        "hibernateLazyInitializer", 
-        "handler"
-    })
+   @JsonIgnoreProperties({"password", "roles", "enabled", "authorities", "username", "accountNonExpired", "accountNonLocked", "credentialsNonExpired"})
     private User assignedUser;
 
     public void setAssignedUser(User assignedUser) {
