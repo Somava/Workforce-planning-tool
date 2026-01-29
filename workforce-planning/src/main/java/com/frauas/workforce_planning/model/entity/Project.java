@@ -45,6 +45,7 @@ public class Project {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_user_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "managedProjects", "employee"})
     private User managerUser;
 
     // NOTE: resource_planner_user_id is removed because it is missing from the 'projects' table in your data.sql
