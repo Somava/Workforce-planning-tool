@@ -29,6 +29,7 @@ import com.frauas.workforce_planning.repository.ProjectRepository;
 import com.frauas.workforce_planning.repository.StaffingRequestRepository;
 import com.frauas.workforce_planning.model.entity.ProjectDepartment;
 import com.frauas.workforce_planning.model.entity.User;
+import com.frauas.workforce_planning.dto.StaffingRequestDTO;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -606,5 +607,65 @@ public List<SuccessDashboardDTO> getSuccessDashboardNotifications(String email) 
                 .send()
                 .join();
     }
+    // Add this method to your StaffingRequestService class
+
+public StaffingRequestDTO mapToDTO(StaffingRequest entity) {
+    StaffingRequestDTO dto = new StaffingRequestDTO();
+    
+    // 1. Basic Fields
+    dto.setRequestId(entity.getRequestId());
+    dto.setTitle(entity.getTitle());
+    dto.setDescription(entity.getDescription());
+    dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
+    dto.setRejectionReason(entity.getRejectionReason());
+    dto.setWagePerHour(entity.getWagePerHour());
+    dto.setExperienceYears(entity.getExperienceYears());
+    dto.setAvailabilityHoursPerWeek(entity.getAvailabilityHoursPerWeek());
+    dto.setRequiredSkills(entity.getRequiredSkills());
+    dto.setProjectStartDate(entity.getProjectStartDate());
+    dto.setProjectEndDate(entity.getProjectEndDate());
+    dto.setProjectContext(entity.getProjectContext());
+    dto.setProjectLocation(entity.getProjectLocation());
+    dto.setWorkLocation(entity.getWorkLocation());
+    dto.setCreatedAt(entity.getCreatedAt());
+
+    // 2. Flatten Candidate Name (For the main list)
+    // First check external, then internal
+    if (entity.getExternalEmployee() != null) {
+        dto.setFirstName(entity.getExternalEmployee().getFirstName());
+        dto.setLastName(entity.getExternalEmployee().getLastName());
+    } else if (entity.getAssignedUser() != null && entity.getAssignedUser().getEmployee() != null) {
+        dto.setFirstName(entity.getAssignedUser().getEmployee().getFirstName());
+        dto.setLastName(entity.getAssignedUser().getEmployee().getLastName());
+        dto.setAssignedUserId(entity.getAssignedUser().getId());
+    }
+
+    // 3. Flatten Project & Manager (For the "i" button)
+    if (entity.getProject() != null) {
+        dto.setProjectName(entity.getProject().getName());
+        if (entity.getProject().getManagerUser() != null) {
+            User managerUser = entity.getProject().getManagerUser();
+            dto.setManagerEmail(managerUser.getEmail());
+            if (managerUser.getEmployee() != null) {
+                dto.setManagerName(managerUser.getEmployee().getFirstName() + " " + 
+                                  managerUser.getEmployee().getLastName());
+            }
+        }
+    }
+
+    // 4. Flatten Department (For the "i" button)
+    if (entity.getDepartment() != null) {
+        dto.setDepartmentName(entity.getDepartment().getName());
+    }
+
+    return dto;
+}
+
+// 5. UPDATE the fetching method to return DTOs
+public List<StaffingRequestDTO> getAllRequestsAsDto() {
+    return repository.findAll().stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
+}
 
 }
